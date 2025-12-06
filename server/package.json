@@ -1,0 +1,32 @@
+{
+    "name": "giftchain-server",
+    "version": "1.0.0",
+    "description": "GiftChain Backend Server",
+    "main": "dist/server.js",
+    "scripts": {
+        "dev": "ts-node src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js"
+    },
+    "dependencies": {
+        "fastify": "^5.0.0",
+        "@fastify/cors": "^10.0.0",
+        "@fastify/multipart": "^9.0.0",
+        "@fastify/jwt": "^9.0.0",
+        "fastify-type-provider-zod": "^4.0.0",
+        "mongoose": "^8.0.0",
+        "zod": "^3.22.0",
+        "dotenv": "^16.3.0",
+        "bcryptjs": "^2.4.3",
+        "@mysten/sui": "^1.45.2",
+        "@ika.xyz/sdk": "^0.2.3",
+        "@solana/web3.js": "^1.87.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.0",
+        "ts-node": "^10.9.0",
+        "@types/node": "^20.0.0",
+        "@types/bcryptjs": "^2.4.6",
+        "nodemon": "^3.0.0"
+    }
+}
