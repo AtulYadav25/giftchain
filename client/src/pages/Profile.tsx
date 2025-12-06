@@ -78,11 +78,11 @@ const Profile = () => {
             <div className="max-w-5xl mx-auto px-6 pt-12 space-y-16">
 
                 {/* 1. Top Section */}
-                <header className="flex flex-col md:flex-row items-center gap-8">
+                <header className="flex flex-col md:flex-row items-center gap-8 mt-12">
                     <div className="relative group">
                         <div className="w-32 h-32 rounded-full bg-white p-1 shadow-lg rotate-3 transition-transform group-hover:rotate-0 duration-300">
                             <img
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=santa"
                                 alt="Avatar"
                                 className="w-full h-full rounded-full bg-blue-100"
                             />
@@ -98,14 +98,14 @@ const Profile = () => {
 
                     <div className="text-center md:text-left space-y-2">
                         <h1 className="text-5xl md:text-6xl text-blue-900 drop-shadow-sm">Your Gifts</h1>
-                        <p className="text-xl text-blue-600/80 font-medium tracking-wide">
+                        <p className="text-xl font-lexend text-blue-600/80 font-medium tracking-wide">
                             Track everything you’ve sent and received, all wrapped with love ✨
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setIsGiftModalOpen(true)}
-                            className="mt-4 px-8 py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white rounded-full font-bold shadow-lg shadow-pink-200/50 flex items-center gap-2 mx-auto md:mx-0 animate-pulse hover:animate-none transition-all"
+                            className="mt-4 font-lexend px-8 py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white rounded-full font-bold shadow-lg shadow-pink-200/50 flex items-center gap-2 mx-auto md:mx-0 animate-pulse hover:animate-none transition-all"
                         >
                             <Heart className="fill-white" size={20} />
                             Gift Someone
@@ -117,7 +117,7 @@ const Profile = () => {
                 <section>
                     <div className="flex items-center gap-3 mb-6">
                         <Gift className="text-pink-500" />
-                        <h2 className="text-2xl text-blue-800">Waiting for you...</h2>
+                        <h2 className="text-2xl text-blue-800 ">Waiting for you...</h2>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -170,7 +170,7 @@ const Profile = () => {
                     {/* Sent Gifts Table */}
                     <TableCard title="Gifts You Sent" icon={<ArrowUpRight size={20} className="text-blue-500" />}>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
+                            <table className="w-full text-left text-sm font-lexend">
                                 <thead className="text-slate-400 border-b border-slate-100">
                                     <tr>
                                         <th className="pb-3 pl-4 font-medium min-w-[200px]">To</th>
@@ -230,7 +230,7 @@ const Profile = () => {
                     {/* Received Gifts Table */}
                     <TableCard title="Gifts You Received" icon={<ArrowDownLeft size={20} className="text-green-500" />}>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
+                            <table className="w-full text-left text-sm font-lexend">
                                 <thead className="text-slate-400 border-b border-slate-100">
                                     <tr>
                                         <th className="pb-3 pl-4 font-medium min-w-[200px]">From</th>

@@ -45,6 +45,9 @@
   --font-jua: var(--font-jua);
   --font-gluten: var(--font-gluten);
   --font-cherry: var(--font-cherry);
+  --font-dongle: var(--font-dongle);
+  --font-lexend: var(--font-lexend);
+  --font-sourgummy: var(--font-sourgummy);
 
   /* Custom Colors  */
   --color-main-clr: var(--main-clr);
@@ -90,11 +93,14 @@
   --font-jua: "Jua", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-gluten: "Gluten", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-cherry: "Cherry Bomb One", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-dongle: "Dongle", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-lexend: "Lexend", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-sourgummy: "Sour Gummy", system-ui, Avenir, Helvetica, Arial, sans-serif;
 
   /* Colors  */
   --main-clr: #92d1f5;
   --secondary-clr: #599dc3;
-  
+
 }
 
 @layer base {
