@@ -1,0 +1,269 @@
+GiftChain is a web app where users can send digital “wrapped gifts” to each other.
+Each gift includes:
+
+a wrapper image (stored directly in MongoDB)
+
+an optional message
+
+sender & receiver
+
+opened/unopened status
+
+optional blockchain payments (SUI or SOL via Ika)
+
+The website has:
+
+a Send Gift feature
+
+a Received Gifts section (unopened + opened)
+
+a Sent Gifts history
+
+ability to upload custom wrapper images
+
+optional payment flow using
+
+Sui SDK
+
+Ika SDK (Solana MPC signing)
+
+Users authenticate using JWT, and all blockchain operations must run securely on the server.
+
+✅ TASK: BUILD THE COMPLETE BACKEND
+
+Create a full backend server for GiftChain using the following tech stack:
+
+Node.js
+
+Fastify
+
+TypeScript
+
+MongoDB
+
+JWT authentication
+
+Sui SDK (latest)
+
+Ika SDK (latest)
+
+Dotenv
+
+Zod validation
+
+Bcrypt
+
+Use the latest documentation and latest package versions.
+
+Store wrapper images directly in MongoDB (Buffer)
+The server should accept file uploads using Fastify multipart and save them to MongoDB.
+
+✅ INSTRUCTIONS: DO ALL OF THE FOLLOWING
+
+Generate fully working server code with complete file structure, including:
+
+🔹 1. Full backend folder structure
+
+Organize the project in a scalable, professional structure:
+
+src/
+  server.ts
+  app.ts
+  config/
+    env.ts
+    db.ts
+  middlewares/
+    auth.ts
+    errorHandler.ts
+  routes/
+    auth.routes.ts
+    gift.routes.ts
+    wrapper.routes.ts
+    payment.routes.ts
+  controllers/
+    auth.controller.ts
+    gift.controller.ts
+    wrapper.controller.ts
+    payment.controller.ts
+  services/
+    auth.service.ts
+    gift.service.ts
+    wrapper.service.ts
+    sui.service.ts
+    ika.service.ts
+  validations/
+    auth.schema.ts
+    gift.schema.ts
+    wrapper.schema.ts
+  models/
+    user.model.ts
+    gift.model.ts
+    wrapper.model.ts
+  utils/
+    jwt.ts
+    hash.ts
+
+🔹 2. Implement all API endpoints with full logic
+🔐 AUTH
+
+POST /auth/signup
+
+POST /auth/login
+
+POST /auth/refresh-token
+
+GET /auth/me
+
+Use JWT access + refresh tokens.
+Password hashing with bcrypt.
+
+🎁 GIFTS
+
+POST /gifts/send
+
+GET /gifts/sent
+
+GET /gifts/received
+
+GET /gifts/:id
+
+POST /gifts/open/:id
+
+Logic must include:
+
+sender/receiver linking
+
+storing wrapper reference
+
+saving message
+
+marking gift as opened
+
+timestamps
+
+🎨 WRAPPERS
+
+GET /wrappers
+
+POST /wrappers/upload
+
+Accept multipart file
+
+Store in MongoDB as Buffer or GridFS
+
+Save metadata (name, type, size, userId)
+
+Return wrapper ID
+
+💰 BLOCKCHAIN – SUI
+
+POST /payments/sui/send
+
+GET /payments/sui/balance
+
+Use Sui SDK latest version
+Private keys must be securely stored in .env
+NEVER expose to client.
+
+💰 BLOCKCHAIN – SOL (via Ika MPC)
+
+POST /payments/sol/send
+
+GET /payments/sol/balance
+
+Use Ika SDK latest version with MPC signing:
+
+create dWallet
+
+initialize MPC session
+
+sign a Solana transaction via Ika
+
+broadcast via Solana RPC
+
+Never expose MPC state or keys to the client.
+
+🔹 3. Security Requirements
+
+JWT authentication middleware
+
+Validate every input using Zod
+
+Hash passwords with bcrypt
+
+Store wallet/private/MPC keys in .env
+
+Protect all routes except auth
+
+Input sanitization
+
+Error handling middleware
+
+Rate limit /auth/* routes
+
+Blockchain signing must run ONLY on server
+
+🔹 4. Generate complete source code for ALL FILES
+
+You must output full content of:
+
+every file in src/
+
+config
+
+all controllers
+
+all services
+
+all validation schemas
+
+all MongoDB models (User, Gift, Wrapper with image Buffer/GridFS)
+
+all route definitions
+
+server bootstrap
+
+environment loader
+
+middleware files
+
+package.json
+
+tsconfig.json
+
+.env.example
+
+README.md with full setup instructions
+
+correct TypeScript types for every model & response
+
+Do NOT generate placeholder code.
+Provide fully functional, production-ready code.
+
+🔹 5. Use the latest recommended configuration
+
+correct tsconfig
+
+correct Fastify version
+
+correct MongoDB connection
+
+correct multipart handling
+
+correct JWT handling
+
+proper imports
+
+correct TypeScript types everywhere
+
+🔹 6. Output Requirements
+
+Provide entire project structure
+
+Provide complete code for ALL files
+
+Ensure all imports are valid
+
+No missing files or missing exports
+
+Make sure the codebase is fully runnable

@@ -4,27 +4,72 @@ import mongoose from 'mongoose';
 export const createGift = async (senderId: string, data: any) => {
     const gift = await Gift.create({
         senderId,
-        receiverId: data.receiverId,
+        senderWallet: data.senderWallet,
         receiverWallet: data.receiverWallet,
-        wrapperId: data.wrapperId,
+
+        amountUSD: data.amountUSD,
+        tokenAmount: data.tokenAmount,
+        tokenSymbol: data.tokenSymbol, // 'sui' | 'sol'
+
+        wrapper: data.wrapper,
         message: data.message,
+
         status: 'sent',
-        chainId: data.chainId,
-        // amount: data.amount - Handle payment logic in controller or separate service call
+
+        senderTxHash: data.senderTxHash || null,
+        deliveryTxHash: data.deliveryTxHash || null,
+
+        chainID: data.chainID, // 'sui' | 'solana'
+        isAnonymous: data.isAnonymous || false
     });
+
     return gift;
 };
 
-export const getSentGifts = async (userId: string) => {
-    return Gift.find({ senderId: userId }).populate('wrapperId').populate('receiverId', 'username');
+
+export const getSentGifts = async (userId: string, page = 1, limit = 10) => {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+        Gift.find({ senderId: userId })
+            .sort({ createdAt: -1 }) // newest first
+            .skip(skip)
+            .limit(limit),
+
+        Gift.countDocuments({ senderId: userId })
+    ]);
+
+    return { data, total };
 };
 
-export const getReceivedGifts = async (userId: string) => {
-    return Gift.find({ receiverId: userId }).populate('wrapperId').populate('senderId', 'username');
+
+export const getReceivedGifts = async (userId: string, page = 1, limit = 10) => {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+        Gift.find({ receiverId: userId })
+            .sort({ createdAt: -1 }) // newest first
+            .skip(skip)
+            .limit(limit),
+
+        Gift.countDocuments({ receiverId: userId })
+    ]);
+
+    return { data, total };
 };
 
 export const getGiftById = async (giftId: string) => {
-    return Gift.findById(giftId).populate('wrapperId').populate('senderId', 'username receiverId');
+    const gift = await Gift.findById(giftId);
+
+    if (!gift) return null;
+
+    if (gift.isAnonymous) {
+        // return without populating
+        return gift.toObject();
+    }
+
+    // populate only if not anonymous
+    return Gift.findById(giftId).populate('senderId', 'username avatar').lean();
 };
 
 export const openGift = async (giftId: string, userId: string) => {

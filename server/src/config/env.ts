@@ -11,6 +11,10 @@ const envSchema = z.object({
     SUI_PRIVATE_KEY: z.string().optional(),
     IKA_PRIVATE_KEY: z.string().optional(),
     SOLANA_RPC_URL: z.string().default('https://api.devnet.solana.com'),
+    COOKIE_SECRET: z.string().min(1),
+    CLOUDINARY_CLOUD_NAME: z.string().min(1),
+    CLOUDINARY_API_KEY: z.string().min(1),
+    CLOUDINARY_API_SECRET: z.string().min(1)
 });
 
 const _env = envSchema.safeParse(process.env);

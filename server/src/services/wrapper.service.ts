@@ -1,18 +1,19 @@
 import { Wrapper } from '../models/wrapper.model';
 
-export const uploadWrapper = async (file: Buffer, filename: string, mimetype: string, userId: string) => {
+export const uploadWrapper = async (name: string, url: string, publicId: string, priceUSD: number, userId: string) => {
     const wrapper = await Wrapper.create({
-        name: filename,
-        mimeType: mimetype,
-        data: file,
-        uploaderId: userId
+        name,
+        wrapperImg: url,
+        publicId,
+        priceUSD,
+        createdBy: userId
     });
     return wrapper;
 };
 
 export const getWrappers = async () => {
-    // Exclude heavy data buffer from list
-    return Wrapper.find({}, { data: 0 });
+    // Return all wrappers
+    return Wrapper.find().sort({ createdAt: -1 });
 };
 
 export const getWrapperById = async (id: string) => {

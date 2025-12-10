@@ -1,6 +1,7 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import cookie from '@fastify/cookie';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { errorHandler } from './middlewares/errorHandler';
 import { authRoutes } from './routes/auth.routes';
@@ -13,6 +14,10 @@ const app = fastify({ logger: true });
 // Plugins
 app.register(cors);
 app.register(multipart);
+app.register(cookie, {
+    secret: process.env.COOKIE_SECRET, // for signed cookies
+    hook: 'onRequest'
+});
 
 // Validation
 app.setValidatorCompiler(validatorCompiler);

@@ -22,25 +22,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from './ui/input-group';
+import { freeWrappers, premiumWrappers } from '@/assets/wrappers/wrapperIndex.ts';
 
 // Mock Wrappers Data
 const WRAPPERS = {
-    free: [
-        { id: 'f1', name: 'Blue Sky', image: 'bg-blue-200', price: 0 },
-        { id: 'f2', name: 'Pink Love', image: 'bg-pink-200', price: 0 },
-        { id: 'f3', name: 'Sunny Day', image: 'bg-yellow-200', price: 0 },
-        { id: 'f4', name: 'Minty Fresh', image: 'bg-green-200', price: 0 },
-        { id: 'f5', name: 'Lavender', image: 'bg-purple-200', price: 0 },
-        { id: 'f6', name: 'Peach', image: 'bg-orange-200', price: 0 },
-    ],
-    premium: [
-        { id: 'p1', name: 'Galaxy', image: 'bg-gradient-to-r from-purple-500 to-indigo-500', price: 0.99 },
-        { id: 'p2', name: 'Gold Dust', image: 'bg-gradient-to-r from-yellow-400 to-yellow-600', price: 1.49 },
-        { id: 'p3', name: 'Holo', image: 'bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-400', price: 2.99 },
-        { id: 'p4', name: 'Neon Nights', image: 'bg-gradient-to-r from-blue-600 to-purple-600', price: 1.99 },
-        { id: 'p5', name: 'Rose Gold', image: 'bg-gradient-to-r from-rose-300 to-rose-500', price: 1.99 },
-        { id: 'p6', name: 'Midnight', image: 'bg-slate-800', price: 0.50 },
-    ]
+    free: freeWrappers,
+    premium: premiumWrappers,
 };
 
 // Mock Templates
@@ -212,15 +199,26 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                         <div
                                             key={wrapper.id}
                                             onClick={() => setSelectedWrapper(wrapper)}
-                                            className={`relative aspect-square rounded-2xl cursor-pointer transition-all border-4 ${selectedWrapper?.id === wrapper.id ? 'border-blue-400 scale-95' : 'border-transparent hover:scale-105'}`}
+                                            className={`relative aspect-square rounded-2xl cursor-pointer transition-all border-4 ${selectedWrapper?.id === wrapper.id
+                                                ? 'border-blue-400 scale-95'
+                                                : 'border-transparent hover:scale-105'
+                                                }`}
                                         >
-                                            <div className={`w-full h-full rounded-xl ${wrapper.image} shadow-inner bg-cover bg-center`} />
+                                            {/* Wrapper Image */}
+                                            <img
+                                                src={wrapper.image}
+                                                alt={wrapper.name || "Wrapper"}
+                                                className="w-full h-full object-cover rounded-xl shadow-inner"
+                                            />
+
+                                            {/* Price Tag */}
                                             <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold text-slate-700 shadow-sm">
                                                 {wrapper.price === 0 ? 'FREE' : `$${wrapper.price}`}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
+
                             </div>
                         )}
 
@@ -271,9 +269,19 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                             <div className="space-y-6">
                                 {/* Preview Small */}
                                 <div className="flex items-center gap-4 bg-blue-50/50 p-4 rounded-2xl mb-8">
-                                    <div className={`w-12 h-12 rounded-lg ${selectedWrapper?.image} shadow-sm`} />
-                                    <p className="text-sm text-slate-600 line-clamp-2 flex-1 italic font-lexend">"{message || "No message"}"</p>
+                                    {/* Wrapper Image */}
+                                    <img
+                                        src={selectedWrapper?.image}
+                                        alt="Selected wrapper"
+                                        className="w-12 h-12 rounded-lg object-cover shadow-sm"
+                                    />
+
+                                    {/* Message */}
+                                    <p className="text-sm text-slate-600 line-clamp-2 flex-1 italic font-lexend">
+                                        "{message || "No message"}"
+                                    </p>
                                 </div>
+
 
                                 <div className="space-y-6 font-lexend">
                                     <div className="flex items-center justify-between">

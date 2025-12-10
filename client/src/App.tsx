@@ -21,9 +21,6 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
-            {/* <Route path="/explore-dao" element={<ExploreDaos />} />
-            <Route path="/dao/:daoId" element={<DaoDetails />} />
-            <Route path="/my-daos" element={<MyDaos />} /> */}
           </Routes>
         </main>
         {/* <Footer /> */}

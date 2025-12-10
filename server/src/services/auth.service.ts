@@ -1,39 +1,60 @@
 import { User } from '../models/user.model';
-import { hashPassword, comparePassword } from '../utils/hash';
-import { signAccessToken, signRefreshToken } from '../utils/jwt';
+import { signAccessToken } from '../utils/jwt';
+import { verifyPersonalMessageSignature } from '@mysten/sui/verify';
+import crypto from "crypto";
 
-export const signup = async (data: any) => {
-    const existing = await User.findOne({ $or: [{ email: data.email }, { username: data.username }] });
-    if (existing) throw new Error('User already exists');
 
-    const passwordHash = await hashPassword(data.password);
-    const user = await User.create({
-        username: data.username,
-        email: data.email,
-        passwordHash
-    });
+export const requestMessage = async (address: string) => {
+    // Generate a random 6-digit nonce
+    const nonce = crypto.randomInt(100000, 999999);
 
-    return user;
+    // Look for existing user
+    let user = await User.findOne({ address });
+
+    if (!user) {
+        // Create new user with nonce
+        user = await User.create({ address, nonce });
+    } else {
+        // Update nonce for existing user
+        user.nonce = nonce;
+        await user.save();
+    }
+
+    // Authentication message the user must sign
+    const message = `Welcome to GiftChain!\nNonce: ${nonce}`;
+
+    return {
+        message,
+        nonce,
+        userId: user._id
+    };
 };
 
-export const login = async (data: any) => {
-    const user = await User.findOne({ email: data.email });
-    if (!user) throw new Error('Invalid credentials');
+export const verify = async (data: any) => {
+    const { address, message, signature, nonce, userId } = data;
 
-    const match = await comparePassword(data.password, user.passwordHash);
-    if (!match) throw new Error('Invalid credentials');
 
-    const accessToken = signAccessToken({ userId: user._id, username: user.username });
-    const refreshToken = signRefreshToken({ userId: user._id });
-
-    return { user, accessToken, refreshToken };
-};
-
-export const refreshToken = async (token: string) => {
-    const decoded: any = verifyRefreshToken(token);
-    const user = await User.findById(decoded.userId);
+    const user = await User.findOne({ address });
     if (!user) throw new Error('User not found');
 
-    const newAccessToken = signAccessToken({ userId: user._id, username: user.username });
-    return { accessToken: newAccessToken };
+    // Convert message to Uint8Array
+    const messageBytes = new Uint8Array(message);
+
+    // Verify signature
+    let verifiedPublicKey;
+    try {
+        verifiedPublicKey = await verifyPersonalMessageSignature(messageBytes, signature, {
+            address: address,
+        });//Verify the Message is valid, also verifying the message is valid for given address
+    } catch (error) {
+        console.error("Signature verification error:", error.message);
+
+        throw new Error(`Signature verification failed: ${error.message}`);
+    }
+
+
+    // ⏳ Token Expiry = 25 days
+    const token = signAccessToken({ address, nonce, userId });
+
+    return { user, token };
 };

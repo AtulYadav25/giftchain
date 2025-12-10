@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion';
-import HomeBg from '@/assets/hero/Home-bg.webp';
+import HomeBg from '@/assets/hero/bg.webp';
 import mascot from '@/assets/hero/mascot_hero.webp'
 import giftFactory from '@/assets/how_it_works/gift_factory.webp'
 import CircularGallery from '@/components/CircularGallery'
+
+import slovi from '@/assets/hero/slovi.png'
+import { allWrappers } from '@/assets/wrappers/wrapperIndex';
 
 const Home = () => {
     const [scrollY, setScrollY] = useState(0);
@@ -38,6 +41,11 @@ const Home = () => {
     const blurAmount = Math.min(scrollY / 30, 10);
     const translateY = -scrollY * 0.5;
 
+    const allWrappersImg = allWrappers.map((wrapper) => ({
+        text: wrapper.name,
+        image: wrapper.image
+    }));
+
 
     return (
         <div className='bg-secondary-clr' >
@@ -53,7 +61,7 @@ const Home = () => {
                         filter: `blur(${blurAmount}px)`,
                         transition: 'filter 0.1s ease-out'
                     }}
-                        className="font-gluten font-bold text-gray-900 text-6xl text-center mb-12 uppercase">
+                        className="font-gluten font-bold text-white text-6xl text-center mb-12 uppercase">
                         SENDING CRYPTO GIFTS <br /> MADE EASY
                     </h1>
 
@@ -149,6 +157,7 @@ const Home = () => {
                 <div style={{ height: '600px', position: 'relative' }}>
                     <CircularGallery
                         bend={0}
+                        items={allWrappersImg}
                         textColor="#ffffff"
                         borderRadius={0.05}
                         scrollEase={0.02} />
@@ -157,17 +166,17 @@ const Home = () => {
             <section className="relative py-20 max-w-7xl mx-auto px-4 overflow-hidden">
 
                 {/* Background Clouds */}
-                <img
+                {/* <img
                     src="https://placehold.co/1600x900/png"
                     alt="clouds"
                     className="absolute inset-0 w-full h-full object-cover opacity-40 pointer-events-none"
-                />
+                /> */}
 
                 {/* Mascot Bottom Right */}
                 <img
-                    src="https://placehold.co/400x400/png"
+                    src={slovi}
                     alt="slovi mascot"
-                    className="absolute right-0 bottom-0 w-40 md:w-56 lg:w-64 pointer-events-none"
+                    className="absolute right-0 bottom-0 w-[60%] md:w-[50%] pointer-events-none"
                 />
 
                 {/* Content */}

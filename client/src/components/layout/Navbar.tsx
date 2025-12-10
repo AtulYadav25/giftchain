@@ -1,63 +1,110 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import {
+    DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+    DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { ConnectModal, useCurrentAccount, useDisconnectWallet } from '@mysten/dapp-kit';
+import { LogOut, Wallet } from "lucide-react";
 
+import NavbarBg from '@/assets/hero/navbar1.webp'
+
+import {
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
-    const [isConnected, setIsConnected] = useState(false);
-    // const [menuOpen, setMenuOpen] = useState(false);
 
-    const username = "Slovi";
-    const wallet = "0xab...8b5";
+    const [openDisconnectModal, setOpenDisconnectModal] = useState(false);
+
+    const currentAccount = useCurrentAccount();
+    const { mutate: disconnect } = useDisconnectWallet();
+
+    let isConnected = currentAccount?.address;
+    let currentUserAddress = currentAccount?.address;
+
+    const disconnectWallet = () => {
+        disconnect();
+        setOpenDisconnectModal(false);
+    };
 
     return (
-        <nav className="fixed top-0 left-0 px-3 w-full z-50 backdrop-blur-xl  border-b-2 text-white">
-            <div className="flex items-center justify-between px-4 py-3 md:py-4 md:px-8">
-                {/* Left: Logo */}
-                <div className="text-xl md:text-3xl font-cherry">GiftChain</div>
+        <nav className="fixed top-0 left-0 px-3 w-full z-50 backdrop-blur-xl text-white">
 
+            <div className="flex items-center justify-between px-4 py-3 md:py-4 md:px-8">
+
+                {/* Logo */}
+                <div className="text-xl md:text-3xl font-cherry">GiftChain.fun</div>
 
                 {/* Right Section */}
                 <div className="flex items-center gap-4">
 
+                    {/* NOT CONNECTED */}
                     {!isConnected ? (
-                        <button
-                            className="px-4 font-gluten py-1 text-sm md:text-lg bg-secondary-clr rounded-lg hover:bg-secondary-clr/80 transition"
-                            onClick={() => setIsConnected(true)}
-                        >
-                            Connect Wallet
-                        </button>
-                    ) : (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger className="outline-none">
-                                <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
-                                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
-                                    <AvatarFallback>CN</AvatarFallback>
-                                </Avatar>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 bg-white/90 backdrop-blur-md border-blue-100">
-                                <DropdownMenuLabel className="text-blue-900">My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-blue-100" />
-                                <DropdownMenuItem className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer">
-                                    <Link to="/profile" className="w-full">Profile</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer">
-                                    Settings
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-blue-100" />
-                                <DropdownMenuItem
-                                    className="text-red-500 focus:bg-red-50 focus:text-red-600 cursor-pointer"
-                                    onClick={() => setIsConnected(false)}
+                        <ConnectModal
+                            trigger={
+                                <button
+                                    className="px-4 flex items-center gap-2 font-gluten py-1 text-sm md:text-lg bg-secondary-clr rounded-lg hover:bg-secondary-clr/80 transition"
                                 >
-                                    Disconnect
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    <Wallet className="h-4 w-4" /> Connect Wallet
+                                </button>
+                            }
+                        />
+                    ) : (
+                        <>
+                            {/* Avatar */}
+                            <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+                                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=lepil" />
+                                <AvatarFallback>CN</AvatarFallback>
+                            </Avatar>
+
+                            {/* Address Button → Opens Modal */}
+                            <button
+                                onClick={() => setOpenDisconnectModal(true)}
+                                className="px-4 flex items-center gap-2 font-gluten py-1 text-sm md:text-md bg-secondary-clr rounded-lg hover:bg-secondary-clr/80 transition"
+                            >
+                                {currentUserAddress?.slice(0, 6) + "..." + currentUserAddress?.slice(-4)}
+                                <LogOut className="h-4 w-4 text-white hover:text-red-400" />
+                            </button>
+
+                            {/* Disconnect Confirmation Modal */}
+                            <Dialog open={openDisconnectModal} onOpenChange={setOpenDisconnectModal}>
+                                <DialogContent className="text-black font-gluten">
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Are you sure you want to disconnect your wallet?
+                                        </DialogTitle>
+                                    </DialogHeader>
+
+                                    <DialogFooter className="mt-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setOpenDisconnectModal(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+
+                                        <Button
+                                            variant="destructive"
+                                            onClick={disconnectWallet}
+                                        >
+                                            Disconnect
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </>
                     )}
+
                 </div>
             </div>
-
-        </nav >
+        </nav>
     );
 }

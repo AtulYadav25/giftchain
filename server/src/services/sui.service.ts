@@ -1,6 +1,6 @@
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { TransactionBlock } from '@mysten/sui/transactions';
+import { Transaction } from '@mysten/sui/transactions';
 import { config } from '../config/env';
 
 // Initialize SUI Client
@@ -25,13 +25,13 @@ export const getBalance = async (address: string) => {
 export const sendSui = async (recipient: string, amount: number) => {
     if (!keypair) throw new Error('Server SUI wallet not configured');
 
-    const tx = new TransactionBlock();
+    const tx = new Transaction();
     const [coin] = tx.splitCoins(tx.gas, [amount]);
     tx.transferObjects([coin], recipient);
 
-    const result = await client.signAndExecuteTransactionBlock({
+    const result = await client.signAndExecuteTransaction({
         signer: keypair,
-        transactionBlock: tx,
+        transaction: tx,
     });
 
     return result;
