@@ -13,14 +13,14 @@ export const sendGift = async (req: FastifyRequest, reply: FastifyReply) => {
     }
 };
 
-export const getSent = async (req: FastifyRequest, reply: FastifyReply) => {
+export const getSent = async (req: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
     try {
         const query = req.query as { page?: string; limit?: string };
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
         const { data, total } = await giftService.getSentGifts(
-            req.user!.userId,
+            req.params.username,
             page,
             limit
         );
@@ -33,14 +33,14 @@ export const getSent = async (req: FastifyRequest, reply: FastifyReply) => {
 };
 
 
-export const getReceived = async (req: FastifyRequest, reply: FastifyReply) => {
+export const getReceived = async (req: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
     try {
         const query = req.query as { page?: string; limit?: string };
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
         const { data, total } = await giftService.getReceivedGifts(
-            req.user!.userId,
+            req.params.username,
             page,
             limit
         );

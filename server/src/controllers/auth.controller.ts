@@ -25,16 +25,15 @@ export const verify = async (req: FastifyRequest, reply: FastifyReply) => {
         const result = await authService.verify(req.body);
 
         // Set JWT token as HTTP-only cookie
-        reply
-            .setCookie("gc_token", result.token, {
-                path: "/",
-                httpOnly: true,
-                secure: true,     // true in production
-                sameSite: "lax",
-                maxAge: 25 * 24 * 60 * 60, // 25 days
-            })
+        reply.setCookie("gc_token", result.token, {
+            path: "/",
+            httpOnly: true,
+            secure: true,    // Use false for local development (HTTP), true in production (HTTPS)
+            sameSite: "none", // Required for cross-origin requests with cookies
+            maxAge: 21 * 24 * 60 * 60, // 25 days
+        })
 
-        successResponse(reply, result.user, 'User verified successfully', 200);
+        successResponse(reply, { user: result.user }, 'User verified successfully', 200);
     } catch (error: any) {
         errorResponse(reply, error.message, 401);
     }
@@ -45,7 +44,11 @@ export const me = async (req: FastifyRequest, reply: FastifyReply) => {
         const { address } = req.user!;
         const user = await User.findOne({ address })
 
-        successResponse(reply, user, 'User', 200);
+        if (!user) {
+            return errorResponse(reply, "User not found", 404);
+        }
+
+        successResponse(reply, { user }, 'User', 200);
     } catch (error: any) {
         errorResponse(reply, error.message, 401);
     }

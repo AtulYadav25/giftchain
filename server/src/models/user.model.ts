@@ -17,13 +17,13 @@ export interface IUser extends Document {
 
     createdAt: Date;
     updatedAt: Date;
+    lastAvatarUpdate?: Date;
 }
 
 const UserSchema: Schema = new Schema(
     {
         username: {
             type: String, // referral ID
-            required: true,
             unique: true
         },
         avatar: {
@@ -70,6 +70,10 @@ const UserSchema: Schema = new Schema(
         referralsCount: {
             type: Number,
             default: 0
+        },
+        lastAvatarUpdate: {
+            type: Date,
+            default: null
         }
     },
     { timestamps: true }

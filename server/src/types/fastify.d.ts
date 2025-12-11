@@ -2,7 +2,7 @@ import "fastify";
 
 declare module "fastify" {
     interface FastifyRequest {
-        user?: {
+        user: {
             address: string;
             nonce: string;
             userId: string;
@@ -12,5 +12,9 @@ declare module "fastify" {
             page?: string;
             limit?: string;
         };
+    }
+
+    interface FastifyReply {
+        setCookie: any; // or more specific types if needed
     }
 }

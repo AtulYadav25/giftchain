@@ -6,7 +6,7 @@ export const requestMessageSchema = z.object({
 
 export const verifySchema = z.object({
     address: z.string().min(2),
-    message: z.string().min(2),
+    message: z.array(z.number()),
     nonce: z.number().min(2),
     userId: z.string().min(2),
     signature: z.string().min(2),

@@ -27,32 +27,32 @@ export const createGift = async (senderId: string, data: any) => {
 };
 
 
-export const getSentGifts = async (userId: string, page = 1, limit = 10) => {
+export const getSentGifts = async (username: string, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-        Gift.find({ senderId: userId })
+        Gift.find({ username })
             .sort({ createdAt: -1 }) // newest first
             .skip(skip)
             .limit(limit),
 
-        Gift.countDocuments({ senderId: userId })
+        Gift.countDocuments({ username })
     ]);
 
     return { data, total };
 };
 
 
-export const getReceivedGifts = async (userId: string, page = 1, limit = 10) => {
+export const getReceivedGifts = async (username: string, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-        Gift.find({ receiverId: userId })
+        Gift.find({ username })
             .sort({ createdAt: -1 }) // newest first
             .skip(skip)
             .limit(limit),
 
-        Gift.countDocuments({ receiverId: userId })
+        Gift.countDocuments({ username })
     ]);
 
     return { data, total };

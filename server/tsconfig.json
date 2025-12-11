@@ -11,7 +11,11 @@
         "resolveJsonModule": true,
         "types": [
             "node",
-            "fastify"
+            "fastify",
+        ],
+        "typeRoots": [
+            "./src/types",
+            "./node_modules/@types"
         ]
     },
     "include": [
