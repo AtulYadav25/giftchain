@@ -9,9 +9,14 @@ import Navbar from '@/components/layout/Navbar';
 // import { Home } from './pages/Home';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
+import { useInitApp } from './hooks/useInitApp';
 
 
 const App = () => {
+  //Initialize App with User Creds - Checks Session
+  useInitApp();
+
+
   return (
     <Router>
       <div className="flex flex-col min-h-screen bg-[#f9fbff] text-[#1a2a3a] selection:bg-blue-300/40">

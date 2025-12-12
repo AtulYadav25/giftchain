@@ -267,3 +267,94 @@ Ensure all imports are valid
 No missing files or missing exports
 
 Make sure the codebase is fully runnable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I want you to set up Zustand in my React client so I can manage all states and make API requests in a clean, scalable way.
+My backend is already built inside a server folder, so use the backend routes as the source of truth and design the client state layer around them.
+
+Your job is to:
+
+Create Zustand stores for each backend domain (auth, user, gifts, wrappers, etc.)
+
+Add actions like request message, verify user, fetch wrappers, send gift, etc., based on the backend routes
+
+Make all stores clean, scalable, modular, and production-ready
+
+Use a global API request utility (axios) and integrate it into the store actions
+
+Make sure async actions return proper loading, success, and error states
+
+Use middlewares wherever appropriate
+
+Make the stores easy to import and use inside components/pages
+
+Organize everything properly for future growth
+
+Keep the code consistent and professional
+
+❌ Do NOT export the entire store
+export const useTodoStore = create((set) => ({
+  todos: [],
+  addTodo: (t) => set((s) => ({ todos: [...s.todos, t] })),
+}));
+
+✅ Export custom hooks with selectors
+export const useTodoStore = create((set) => ({
+  todos: [],
+  addTodo: (t) => set((s) => ({ todos: [...s.todos, t] })),
+}));
+
+export const useTodos = () => useTodoStore((s) => s.todos);
+export const useAddTodo = () => useTodoStore((s) => s.addTodo);
+
+Separate actions from state ie. Use a stable actions object

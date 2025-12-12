@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SendGiftModal from '../components/SendGiftModal';
+import UsernameSetupModal from '../components/UsernameSetupModal';
+import { useUser } from '@/store';
 
 // Helper to generate mock data
 const generateData = (type: 'sent' | 'received', count: number) => {
@@ -73,6 +75,8 @@ const Profile = () => {
         toast.success("Address copied!");
     };
 
+    const user = useUser();
+
     return (
         <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-700">
             <div className="max-w-5xl mx-auto px-6 pt-12 space-y-16">
@@ -97,7 +101,7 @@ const Profile = () => {
                     </div>
 
                     <div className="text-center md:text-left space-y-2">
-                        <h1 className="text-5xl md:text-6xl text-blue-900 drop-shadow-sm">Your Gifts</h1>
+                        <h1 className="text-5xl md:text-6xl text-blue-900 drop-shadow-sm">Hey, {user?.username}! Your Gifts</h1>
                         <p className="text-xl font-lexend text-blue-600/80 font-medium tracking-wide">
                             Track everything you’ve sent and received, all wrapped with love ✨
                         </p>
@@ -364,6 +368,9 @@ const Profile = () => {
                 )}
             </AnimatePresence>
             <SendGiftModal isOpen={isGiftModalOpen} onClose={() => setIsGiftModalOpen(false)} />
+
+            {/* Username Setup Modal */}
+            <UsernameSetupModal isOpen={!!user && !user.username} />
         </div>
     );
 };

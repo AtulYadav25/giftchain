@@ -1,30 +1,28 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { User } from '../models/user.model';
 import cloudinary from '../config/cloudinary';
+import { errorResponse, successResponse } from '../utils/responseHandler';
 
 export const getPublicUserDetails = async (req: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
     try {
         const { username } = req.params;
         // Search safe public fields
-        const user = await User.findOne({ username }).select('username avatar createdAt totalSentUSD totalReceivedUSD');
+        const user = await User.findOne({ username }).select('username avatar address createdAt totalSentUSD totalReceivedUSD sentCount receivedCount');
 
         if (!user) {
-            return reply.code(404).send({ success: false, message: 'User not found' });
+            return errorResponse(reply, "User not found", 404)
         }
 
-        return reply.code(200).send({
-            success: true,
-            data: user
-        });
+        successResponse(reply, { user }, "User details fetched successfully", 200)
     } catch (error) {
         console.error('Error fetching public user details:', error);
-        return reply.code(500).send({ success: false, message: 'Internal server error' });
+        errorResponse(reply, "Internal server error", 500)
     }
 };
 
 export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) => {
     if (!req.isMultipart()) {
-        return reply.code(400).send({ success: false, message: 'Request must be multipart/form-data' });
+        return errorResponse(reply, "Request must be multipart/form-data", 400)
     }
 
     const parts = req.parts();
@@ -49,30 +47,30 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
             }
         }
     } catch (err) {
-        return reply.code(500).send({ success: false, message: 'Error processing upload' });
+        return errorResponse(reply, "Error processing upload", 500)
     }
 
     // @ts-ignore - Assuming user is populated by auth middleware
     const userId = req.user?.userId;
     if (!userId) {
-        return reply.code(401).send({ success: false, message: 'Unauthorized' });
+        return errorResponse(reply, "Unauthorized", 401)
     }
 
     const user = await User.findById(userId);
     if (!user) {
-        return reply.code(404).send({ success: false, message: 'User not found' });
+        return errorResponse(reply, "User not found", 404)
     }
 
     // 1. Handle Username Update
     if (newUsername) {
         if (user.username) {
-            return reply.code(400).send({ success: false, message: 'Username can only be set once.' });
+            return errorResponse(reply, "Username can only be set once.", 400)
         }
 
         // Check uniqueness
         const exists = await User.findOne({ username: newUsername });
         if (exists) {
-            return reply.code(400).send({ success: false, message: 'Username already taken' });
+            return errorResponse(reply, "Username already taken", 400)
         }
         user.username = newUsername;
     }
@@ -81,10 +79,10 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
     if (avatarBuffer) {
         // Validation
         if (avatarBuffer.length > 1024 * 1024) { // 1 MB
-            return reply.code(400).send({ success: false, message: 'Avatar file size must be < 1 MB.' });
+            return errorResponse(reply, "Avatar file size must be < 1 MB.", 400)
         }
         if (!avatarMime?.startsWith('image/')) {
-            return reply.code(400).send({ success: false, message: 'Invalid file format. Must be an image.' });
+            return errorResponse(reply, "Invalid file format. Must be an image.", 400)
         }
 
         // Time check
@@ -95,7 +93,7 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
             const sixHoursMs = 6 * 60 * 60 * 1000;
 
             if (diffMs < sixHoursMs) {
-                return reply.code(400).send({ success: false, message: 'Avatar can only be updated once every 6 hours.' });
+                return errorResponse(reply, "Avatar can only be updated once every 6 hours.", 400)
             }
         }
 
@@ -115,19 +113,11 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
             user.lastAvatarUpdate = new Date();
         } catch (error) {
             console.error('Cloudinary upload error:', error);
-            return reply.code(500).send({ success: false, message: 'Failed to upload avatar' });
+            return errorResponse(reply, "Failed to upload avatar", 500)
         }
     }
 
     await user.save();
 
-    return reply.code(200).send({
-        success: true,
-        message: 'Profile updated successfully',
-        data: {
-            username: user.username,
-            avatar: user.avatar,
-            lastAvatarUpdate: user.lastAvatarUpdate
-        }
-    });
+    return successResponse(reply, { user }, "Profile updated successfully", 200)
 };
