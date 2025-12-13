@@ -15,7 +15,7 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
     const [isValid, setIsValid] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { updateUsername } = useAuthActions();
+    const { updateProfile } = useAuthActions();
 
     // Debounce check
     useEffect(() => {
@@ -57,7 +57,7 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
         try {
             // Simulate API Update
             await new Promise(resolve => setTimeout(resolve, 1000));
-            updateUsername(username);
+            updateProfile({ username });
             toast.success(`Welcome, ${username}!`);
         } catch (error) {
             toast.error("Failed to set username");

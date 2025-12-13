@@ -17,7 +17,8 @@ import {
 import toast from 'react-hot-toast';
 import SendGiftModal from '../components/SendGiftModal';
 import UsernameSetupModal from '../components/UsernameSetupModal';
-import { useUser } from '@/store';
+import { useUser, useAuthActions, useAuthLoading } from '@/store';
+import { Camera, Save, Loader2 } from 'lucide-react';
 
 // Helper to generate mock data
 const generateData = (type: 'sent' | 'received', count: number) => {
@@ -76,6 +77,39 @@ const Profile = () => {
     };
 
     const user = useUser();
+    const { updateProfile } = useAuthActions();
+    const isProfileUpdating = useAuthLoading(); // Or specific loading state if added to store for profile only, but store logic shares isLoading
+
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 1024 * 1024) {
+            toast.error("File size must be less than 1MB");
+            return;
+        }
+
+        setAvatarFile(file);
+        const objectUrl = URL.createObjectURL(file);
+        setAvatarPreview(objectUrl);
+    };
+
+    const handleSaveAvatar = async () => {
+        if (!avatarFile) return;
+        try {
+            await updateProfile({ avatar: avatarFile });
+            setAvatarFile(null); // Clear file selection
+            setAvatarPreview(null); // Clear preview, user object should update via store
+        } catch (error) {
+            console.error("Failed to update avatar");
+            // Toast already handled in store or global error handler if configured?
+            // UseAuthStore subscribes to error, so toast will appear.
+        }
+    };
+
 
     return (
         <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-700">
@@ -83,18 +117,48 @@ const Profile = () => {
 
                 {/* 1. Top Section */}
                 <header className="flex flex-col md:flex-row items-center gap-8 mt-12">
-                    <div className="relative group">
-                        <div className="w-32 h-32 rounded-full bg-white p-1 shadow-lg rotate-3 transition-transform group-hover:rotate-0 duration-300">
+                    <div className="relative group w-32 h-32">
+                        <div className="w-full h-full rounded-full bg-white p-1 shadow-lg overflow-hidden relative">
                             <img
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=santa"
+                                src={avatarPreview || user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=santa"}
                                 alt="Avatar"
-                                className="w-full h-full rounded-full bg-blue-100"
+                                className="w-full h-full rounded-full bg-blue-100 object-cover"
                             />
+
+                            {/* Hover Overlay */}
+                            <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full">
+                                <Camera className="text-white" size={24} />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                    disabled={isProfileUpdating}
+                                />
+                            </label>
                         </div>
+
+                        {/* Save Button (Visible only when file selected) */}
+                        <AnimatePresence>
+                            {avatarFile && (
+                                <motion.button
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    onClick={handleSaveAvatar}
+                                    disabled={isProfileUpdating}
+                                    className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg hover:bg-green-600 flex items-center gap-2 z-10 whitespace-nowrap"
+                                >
+                                    {isProfileUpdating ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                                    Save
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+
                         <motion.div
                             animate={{ rotate: [0, 10, -10, 0] }}
                             transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                            className="absolute -top-2 -right-2 bg-yellow-300 text-yellow-800 p-2 rounded-full shadow-sm"
+                            className="absolute -top-2 -right-2 bg-yellow-300 text-yellow-800 p-2 rounded-full shadow-sm z-0"
                         >
                             <Sparkles size={20} />
                         </motion.div>

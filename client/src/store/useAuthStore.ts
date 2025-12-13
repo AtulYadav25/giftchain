@@ -17,7 +17,7 @@ interface AuthActions {
     verify: (data: VerifyRequestData) => Promise<VerifyResponse>;
     checkSession: () => Promise<void>;
     disconnectWallet: () => void;
-    updateUsername: (username: string) => void;
+    updateProfile: (data: { username?: string; avatar?: File }) => Promise<void>;
 }
 
 type RequestMessageResponse = {
@@ -106,10 +106,32 @@ const useAuthStore = create<AuthState & { actions: AuthActions }>()(
                     set({ user: null, isAuthenticated: false });
                 },
 
-                updateUsername: (username: string) => {
-                    set((state) => ({
-                        user: state.user ? { ...state.user, username } : null
-                    }));
+                updateProfile: async (data: { username?: string; avatar?: File }) => {
+                    set({ isLoading: true, error: null });
+                    try {
+                        const formData = new FormData();
+                        if (data.username) formData.append('username', data.username);
+                        if (data.avatar) formData.append('avatar', data.avatar);
+
+                        const res = await api.patch<ApiResponse<{ user: User }>>('/user/profile', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' },
+                        });
+
+                        const { data: responseData } = extractData(res);
+
+                        set((state) => ({
+                            user: state.user ? { ...state.user, ...responseData.user } : responseData.user,
+                            isLoading: false
+                        }));
+
+                        if (data.username) toast.success(`Username set to ${data.username}!`);
+                        if (data.avatar) toast.success('Avatar updated successfully!');
+
+                    } catch (err: any) {
+                        const msg = err.response?.data?.message || err.message || "Failed to update profile";
+                        set({ isLoading: false, error: msg });
+                        throw err;
+                    }
                 }
             }
         }))
