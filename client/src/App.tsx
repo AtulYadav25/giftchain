@@ -7,8 +7,10 @@ import './App.css'
 import Navbar from '@/components/layout/Navbar';
 // import { Footer } from './components/Footer';
 // import { Home } from './pages/Home';
+// import { Home } from './pages/Home';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
+import HallOfGivers from './pages/HallOfGivers';
 import { useInitApp } from './hooks/useInitApp';
 
 
@@ -26,6 +28,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/hall-of-givers" element={<HallOfGivers />} />
           </Routes>
         </main>
         {/* <Footer /> */}

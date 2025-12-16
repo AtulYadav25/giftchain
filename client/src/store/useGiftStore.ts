@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { api } from '../lib/api';
+import { api, extractData, type ApiResponse } from '../lib/api';
 import type { Gift } from '../types/gift.types';
 
 interface GiftState {
     sentGifts: Gift[];
     receivedGifts: Gift[];
     currentGift: Gift | null;
+    suiPrice: number | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -16,11 +17,11 @@ export interface SendGiftParams {
     receiverWallet: string;
     amountUSD: number;
     tokenAmount: number;
-    tokenSymbol: 'sui' | 'sol';
+    tokenSymbol: 'sui';
     wrapper: string;
     message?: string;
     senderTxHash?: string;
-    chainID: 'sui' | 'solana';
+    chainID: 'sui';
     isAnonymous?: boolean;
 }
 
@@ -30,6 +31,7 @@ interface GiftActions {
     fetchReceivedGifts: () => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
+    getSUIPrice: () => Promise<void>;
 }
 
 const useGiftStore = create<GiftState & { actions: GiftActions }>()(
@@ -38,13 +40,14 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
         receivedGifts: [],
         currentGift: null,
         isLoading: false,
+        suiPrice: null,
         error: null,
 
         actions: {
             sendGift: async (giftData: SendGiftParams) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const { data } = await api.post<Gift>('/gift/send', giftData);
+                    const { data } = await api.post<Gift>('/gifts/send', giftData);
                     set((state) => ({
                         sentGifts: [...state.sentGifts, data],
                         isLoading: false
@@ -99,14 +102,32 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     set({ isLoading: false, error: err.message });
                     throw err;
                 }
+            },
+
+            getSUIPrice: async () => {
+                set({ isLoading: true, error: null });
+                try {
+                    const res = await api.get<ApiResponse<{ priceUSD: number }>>(`/prices/sui`);
+                    let { data } = extractData(res);
+                    console.log(data)
+                    set({
+                        suiPrice: data.priceUSD,
+                        isLoading: false
+                    });
+                } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                    throw err;
+                }
             }
         }
     }))
 );
 
+export default useGiftStore;
 export const useSentGifts = () => useGiftStore((s) => s.sentGifts);
 export const useReceivedGifts = () => useGiftStore((s) => s.receivedGifts);
 export const useCurrentGift = () => useGiftStore((s) => s.currentGift);
 export const useGiftLoading = () => useGiftStore((s) => s.isLoading);
 export const useGiftError = () => useGiftStore((s) => s.error);
 export const useGiftActions = () => useGiftStore((s) => s.actions);
+

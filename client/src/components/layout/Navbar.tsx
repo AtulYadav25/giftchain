@@ -36,7 +36,7 @@ export default function Navbar() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${!isHome
-                ? "bg-[#2e9aff] py-3 shadow-lg" // Solid blue for other pages
+                ? "bg-pink-600 py-3 shadow-lg" // Solid blue for other pages
                 : scrolled
                     ? "bg-[#2e9aff]/80 backdrop-blur-xl border-b border-white/20 py-3 shadow-lg shadow-blue-500/10" // Tinted glass on scroll
                     : "bg-transparent py-5" // Transparent at top of home
@@ -46,7 +46,12 @@ export default function Navbar() {
                 {/* Logo */}
                 <Link to="/" className="group flex items-center gap-2">
                     <span className="font-['Lilita_One'] text-2xl md:text-3xl text-white drop-shadow-sm group-hover:scale-105 transition-transform duration-300">
-                        GiftChain<span className="text-blue-200">.fun</span>
+                        GiftChain<span className={`text-blue-200 ${!isHome
+                            ? "text-pink-100" // Solid blue for other pages
+                            : scrolled
+                                ? "text-blue-200" // Tinted glass on scroll
+                                : "text-blue-200" // Transparent at top of home
+                            }`}>.fun</span>
                     </span>
                 </Link>
 

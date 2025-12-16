@@ -1,7 +1,11 @@
 
 export interface Wrapper {
-    id: number;
+    _id: string | number;
     name: string;
-    image: string;
-    price: number;
+    wrapperImg: string; // Cloudinary URL
+    publicId?: string;   // Cloudinary Public ID
+    priceUSD: number;
+    createdBy?: string;
+    customWrapper?: boolean;
+    createdAt?: Date;
 }

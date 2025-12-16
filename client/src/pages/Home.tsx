@@ -9,7 +9,7 @@ import CircularGallery from '@/components/CircularGallery';
 import { allWrappers } from '@/assets/wrappers/wrapperIndex';
 
 // Prepare Wrapper Images for Gallery
-const galleryItems = allWrappers.map(w => ({ text: w.name, image: w.image }));
+const galleryItems = allWrappers.map(w => ({ text: w.name, image: w.wrapperImg }));
 
 export default function Home() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -22,6 +22,9 @@ export default function Home() {
 
             {/* 2. TICKER MARQUEE */}
             <MarqueeSection />
+
+            {/* 2.5 CUSTODY DISCLAIMER (Playful) */}
+            <CustodySection />
 
             {/* 3. HOW IT WORKS (Scroll Reveal) */}
             <HowItWorksSection />
@@ -84,7 +87,7 @@ function HeroSection({ navigate }: { navigate: any }) {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.5, type: "spring" }}
-                    className="flex flex-col md:flex-row gap-4 justify-center items-center pt-4"
+                    className="z-12 flex flex-col md:flex-row gap-4 justify-center items-center pt-4"
                 >
                     <button
                         onClick={() => navigate('/profile')}
@@ -92,8 +95,8 @@ function HeroSection({ navigate }: { navigate: any }) {
                     >
                         Send a Gift Now <ArrowRight className="group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <button className="px-8 py-4 bg-blue-700/30 text-white border-2 border-white/30 rounded-full font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-md">
-                        View Gallery
+                    <button onClick={() => navigate('/hall-of-givers')} className="px-8 py-4 bg-blue-700/30 text-white border-2 border-white/30 rounded-full font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-md z-[12]">
+                        Hall of Givers
                     </button>
                 </motion.div>
             </div>
@@ -115,7 +118,7 @@ function HeroSection({ navigate }: { navigate: any }) {
                 </FloatingElement>
             </motion.div>
 
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#E3F4FF] via-[#E3F4FF]/50 to-transparent z-10" />
+            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#E3F4FF] via-[#E3F4FF]/50 to-transparent z-[2]" />
         </section>
     );
 }
@@ -367,6 +370,61 @@ function AboutSection() {
 
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-50 to-transparent hidden lg:block pointer-events-none" />
+        </section>
+    );
+}
+
+function CustodySection() {
+    return (
+        <section className="py-24 bg-[#FF6EC7] relative overflow-hidden -skew-y-2 mt-24 mb-12 border-y-8 border-white">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                <div className="w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-300 via-transparent to-transparent" />
+            </div>
+
+            <div className="skew-y-2 max-w-5xl mx-auto px-6 text-center relative z-10">
+
+                {/* Floating Words Background - Weird Spacing */}
+                <div className="absolute inset-0 pointer-events-none select-none opacity-20 font-black text-9xl overflow-hidden flex flex-col justify-between" style={{ zIndex: -1 }}>
+                    <motion.div animate={{ x: [0, 100, 0] }} transition={{ duration: 10, repeat: Infinity }} className="text-white whitespace-nowrap">NO CAGE</motion.div>
+                    <motion.div animate={{ x: [0, -100, 0] }} transition={{ duration: 15, repeat: Infinity }} className="text-blue-900 whitespace-nowrap self-end">JUST WRAP</motion.div>
+                    <motion.div animate={{ x: [0, 50, 0] }} transition={{ duration: 12, repeat: Infinity }} className="text-yellow-300 whitespace-nowrap text-center">YOUR KEYS</motion.div>
+                </div>
+
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", bounce: 0.5 }}
+                >
+                    <h2 className="font-['Lilita_One'] text-7xl md:text-8xl text-white drop-shadow-[0_5px_0px_rgba(0,0,0,0.2)] tracking-tighter transform -rotate-2">
+                        NO CUSTODY.
+                        <br />
+                        <span className="text-yellow-300 inline-block animate-pulse">MAXIMUM CHILL.</span>
+                    </h2>
+                </motion.div>
+
+                <motion.p
+                    initial={{ y: 20, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="font-jua text-2xl md:text-3xl text-blue-900 mt-8 max-w-3xl mx-auto leading-relaxed bg-white/30 backdrop-blur-sm p-6 rounded-[2rem] border-4 border-white/50 shadow-lg transform rotate-1"
+                >
+                    We never <span className="underline decoration-wavy decoration-pink-500">hold</span>, <span className="underline decoration-wavy decoration-purple-500">lock</span>, or <span className="underline decoration-wavy decoration-blue-500">touch</span> your funds.
+                    <br />
+                    We just wrap them in glitter. You stay in control.
+                </motion.p>
+
+                <div className="mt-10 flex justify-center gap-4 flex-wrap">
+                    {["Not A Bank", "Self-Custodial", "100% Yours", "No Lockups"].map((tag, i) => (
+                        <motion.span
+                            key={i}
+                            whileHover={{ scale: 1.1, rotate: Math.random() * 10 - 5 }}
+                            className="inline-block px-6 py-3 bg-white text-pink-600 font-bold font-jua rounded-full border-2 border-pink-400 shadow-[4px_4px_0px_rgba(0,0,0,0.1)] text-xl cursor-default"
+                        >
+                            {tag}
+                        </motion.span>
+                    ))}
+                </div>
+            </div>
         </section>
     );
 }

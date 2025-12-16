@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X,
@@ -22,13 +22,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from './ui/input-group';
-import { freeWrappers, premiumWrappers } from '@/assets/wrappers/wrapperIndex.ts';
+import { useWrapperActions, useWrappers, useWrapperLoading } from '@/store/useWrapperStore';
+import { useGiftActions } from '@/store';
+import useGiftStore, { type SendGiftParams } from '@/store/useGiftStore';
+import { isValidSuiAddress } from '@mysten/sui/utils';
+import toast from 'react-hot-toast';
+import { Transaction } from '@mysten/sui/transactions';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 
-// Mock Wrappers Data
-const WRAPPERS = {
-    free: freeWrappers,
-    premium: premiumWrappers,
-};
+
+
 
 // Mock Templates
 const MESSAGE_TEMPLATES = {
@@ -49,16 +52,11 @@ const MESSAGE_TEMPLATES = {
     ]
 };
 
-// Exchange Rates (Mock)
-const EXCHANGE_RATES = {
-    SUI: 1.5, // 1 SUI = $1.50
-    SOL: 145.0 // 1 SOL = $145.00
-};
+
 
 // Coin Assets (Mock)
 const COIN_ASSETS = {
-    SUI: { name: 'Sui', logo: 'https://cryptologos.cc/logos/sui-sui-logo.png?v=035' },
-    SOL: { name: 'Solana', logo: 'https://cryptologos.cc/logos/solana-sol-logo.png?v=035' }
+    SUI: { name: 'Sui', logo: 'https://cryptologos.cc/logos/sui-sui-logo.png?v=035' }
 };
 
 type Step = 1 | 2 | 3 | 4;
@@ -79,12 +77,61 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     const [wrapperType, setWrapperType] = useState<'free' | 'premium'>('free');
     const [selectedWrapper, setSelectedWrapper] = useState<any>(null);
 
+    // Wrapper Store Integration
+    const { fetchWrappers, uploadWrapper, deleteWrapper } = useWrapperActions();
+    const wrappers = useWrappers();
+    const isWrapperLoading = useWrapperLoading();
+
+    useEffect(() => {
+        fetchWrappers();
+    }, []);
+
+    const filteredWrappers = useMemo(() => {
+        return wrappers.filter(w =>
+            wrapperType === 'free' ? w.priceUSD === 0 : w.priceUSD > 0
+        );
+    }, [wrappers, wrapperType]);
+
+    // Handle File Upload
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            try {
+                await uploadWrapper(file);
+                toast.success('Wrapper uploaded successfully!');
+            } catch (error) {
+                toast.error('Failed to upload wrapper');
+            }
+        }
+    };
+
     const [message, setMessage] = useState('');
     const [selectedTag, setSelectedTag] = useState<keyof typeof MESSAGE_TEMPLATES>('Love');
 
     const [currency, setCurrency] = useState<'SUI' | 'SOL'>('SUI');
     const [inputMode, setInputMode] = useState<'USD' | 'TOKEN'>('USD');
     const [isLoadingConversion, setIsLoadingConversion] = useState(false);
+
+    //Sender Account
+    const account = useCurrentAccount();
+
+    //Gift Store Actions
+    const { sendGift } = useGiftActions();
+
+    // SUI Price
+    const { getSUIPrice } = useGiftActions();
+    const { suiPrice } = useGiftStore((s) => s);
+
+    //EXCHANGE RATES
+    // Exchange Rates (Mock)
+    // const EXCHANGE_RATES = {
+    //     SUI: 1.5, // 1 SUI = $1.50
+    //     SOL: 145.0 // 1 SOL = $145.00
+    // };
+    const exchangeRates = useMemo(() => ({
+        SUI: suiPrice
+    }), [suiPrice]);
 
     // Recipient State
     const [recipients, setRecipients] = useState<Recipient[]>([
@@ -94,20 +141,17 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     // Simulate loading when amount changes (in a real app this might be an API call)
     useEffect(() => {
         setIsLoadingConversion(true);
-
-        const timer = setTimeout(() => setIsLoadingConversion(false), 800);
-        return () => clearTimeout(timer);
-    }, [
-        recipients.length,                     // runs when a new recipient is added
-        recipients.map(r => r.amount).join(), // runs only when amounts change
-        currency,
-        inputMode
-    ]);
+        const fetchSUIPrice = async () => {
+            await getSUIPrice();
+            setIsLoadingConversion(false);
+        };
+        fetchSUIPrice();
+    }, []);
 
 
     // Constants
-    const PLATFORM_FEE_BASE = 0.20;
-    const PLATFORM_FEE_PERCENT = 0.01;
+    const PLATFORM_FEE_BASE = 0.00;
+    const PLATFORM_FEE_PERCENT = 0.011;
 
     // Actions
     const addRecipient = () => {
@@ -129,14 +173,159 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
         if (!amountStr) return 0;
         const val = parseFloat(amountStr);
         if (isNaN(val)) return 0;
-        return inputMode === 'USD' ? val : val * EXCHANGE_RATES[currency];
+        return inputMode === 'USD' ? val : val * exchangeRates.SUI!;
     };
 
+    //Function to convert usd to sui
+    const getUSDToSUI = (amountStr: string) => {
+        if (!amountStr) return 0;
+        const val = parseFloat(amountStr);
+        if (isNaN(val)) return 0;
+        return val / exchangeRates.SUI!;
+    };
+
+    // Process Gift 
+
+    const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+
+    //Manual Delay Function
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const handleProcessPayment = async () => {
+        // 1️⃣ Validation
+        for (const [index, recipient] of recipients.entries()) {
+            if (!recipient.address) {
+                toast.error(`Recipient #${index + 1}: address is required`);
+                return;
+            }
+
+            if (!isValidSuiAddress(recipient.address)) {
+                toast.error(`Recipient #${index + 1}: invalid Sui address`);
+                return;
+            }
+
+            if (!recipient.amount || Number(recipient.amount) <= 0) {
+                toast.error(`Recipient #${index + 1}: amount must be greater than 0`);
+                return;
+            }
+        }
+
+        //Validate there should be no same addresses
+        const uniqueAddresses = new Set(recipients.map(r => r.address));
+        if (uniqueAddresses.size !== recipients.length) {
+            toast.error('All recipients must have unique addresses');
+            return;
+        }
+
+        const PACKAGE_ID = import.meta.env.VITE_PACKAGE_ID;
+        const TREASURY_ID = import.meta.env.VITE_TREASURY_ID;
+        const MODULE_NAME = import.meta.env.VITE_MODULE_NAME;
+
+        try {
+            //Send Gift with status (Verifying) - When Transaction Processed the event indexer in backend updates the status to (sent)
+            await Promise.all(
+                recipients.map(recipient => {
+                    const giftParams: SendGiftParams = {
+                        senderWallet: account!.address,
+                        receiverWallet: recipient.address,
+                        amountUSD:
+                            inputMode === 'USD'
+                                ? Number(recipient.amount)
+                                : getUSDToSUI(recipient.amount),
+                        tokenAmount:
+                            inputMode === 'USD'
+                                ? getUSDToSUI(recipient.amount)
+                                : Number(recipient.amount),
+                        tokenSymbol: 'sui',
+                        wrapper: selectedWrapper,
+                        message,
+                        chainID: 'sui',
+                        isAnonymous: false,
+                    };
+                    return sendGift(giftParams);
+                })
+            );
+
+
+            const tx = new Transaction();
+            tx.setGasBudget(10_000_000);
+
+            // 2️⃣ Calculate total required SUI
+            let totalSuiRequired = 0;
+
+            for (const r of recipients) {
+                const giftUsd = inputMode === 'USD' ? Number(r.amount) : getRecipientValueInUSD(r.amount);
+                const feeUsd =
+                    giftUsd * PLATFORM_FEE_PERCENT +
+                    PLATFORM_FEE_BASE +
+                    wrapperPrice;
+
+                totalSuiRequired += giftUsd + feeUsd;
+            }
+
+            console.log(totalSuiRequired / suiPrice!)
+            const totalMist = BigInt(
+                Math.floor((totalSuiRequired / suiPrice!) * 1e9)
+            );
+
+            // 3️⃣ Split ONE payment coin
+            const [paymentCoin] = tx.splitCoins(tx.gas, [totalMist]);
+
+            // 4️⃣ Loop and split from payment coin
+            for (const recipient of recipients) {
+                const giftUsd = inputMode === 'USD' ? Number(recipient.amount) : getRecipientValueInUSD(recipient.amount);
+                const feeUsd =
+                    giftUsd * PLATFORM_FEE_PERCENT +
+                    PLATFORM_FEE_BASE +
+                    wrapperPrice;
+                console.log(giftUsd, feeUsd)
+                const giftMist = BigInt(
+                    Math.floor((giftUsd / suiPrice!) * 1e9)
+                );
+
+                const feeMist = BigInt(
+                    Math.floor((feeUsd / suiPrice!) * 1e9)
+                );
+
+                const [giftCoin] = tx.splitCoins(paymentCoin, [giftMist]);
+                const [feeCoin] = tx.splitCoins(paymentCoin, [feeMist]);
+
+                tx.moveCall({
+                    target: `${PACKAGE_ID}::${MODULE_NAME}::wrap_gift`,
+                    arguments: [
+                        giftCoin,
+                        feeCoin,
+                        tx.pure.address(recipient.address),
+                        tx.object(TREASURY_ID),
+                    ],
+                });
+            }
+
+            signAndExecuteTransaction(
+                { transaction: tx },
+                {
+                    onSuccess: async () => {
+                        toast.success("Gift sent successfully");
+                        onClose();
+                    },
+                    onError: () => {
+                        toast.error("Failed to send gift");
+                    },
+                }
+            );
+        } catch (err) {
+            console.error(err);
+            toast.error("Unexpected error");
+        }
+    };
+
+
     const totalGiftValueUSD = recipients.reduce((acc, curr) => acc + getRecipientValueInUSD(curr.amount), 0);
-    const wrapperPrice = selectedWrapper?.price || 0;
+    const wrapperPrice = (selectedWrapper?.priceUSD || 0) * recipients.length;
+    console.log(wrapperPrice)
     // Fee is calculated on total volume
     const fee = (totalGiftValueUSD * PLATFORM_FEE_PERCENT) + PLATFORM_FEE_BASE;
-    const total = totalGiftValueUSD + wrapperPrice + fee;
+    const total = totalGiftValueUSD + fee + wrapperPrice;
 
     const handleNext = () => setStep(s => Math.min(4, s + 1) as Step);
     const handleBack = () => setStep(s => Math.max(1, s - 1) as Step);
@@ -195,26 +384,60 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {WRAPPERS[wrapperType].map((wrapper) => (
+                                    {/* Upload Option for Premium */}
+                                    {wrapperType === 'premium' && (
                                         <div
-                                            key={wrapper.id}
-                                            onClick={() => setSelectedWrapper(wrapper)}
-                                            className={`relative aspect-square rounded-2xl cursor-pointer transition-all border-4 ${selectedWrapper?.id === wrapper.id
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="aspect-square rounded-2xl cursor-pointer border-2 border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50 flex flex-col items-center justify-center text-blue-400 hover:text-blue-600 transition-all"
+                                        >
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                            />
+                                            {isWrapperLoading ? <Loader2 className="animate-spin" /> : <Plus size={32} />}
+                                            <span className="text-sm font-bold mt-2">Custom Wrapper</span>
+                                        </div>
+                                    )}
+
+                                    {filteredWrappers.map((wrapper) => (
+                                        <div
+                                            key={wrapper._id}
+                                            onClick={() => setSelectedWrapper(wrapper._id)}
+                                            className={`relative aspect-square rounded-2xl cursor-pointer transition-all border-4 group ${selectedWrapper?._id === wrapper._id
                                                 ? 'border-blue-400 scale-95'
                                                 : 'border-transparent hover:scale-105'
                                                 }`}
                                         >
                                             {/* Wrapper Image */}
                                             <img
-                                                src={wrapper.image}
+                                                src={wrapper.wrapperImg}
                                                 alt={wrapper.name || "Wrapper"}
                                                 className="w-full h-full object-cover rounded-xl shadow-inner"
                                             />
 
                                             {/* Price Tag */}
                                             <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold text-slate-700 shadow-sm">
-                                                {wrapper.price === 0 ? 'FREE' : `$${wrapper.price}`}
+                                                {wrapper.priceUSD === 0 ? 'FREE' : `$${wrapper.priceUSD}`}
                                             </div>
+
+                                            {/* Delete Custom Wrapper */}
+                                            {(typeof wrapper._id === 'string') && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+
+                                                        deleteWrapper(wrapper._id);
+                                                        toast.success("Wrapper deleted")
+
+                                                    }}
+                                                    className="absolute top-2 right-2 bg-red-100/90 text-red-500 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-200 transition-all z-10"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -271,7 +494,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                 <div className="flex items-center gap-4 bg-blue-50/50 p-4 rounded-2xl mb-8">
                                     {/* Wrapper Image */}
                                     <img
-                                        src={selectedWrapper?.image}
+                                        src={selectedWrapper?.wrapperImg}
                                         alt="Selected wrapper"
                                         className="w-12 h-12 rounded-lg object-cover shadow-sm"
                                     />
@@ -336,7 +559,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                                                                 <>≈ {(() => {
                                                                                     const val = parseFloat(recipient.amount);
                                                                                     if (isNaN(val) || val === 0) return '0.00';
-                                                                                    const rate = EXCHANGE_RATES[currency];
+                                                                                    const rate = exchangeRates.SUI!;
                                                                                     if (inputMode === 'USD') {
                                                                                         return `${(val / rate).toFixed(4)} ${currency}`;
                                                                                     }
@@ -356,18 +579,18 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger className="w-full flex items-center gap-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 h-12 px-3 rounded-lg transition-colors outline-none focus:ring-2 focus:ring-blue-100">
                                                                     <Avatar className="h-6 w-6">
-                                                                        <AvatarImage src={COIN_ASSETS[currency].logo} />
-                                                                        <AvatarFallback>{currency[0]}</AvatarFallback>
+                                                                        <AvatarImage src={COIN_ASSETS.SUI.logo} />
+                                                                        <AvatarFallback>S</AvatarFallback>
                                                                     </Avatar>
-                                                                    <span className="font-bold text-sm text-slate-700 flex-1 text-left">{currency}</span>
+                                                                    <span className="font-bold text-sm text-slate-700 flex-1 text-left">SUI</span>
                                                                     <ChevronRight className="rotate-90 text-slate-400" size={14} />
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end">
-                                                                    {(['SUI', 'SOL'] as const).map((c) => (
+                                                                    {(['SUI'] as const).map((c) => (
                                                                         <DropdownMenuItem key={c} onClick={() => setCurrency(c)} className="gap-2 p-2 cursor-pointer">
                                                                             <Avatar className="h-5 w-5">
-                                                                                <AvatarImage src={COIN_ASSETS[c].logo} />
-                                                                                <AvatarFallback>{c[0]}</AvatarFallback>
+                                                                                <AvatarImage src={COIN_ASSETS.SUI.logo} />
+                                                                                <AvatarFallback>S</AvatarFallback>
                                                                             </Avatar>
                                                                             <span className="font-bold">{c}</span>
                                                                         </DropdownMenuItem>
@@ -440,10 +663,10 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
                                     <div className="flex justify-between text-slate-600">
                                         <span>Wrapper ({selectedWrapper?.name})</span>
-                                        <span className="font-medium">{selectedWrapper?.price === 0 ? 'FREE' : `$${selectedWrapper?.price}`}</span>
+                                        <span className="font-medium">{selectedWrapper?.priceUSD === 0 ? 'FREE' : `$${selectedWrapper?.priceUSD} (${recipients.length}x)`}</span>
                                     </div>
                                     <div className="flex justify-between text-slate-600">
-                                        <span>Platform Fee <span className="text-xs text-slate-400">(1% + $0.20)</span></span>
+                                        <span>Processing Fee <span className="text-xs text-slate-400">1.1% {PLATFORM_FEE_BASE > 0 ? `+ $${PLATFORM_FEE_BASE}` : ''}</span></span>
                                         <span className="font-medium">${fee.toLocaleString("en-US", {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
@@ -459,8 +682,8 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                             })}</div>
                                             <div className="text-xs text-slate-400">
                                                 ≈ {inputMode === 'USD'
-                                                    ? `${(total / EXCHANGE_RATES[currency]).toFixed(4)} ${currency}`
-                                                    : `${((total / EXCHANGE_RATES[currency]) * 1).toFixed(4)} ${currency}`}
+                                                    ? `${(total / exchangeRates.SUI!).toFixed(4)} ${currency}`
+                                                    : `${((total / exchangeRates.SUI!) * 1).toFixed(4)} ${currency}`}
                                             </div>
                                         </div>
                                     </div>
@@ -487,7 +710,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                         ) : <div />}
 
                         <button
-                            onClick={step === 4 ? onClose : handleNext}
+                            onClick={step === 4 ? handleProcessPayment : handleNext}
                             disabled={step === 1 && !selectedWrapper}
                             className={`px-8 py-3 rounded-xl font-bold font-lexend text-white flex items-center gap-2 shadow-lg shadow-blue-200 transition-all active:scale-95 ${step === 4 ? 'bg-slate-900 hover:bg-slate-800 w-full md:w-auto justify-center' : 'bg-blue-500 hover:bg-blue-600'
                                 } ${(!selectedWrapper && step === 1) ? 'opacity-50 cursor-not-allowed' : ''}`}

@@ -13,39 +13,39 @@ import { type Wrapper } from "@/types/WrapperTypes";
 // Wrappers Array (all)
 let allWrappers: Wrapper[] = [
     {
-        id: 1,
+        _id: 1,
         name: "Happy Day",
-        image: Wrapper1,
-        price: 0
+        wrapperImg: Wrapper1,
+        priceUSD: 0
     },
     {
-        id: 2,
+        _id: 2,
         name: "Spread Love",
-        image: Wrapper3,
-        price: 0
+        wrapperImg: Wrapper3,
+        priceUSD: 0
     },
     {
-        id: 3,
+        _id: 3,
         name: "Gift Day",
-        image: Wrapper2,
-        price: 0
+        wrapperImg: Wrapper2,
+        priceUSD: 0
     },
     {
-        id: 4,
+        _id: 4,
         name: "Happy Birthday",
-        image: Wrapper4,
-        price: 0
+        wrapperImg: Wrapper4,
+        priceUSD: 0
     },
     {
-        id: 5,
+        _id: 5,
         name: "Winner",
-        image: PremiumWrapper1,
-        price: 0.3
+        wrapperImg: PremiumWrapper1,
+        priceUSD: 0.3
     }
 ];
 
 // Separate Free and Premium Wrappers
-let freeWrappers = allWrappers.filter(wrapper => wrapper.price === 0);
-let premiumWrappers = allWrappers.filter(wrapper => wrapper.price > 0);
+let freeWrappers = allWrappers.filter(wrapper => wrapper.priceUSD === 0);
+let premiumWrappers = allWrappers.filter(wrapper => wrapper.priceUSD > 0);
 
 export { freeWrappers, premiumWrappers, allWrappers };
