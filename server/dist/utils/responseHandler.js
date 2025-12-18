@@ -1,14 +1,15 @@
-import { FastifyReply } from "fastify";
-
-export const successResponse = (reply: FastifyReply, responseData = {}, message = "Success", statusCode = 200) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.paginationResponse = exports.errorResponse = exports.successResponse = void 0;
+const successResponse = (reply, responseData = {}, message = "Success", statusCode = 200) => {
     return reply.code(statusCode).send({
         success: true,
         message,
         data: responseData,
     });
 };
-
-export const errorResponse = (reply: FastifyReply, message = "Something went wrong", statusCode = 500, error = null) => {
+exports.successResponse = successResponse;
+const errorResponse = (reply, message = "Something went wrong", statusCode = 500, error = null) => {
     return reply.code(statusCode).send({
         success: false,
         message,
@@ -16,9 +17,7 @@ export const errorResponse = (reply: FastifyReply, message = "Something went wro
         error
     });
 };
-
-
-
+exports.errorResponse = errorResponse;
 /**
  * Standard pagination response formatter
  * @param {Object} res - Express response object
@@ -28,17 +27,8 @@ export const errorResponse = (reply: FastifyReply, message = "Something went wro
  * @param {Number} limit - Records per page
  * @param {Number} statusCode - HTTP status code (default 200)
  */
-
-export const paginationResponse = (
-    res,
-    data,
-    total,
-    page,
-    limit,
-    statusCode = 200
-) => {
+const paginationResponse = (res, data, total, page, limit, statusCode = 200) => {
     const totalPages = Math.ceil(total / limit);
-
     return res.status(statusCode).json({
         success: true,
         data,
@@ -52,3 +42,4 @@ export const paginationResponse = (
         },
     });
 };
+exports.paginationResponse = paginationResponse;

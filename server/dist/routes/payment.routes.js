@@ -1,14 +1,11 @@
-// import { FastifyInstance } from 'fastify';
-// import * as paymentController from '../controllers/payment.controller';
-// import { authenticate } from '../middlewares/auth';
-import { FastifyInstance } from 'fastify';
-
-export const paymentRoutes = async (app: FastifyInstance) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.paymentRoutes = void 0;
+const paymentRoutes = async (app) => {
     // app.addHook('preHandler', authenticate);
-
     // app.post('/sui/send', paymentController.sendSui);
     // app.get('/sui/balance', paymentController.getSuiBalance);
-
     // app.post('/sol/send', paymentController.sendSol); // Via Ika MPC
     // app.get('/sol/balance', paymentController.getSolBalance);
 };
+exports.paymentRoutes = paymentRoutes;

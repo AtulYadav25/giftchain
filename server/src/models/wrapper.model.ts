@@ -5,6 +5,7 @@ export interface IWrapper extends Document {
     publicId: string;   // Cloudinary Public ID
     priceUSD: number;
     createdBy: mongoose.Types.ObjectId;
+    customWrapper: boolean;
     createdAt: Date;
 }
 
@@ -14,6 +15,7 @@ const WrapperSchema: Schema = new Schema(
         wrapperImg: { type: String, required: true },
         publicId: { type: String, required: true },
         priceUSD: { type: Number, required: true },
+        customWrapper: { type: Boolean, default: true },
         createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
     },
     { timestamps: true }

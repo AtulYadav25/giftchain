@@ -9,12 +9,16 @@ const envSchema = z.object({
     JWT_SECRET: z.string().min(1),
     JWT_REFRESH_SECRET: z.string().min(1),
     SUI_PRIVATE_KEY: z.string().optional(),
-    IKA_PRIVATE_KEY: z.string().optional(),
-    SOLANA_RPC_URL: z.string().default('https://api.devnet.solana.com'),
     COOKIE_SECRET: z.string().min(1),
     CLOUDINARY_CLOUD_NAME: z.string().min(1),
     CLOUDINARY_API_KEY: z.string().min(1),
-    CLOUDINARY_API_SECRET: z.string().min(1)
+    CLOUDINARY_API_SECRET: z.string().min(1),
+    CMC_API_KEY: z.string().min(1),
+    KV_REST_API_URL: z.string().optional(),
+    KV_REST_API_TOKEN: z.string().optional(),
+    REDIS_URL: z.string().min(1),
+    SOLANA_RPC_URL: z.string().default('https://api.devnet.solana.com'),
+    IKA_PRIVATE_KEY: z.string().optional()
 });
 
 const _env = envSchema.safeParse(process.env);

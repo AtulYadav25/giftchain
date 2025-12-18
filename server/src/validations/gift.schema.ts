@@ -1,14 +1,33 @@
 import { z } from 'zod';
 
 export const sendGiftSchema = z.object({
-    receiverId: z.string().optional(), // MongoDB ID
-    receiverWallet: z.string().optional(),
-    wrapperId: z.string(),
+    receiverWallet: z.string(),
+    senderWallet: z.string(),
+    wrapper: z.string(),
+    amountUSD: z.number(),
+    feeUSD: z.number(),
+    totalTokenAmount: z.number(),
+    suiStats: z.object({
+        suiPrice: z.number(),
+        suiHash: z.string(),
+    }),
+    tokenSymbol: z.enum(['sui']),
     message: z.string().optional(),
-    chainId: z.enum(['sui', 'solana']).optional(),
-    amount: z.number().optional(), // For logic handling
+    chainId: z.enum(['sui']),
+    isAnonymous: z.boolean().optional(),
 });
+
+export const verifyGiftSchema = z.object({
+    giftId: z.string(),
+    address: z.string(),
+    txDigest: z.string(),
+    verifyType: z.enum(['wrapGift', 'claimGift']),
+});
+
+export type VerifyGiftBody = z.infer<typeof verifyGiftSchema>;
 
 export const openGiftSchema = z.object({
     giftId: z.string(),
 });
+
+// "GtvFV43P5gvPZh5L7gyVuhyMxrajZ63Rh5MyQiMiuaPm"

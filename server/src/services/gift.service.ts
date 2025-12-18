@@ -7,23 +7,31 @@ export const createGift = async (senderId: string, data: any) => {
         senderWallet: data.senderWallet,
         receiverWallet: data.receiverWallet,
 
-        amountUSD: data.amountUSD,
-        tokenAmount: data.tokenAmount,
-        tokenSymbol: data.tokenSymbol, // 'sui' | 'sol'
+        amountUSD: data.amountUSD, // In USD eg: 100 USD
+        totalTokenAmount: data.totalTokenAmount, // In SUI eg: 1.154 SUI
+        tokenSymbol: data.tokenSymbol, // 'sui'
+        feeUSD: data.feeUSD, // In USD eg: 1 USD
+        suiStats: data.suiStats,
 
         wrapper: data.wrapper,
         message: data.message,
 
-        status: 'sent',
+        status: 'unverified',
+        verified: false,
 
-        senderTxHash: data.senderTxHash || null,
-        deliveryTxHash: data.deliveryTxHash || null,
+        senderTxHash: null,
+        deliveryTxHash: null,
 
-        chainID: data.chainID, // 'sui' | 'solana'
-        isAnonymous: data.isAnonymous || false
+        chainID: data.chainID, // 'sui' 
+        isAnonymous: false
     });
 
     return gift;
+};
+
+export const verifyGifts = async (giftIds: string[]) => {
+    //Get Gift IDs from the Event and update the Mongodb Documents of Gifts to verified true;
+    await Gift.updateMany({ _id: { $in: giftIds } }, { isTxConfirmed: true });
 };
 
 
@@ -86,4 +94,10 @@ export const openGift = async (giftId: string, userId: string) => {
     gift.openedAt = new Date();
     await gift.save();
     return gift;
+};
+
+export const deleteUnverifiedGifts = async (userId: string) => {
+    const now = new Date();
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    await Gift.deleteMany({ createdAt: { $lt: tenMinutesAgo }, isTxConfirmed: false, senderId: userId });
 };

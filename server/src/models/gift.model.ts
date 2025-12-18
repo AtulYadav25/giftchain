@@ -7,20 +7,25 @@ export interface IGift extends Document {
     receiverWallet: string;
 
     amountUSD: number;
-    tokenAmount: number;
-    tokenSymbol: 'sui' | 'sol';
+    feeUSD: number;
+    totalTokenAmount: number;
+    tokenSymbol: 'sui';
+    suiStats: {
+        suiPrice: number;
+        suiHash: string;
+    };
 
     wrapper: string;
     message?: string;
 
-    status: 'sent' | 'opened';
-    verified: Boolean;
+    status: 'unverified' | 'sent' | 'opened';
+    isTxConfirmed: Boolean;
     openedAt?: Date;
 
     senderTxHash?: string;
     deliveryTxHash?: string;
 
-    chainID: 'sui' | 'solana';
+    chainID: 'sui';
     isAnonymous?: boolean;
 }
 
@@ -52,14 +57,30 @@ const GiftSchema: Schema = new Schema(
             required: true
         },
 
-        tokenAmount: {
+        feeUSD: {
+            type: Number,
+            required: true
+        },
+
+        suiStats: {
+            suiPrice: {
+                type: Number,
+                required: true
+            },
+            suiHash: {
+                type: String,
+                required: true
+            }
+        },
+
+        totalTokenAmount: {
             type: Number,
             required: true
         },
 
         tokenSymbol: {
             type: String,
-            enum: ['sui', 'sol'],
+            enum: ['sui'],
             required: true
         },
 
@@ -75,13 +96,15 @@ const GiftSchema: Schema = new Schema(
 
         status: {
             type: String,
-            enum: ['sent', 'opened'],
-            default: 'sent'
+            enum: ['unverified', 'sent', 'opened'],
+            default: 'unverified'
         },
-        verified: {
+
+        isTxConfirmed: {
             type: Boolean,
             default: false
         },
+
         openedAt: {
             type: Date
         },
@@ -98,7 +121,7 @@ const GiftSchema: Schema = new Schema(
 
         chainID: {
             type: String,
-            enum: ['sui', 'solana'],
+            enum: ['sui'],
             default: 'sui'
         },
 

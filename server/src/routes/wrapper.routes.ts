@@ -7,6 +7,8 @@ export const wrapperRoutes = async (app: FastifyInstance) => {
     // Usually upload is protected.
     app.post('/upload', { preHandler: [authenticate] }, wrapperController.upload);
 
-    app.get('/', wrapperController.getAll);
-    app.get('/:id', wrapperController.getOne);
+    app.get('/', { preHandler: [authenticate] }, wrapperController.getAll);
+    app.get('/:id', { preHandler: [authenticate] }, wrapperController.getOne);
+    app.delete('/:id', { preHandler: [authenticate] }, wrapperController.deleteWrapper);
+
 };
