@@ -7,7 +7,10 @@ interface GiftState {
     sentGifts: Gift[];
     receivedGifts: Gift[];
     currentGift: Gift | null;
-    suiPrice: number | null;
+    suiStats: {
+        suiPrice: number;
+        suiHash: string;
+    };
     isLoading: boolean;
     error: string | null;
 }
@@ -16,17 +19,29 @@ export interface SendGiftParams {
     senderWallet: string;
     receiverWallet: string;
     amountUSD: number;
-    tokenAmount: number;
+    feeUSD: number;
+    totalTokenAmount: number;
     tokenSymbol: 'sui';
     wrapper: string;
     message?: string;
-    senderTxHash?: string;
-    chainID: 'sui';
-    isAnonymous?: boolean;
+    chainId: 'sui';
+    suiStats: {
+        suiPrice: number;
+        suiHash: string;
+    };
+    isAnonymous: boolean;
+}
+
+export interface VerifyGiftParams {
+    giftId: string;
+    txDigest: string;
+    address: string;
+    verifyType: 'wrapGift' | 'claimGift';
 }
 
 interface GiftActions {
     sendGift: (giftData: SendGiftParams) => Promise<Gift>;
+    verifyGift: (giftData: VerifyGiftParams) => Promise<any>;
     fetchSentGifts: () => Promise<void>;
     fetchReceivedGifts: () => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
@@ -40,16 +55,36 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
         receivedGifts: [],
         currentGift: null,
         isLoading: false,
-        suiPrice: null,
+        suiStats: {
+            suiPrice: null,
+            suiHash: null
+        },
         error: null,
 
         actions: {
             sendGift: async (giftData: SendGiftParams) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const { data } = await api.post<Gift>('/gifts/send', giftData);
+                    const res = await api.post<ApiResponse<Gift>>('/gifts/send', giftData);
+                    let { data } = extractData(res);
                     set((state) => ({
                         sentGifts: [...state.sentGifts, data],
+                        isLoading: false
+                    }));
+                    return data;
+                } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                    throw err;
+                }
+            },
+
+            verifyGift: async (giftData: VerifyGiftParams) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const res = await api.post<ApiResponse<Gift>>('/gifts/verify', giftData);
+                    let { data } = extractData(res);
+                    set((state) => ({
+                        receivedGifts: [...state.receivedGifts, data],
                         isLoading: false
                     }));
                     return data;
@@ -107,11 +142,14 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             getSUIPrice: async () => {
                 set({ isLoading: true, error: null });
                 try {
-                    const res = await api.get<ApiResponse<{ priceUSD: number }>>(`/prices/sui`);
+                    const res = await api.get<ApiResponse<{ priceUSD: number, suiHash: string }>>(`/prices/sui`);
                     let { data } = extractData(res);
                     console.log(data)
                     set({
-                        suiPrice: data.priceUSD,
+                        suiStats: {
+                            suiPrice: data.priceUSD,
+                            suiHash: data.suiHash
+                        },
                         isLoading: false
                     });
                 } catch (err: any) {

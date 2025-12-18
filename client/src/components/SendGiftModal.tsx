@@ -117,11 +117,11 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     const account = useCurrentAccount();
 
     //Gift Store Actions
-    const { sendGift } = useGiftActions();
+    const { sendGift, verifyGift } = useGiftActions();
 
     // SUI Price
     const { getSUIPrice } = useGiftActions();
-    const { suiPrice } = useGiftStore((s) => s);
+    const { suiStats } = useGiftStore((s) => s);
 
     //EXCHANGE RATES
     // Exchange Rates (Mock)
@@ -130,8 +130,8 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     //     SOL: 145.0 // 1 SOL = $145.00
     // };
     const exchangeRates = useMemo(() => ({
-        SUI: suiPrice
-    }), [suiPrice]);
+        SUI: suiStats.suiPrice
+    }), [suiStats]);
 
     // Recipient State
     const [recipients, setRecipients] = useState<Recipient[]>([
@@ -151,7 +151,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
     // Constants
     const PLATFORM_FEE_BASE = 0.00;
-    const PLATFORM_FEE_PERCENT = 0.011;
+    const PLATFORM_FEE_PERCENT = 0.01;
 
     // Actions
     const addRecipient = () => {
@@ -181,7 +181,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
         if (!amountStr) return 0;
         const val = parseFloat(amountStr);
         if (isNaN(val)) return 0;
-        return val / exchangeRates.SUI!;
+        return Number((val / exchangeRates.SUI!).toFixed(4));
     };
 
     // Process Gift 
@@ -192,6 +192,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const handleProcessPayment = async () => {
+
         // 1️⃣ Validation
         for (const [index, recipient] of recipients.entries()) {
             if (!recipient.address) {
@@ -210,7 +211,12 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
             }
         }
 
-        //Validate there should be no same addresses
+        if (!suiStats) {
+            toast.error('SUI stats not found');
+            return;
+        }
+
+        // Ensure unique addresses
         const uniqueAddresses = new Set(recipients.map(r => r.address));
         if (uniqueAddresses.size !== recipients.length) {
             toast.error('All recipients must have unique addresses');
@@ -222,9 +228,17 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
         const MODULE_NAME = import.meta.env.VITE_MODULE_NAME;
 
         try {
-            //Send Gift with status (Verifying) - When Transaction Processed the event indexer in backend updates the status to (sent)
-            await Promise.all(
+            /* -------------------------------------------------
+               1️⃣ Create gifts in backend & COLLECT gift IDs
+            ------------------------------------------------- */
+
+            const createdGifts = await Promise.all(
                 recipients.map(recipient => {
+                    const recipientFee =
+                        inputMode === 'USD'
+                            ? Number(recipient.amount) * PLATFORM_FEE_PERCENT + PLATFORM_FEE_BASE
+                            : getRecipientValueInUSD(recipient.amount) * PLATFORM_FEE_PERCENT + PLATFORM_FEE_BASE;
+
                     const giftParams: SendGiftParams = {
                         senderWallet: account!.address,
                         receiverWallet: recipient.address,
@@ -232,29 +246,41 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                             inputMode === 'USD'
                                 ? Number(recipient.amount)
                                 : getUSDToSUI(recipient.amount),
-                        tokenAmount:
+                        feeUSD: recipientFee,
+                        suiStats,
+                        totalTokenAmount:
                             inputMode === 'USD'
-                                ? getUSDToSUI(recipient.amount)
-                                : Number(recipient.amount),
+                                ? getUSDToSUI(recipient.amount + recipientFee)
+                                : Number(recipient.amount + recipientFee),
                         tokenSymbol: 'sui',
-                        wrapper: selectedWrapper,
+                        wrapper: selectedWrapper.wrapperImg,
                         message,
-                        chainID: 'sui',
+                        chainId: 'sui',
                         isAnonymous: false,
                     };
-                    return sendGift(giftParams);
+
+                    return sendGift(giftParams); // must return {_id}
                 })
             );
 
+            console.log(createdGifts);
+
+            /* -------------------------------------------------
+               2️⃣ Build Sui transaction
+            ------------------------------------------------- */
 
             const tx = new Transaction();
             tx.setGasBudget(10_000_000);
 
-            // 2️⃣ Calculate total required SUI
+            // Calculate total required SUI
             let totalSuiRequired = 0;
 
             for (const r of recipients) {
-                const giftUsd = inputMode === 'USD' ? Number(r.amount) : getRecipientValueInUSD(r.amount);
+                const giftUsd =
+                    inputMode === 'USD'
+                        ? Number(r.amount)
+                        : getRecipientValueInUSD(r.amount);
+
                 const feeUsd =
                     giftUsd * PLATFORM_FEE_PERCENT +
                     PLATFORM_FEE_BASE +
@@ -263,61 +289,78 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                 totalSuiRequired += giftUsd + feeUsd;
             }
 
-            console.log(totalSuiRequired / suiPrice!)
             const totalMist = BigInt(
-                Math.floor((totalSuiRequired / suiPrice!) * 1e9)
+                Math.floor((totalSuiRequired / suiStats.suiPrice!) * 1e9)
             );
 
-            // 3️⃣ Split ONE payment coin
+            // Split ONE payment coin
             const [paymentCoin] = tx.splitCoins(tx.gas, [totalMist]);
 
-            // 4️⃣ Loop and split from payment coin
-            for (const recipient of recipients) {
-                const giftUsd = inputMode === 'USD' ? Number(recipient.amount) : getRecipientValueInUSD(recipient.amount);
-                const feeUsd =
-                    giftUsd * PLATFORM_FEE_PERCENT +
-                    PLATFORM_FEE_BASE +
-                    wrapperPrice;
-                console.log(giftUsd, feeUsd)
-                const giftMist = BigInt(
-                    Math.floor((giftUsd / suiPrice!) * 1e9)
-                );
+            /* -------------------------------------------------
+               3️⃣ Loop recipients & use giftId from backend
+            ------------------------------------------------- */
 
-                const feeMist = BigInt(
-                    Math.floor((feeUsd / suiPrice!) * 1e9)
+            recipients.forEach((recipient, index) => {
+                const giftUsd =
+                    inputMode === 'USD'
+                        ? Number(recipient.amount)
+                        : getRecipientValueInUSD(recipient.amount);
+
+                const giftMist = BigInt(
+                    Math.floor((giftUsd / suiStats.suiPrice!) * 1e9)
                 );
 
                 const [giftCoin] = tx.splitCoins(paymentCoin, [giftMist]);
-                const [feeCoin] = tx.splitCoins(paymentCoin, [feeMist]);
+
+                const giftId = createdGifts[index]._id; // ✅ MONGODB ID
 
                 tx.moveCall({
                     target: `${PACKAGE_ID}::${MODULE_NAME}::wrap_gift`,
                     arguments: [
                         giftCoin,
-                        feeCoin,
+                        paymentCoin, // mutable fee source
                         tx.pure.address(recipient.address),
+                        tx.pure.string(giftId), // ✅ replaced ATULYADAV
                         tx.object(TREASURY_ID),
                     ],
                 });
-            }
+            });
+
+            // Return leftover dust
+            tx.transferObjects(
+                [paymentCoin],
+                tx.pure.address(account!.address)
+            );
+
+            /* -------------------------------------------------
+               4️⃣ Sign & execute
+            ------------------------------------------------- */
 
             signAndExecuteTransaction(
                 { transaction: tx },
                 {
-                    onSuccess: async () => {
-                        toast.success("Gift sent successfully");
+                    onSuccess: async (result) => {
+                        await verifyGift({
+                            giftId: createdGifts[0]._id,
+                            txDigest: result.digest,
+                            address: account!.address,
+                            verifyType: 'wrapGift'
+                        });
+                        toast.success('Gift sent successfully');
+                        console.log(result);
                         onClose();
                     },
                     onError: () => {
-                        toast.error("Failed to send gift");
+                        toast.error('Failed to send gift');
                     },
                 }
             );
         } catch (err) {
             console.error(err);
-            toast.error("Unexpected error");
+            toast.error('Unexpected error');
         }
     };
+
 
 
     const totalGiftValueUSD = recipients.reduce((acc, curr) => acc + getRecipientValueInUSD(curr.amount), 0);
@@ -405,7 +448,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                     {filteredWrappers.map((wrapper) => (
                                         <div
                                             key={wrapper._id}
-                                            onClick={() => setSelectedWrapper(wrapper._id)}
+                                            onClick={() => setSelectedWrapper(wrapper)}
                                             className={`relative aspect-square rounded-2xl cursor-pointer transition-all border-4 group ${selectedWrapper?._id === wrapper._id
                                                 ? 'border-blue-400 scale-95'
                                                 : 'border-transparent hover:scale-105'
@@ -666,7 +709,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                         <span className="font-medium">{selectedWrapper?.priceUSD === 0 ? 'FREE' : `$${selectedWrapper?.priceUSD} (${recipients.length}x)`}</span>
                                     </div>
                                     <div className="flex justify-between text-slate-600">
-                                        <span>Processing Fee <span className="text-xs text-slate-400">1.1% {PLATFORM_FEE_BASE > 0 ? `+ $${PLATFORM_FEE_BASE}` : ''}</span></span>
+                                        <span>Processing Fee <span className="text-xs text-slate-400">1% {PLATFORM_FEE_BASE > 0 ? `+ $${PLATFORM_FEE_BASE}` : ''}</span></span>
                                         <span className="font-medium">${fee.toLocaleString("en-US", {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
@@ -681,9 +724,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                                 maximumFractionDigits: 2,
                                             })}</div>
                                             <div className="text-xs text-slate-400">
-                                                ≈ {inputMode === 'USD'
-                                                    ? `${(total / exchangeRates.SUI!).toFixed(4)} ${currency}`
-                                                    : `${((total / exchangeRates.SUI!) * 1).toFixed(4)} ${currency}`}
+                                                ≈ {`${getUSDToSUI(total.toString())} ${currency}`}
                                             </div>
                                         </div>
                                     </div>
