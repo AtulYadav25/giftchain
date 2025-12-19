@@ -48,18 +48,22 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
     }
 };
 
-export const getSent = async (req: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
+export const getSent = async (req: FastifyRequest<{ Params: { address: string } }>, reply: FastifyReply) => {
     try {
         const query = req.query as { page?: string; limit?: string };
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
+        console.log("Address", req.params.address);
+
         const { data, total } = await giftService.getSentGifts(
-            req.params.username,
+            req.params.address,
             page,
             limit
         );
 
+        console.log("Data", data);
+        console.log("Total", total);
         return paginationResponse(reply, data, total, page, limit, 200);
 
     } catch (error: any) {
@@ -68,14 +72,14 @@ export const getSent = async (req: FastifyRequest<{ Params: { username: string }
 };
 
 
-export const getReceived = async (req: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
+export const getReceived = async (req: FastifyRequest<{ Params: { address: string } }>, reply: FastifyReply) => {
     try {
         const query = req.query as { page?: string; limit?: string };
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
         const { data, total } = await giftService.getReceivedGifts(
-            req.params.username,
+            req.params.address,
             page,
             limit
         );

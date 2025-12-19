@@ -30,7 +30,7 @@ export const errorResponse = (reply: FastifyReply, message = "Something went wro
  */
 
 export const paginationResponse = (
-    res,
+    reply,
     data,
     total,
     page,
@@ -39,16 +39,18 @@ export const paginationResponse = (
 ) => {
     const totalPages = Math.ceil(total / limit);
 
-    return res.status(statusCode).json({
-        success: true,
-        data,
-        meta: {
-            total,
-            page,
-            limit,
-            totalPages,
-            hasNextPage: page < totalPages,
-            hasPrevPage: page > 1,
-        },
-    });
+    return reply
+        .code(statusCode)
+        .send({
+            success: true,
+            data,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+            },
+        });
 };

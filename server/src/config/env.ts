@@ -17,7 +17,6 @@ const envSchema = z.object({
     KV_REST_API_URL: z.string().optional(),
     KV_REST_API_TOKEN: z.string().optional(),
     REDIS_URL: z.string().min(1),
-    SOLANA_RPC_URL: z.string().default('https://api.devnet.solana.com'),
     IKA_PRIVATE_KEY: z.string().optional()
 });
 

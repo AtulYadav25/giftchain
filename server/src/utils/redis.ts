@@ -24,6 +24,8 @@ redisClient.on("end", () => {
 // 🔥 explicit async initializer (correct)
 export async function initRedis() {
     if (!redisClient.isOpen) {
+        console.log("Redis URL:", config.REDIS_URL);
+
         await redisClient.connect();
     }
 }
