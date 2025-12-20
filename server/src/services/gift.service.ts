@@ -35,33 +35,162 @@ export const verifyGifts = async (giftIds: string[]) => {
 };
 
 
-export const getSentGifts = async (address: string, page = 1, limit = 10) => {
+export const getSentGifts = async (
+    address: string,
+    page = 1,
+    limit = 10
+) => {
     const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-        Gift.find({ senderWallet: address })
-            .sort({ createdAt: -1 }) // newest first
-            .skip(skip)
-            .limit(limit),
+    const data = await Gift.aggregate([
+        // 1️⃣ Match sender wallet
+        {
+            $match: {
+                senderWallet: address
+            }
+        },
 
-        Gift.countDocuments({ senderWallet: address })
+        // 2️⃣ Sort
+        {
+            $sort: { createdAt: -1 }
+        },
+
+        // 3️⃣ Pagination
+        { $skip: skip },
+        { $limit: limit },
+
+        // 4️⃣ Lookup user by wallet
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'receiverWallet',
+                foreignField: 'address',
+                as: 'user'
+            }
+        },
+
+        // 5️⃣ Flatten user array
+        {
+            $unwind: {
+                path: '$user',
+                preserveNullAndEmptyArrays: true
+            }
+        },
+
+        // 6️⃣ Final projection (FLAT structure)
+        {
+            $project: {
+                _id: 1,
+
+                senderWallet: 1,
+                receiverWallet: 1,
+
+                amountUSD: 1,
+                feeUSD: 1,
+                totalTokenAmount: 1,
+                tokenSymbol: 1,
+
+                suiStats: {
+                    suiPrice: 1,
+                    suiHash: 1
+                },
+
+                wrapper: 1,
+                message: 1,
+
+                status: 1,
+                isTxConfirmed: 1,
+                openedAt: 1,
+
+                // 🔥 flattened user fields
+                username: '$user.username',
+                avatar: '$user.avatar',
+
+                createdAt: 1
+            }
+        }
     ]);
+
+    const total = await Gift.countDocuments({ senderWallet: address });
 
     return { data, total };
 };
 
 
+
 export const getReceivedGifts = async (address: string, page = 1, limit = 10) => {
     const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-        Gift.find({ receiverWallet: address })
-            .sort({ createdAt: -1 }) // newest first
-            .skip(skip)
-            .limit(limit),
+    const data = await Gift.aggregate([
+        // 1️⃣ Match sender wallet
+        {
+            $match: {
+                senderWallet: address
+            }
+        },
 
-        Gift.countDocuments({ receiverWallet: address })
+        // 2️⃣ Sort
+        {
+            $sort: { createdAt: -1 }
+        },
+
+        // 3️⃣ Pagination
+        { $skip: skip },
+        { $limit: limit },
+
+        // 4️⃣ Lookup user by wallet
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'senderWallet',
+                foreignField: 'address',
+                as: 'user'
+            }
+        },
+
+        // 5️⃣ Flatten user array
+        {
+            $unwind: {
+                path: '$user',
+                preserveNullAndEmptyArrays: true
+            }
+        },
+
+        // 6️⃣ Final projection (FLAT structure)
+        {
+            $project: {
+                _id: 1,
+
+                senderWallet: 1,
+                receiverWallet: 1,
+
+                amountUSD: 1,
+                feeUSD: 1,
+                totalTokenAmount: 1,
+                tokenSymbol: 1,
+
+                suiStats: {
+                    suiPrice: 1,
+                    suiHash: 1
+                },
+
+                wrapper: 1,
+                message: 1,
+
+                status: 1,
+                isTxConfirmed: 1,
+                openedAt: 1,
+
+                // 🔥 flattened user fields
+                username: '$user.username',
+                avatar: '$user.avatar',
+
+                createdAt: 1
+            }
+        }
     ]);
+
+    const total = await Gift.countDocuments({ receiverWallet: address });
 
     return { data, total };
 };

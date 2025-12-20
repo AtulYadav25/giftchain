@@ -91,8 +91,10 @@ const GiftSchema: Schema = new Schema(
 
         message: {
             type: String,
+            trim: true,
             default: ''
         },
+
 
         status: {
             type: String,
@@ -153,8 +155,8 @@ const GiftSchema: Schema = new Schema(
 );
 
 // Indexes
-GiftSchema.index({ senderId: 1 });
 GiftSchema.index({ receiverWallet: 1 });
+GiftSchema.index({ senderWallet: 1 });
 GiftSchema.index({ chainID: 1 });
 GiftSchema.index({ status: 1 });
 

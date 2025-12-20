@@ -54,7 +54,6 @@ export const getSent = async (req: FastifyRequest<{ Params: { address: string } 
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
-        console.log("Address", req.params.address);
 
         const { data, total } = await giftService.getSentGifts(
             req.params.address,
@@ -62,8 +61,6 @@ export const getSent = async (req: FastifyRequest<{ Params: { address: string } 
             limit
         );
 
-        console.log("Data", data);
-        console.log("Total", total);
         return paginationResponse(reply, data, total, page, limit, 200);
 
     } catch (error: any) {
