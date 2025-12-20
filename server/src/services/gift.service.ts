@@ -1,5 +1,6 @@
 import { Gift } from '../models/gift.model';
 import mongoose from 'mongoose';
+import { User } from '../models/user.model';
 
 export const createGift = async (senderId: string, data: any) => {
     const gift = await Gift.create({
@@ -229,4 +230,39 @@ export const deleteUnverifiedGifts = async (userId: string) => {
     const now = new Date();
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
     await Gift.deleteMany({ createdAt: { $lt: tenMinutesAgo }, isTxConfirmed: false, senderId: userId });
+};
+
+export const resolveRecipients = async (usernames: string[]) => {
+    // 1️⃣ Fetch all matching users
+    const users = await User.find({
+        username: { $in: usernames }
+    }).select("username");
+
+    // 2️⃣ Map for fast lookup
+    const userMap = new Map(
+        users.map(user => [user.username, user])
+    );
+
+    // 3️⃣ Detect missing usernames WITH POSITION
+    const invalidUsernames: { username: string; index: number }[] = [];
+
+    usernames.forEach((username, index) => {
+        if (!userMap.has(username)) {
+            invalidUsernames.push({ username, index });
+        }
+    });
+
+    // 4️⃣ Throw error if any invalid
+    if (invalidUsernames.length > 0) {
+        const message = invalidUsernames
+            .map(
+                u => `Invalid username "${u.username}" at position ${u.index + 1}`
+            )
+            .join(", ");
+
+        throw new Error(message);
+    }
+
+    // 5️⃣ Return users IN SAME ORDER as input
+    return usernames.map(username => userMap.get(username)!);
 };

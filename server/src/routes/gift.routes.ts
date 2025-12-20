@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import * as giftController from '../controllers/gift.controller';
-import { sendGiftSchema, verifyGiftSchema } from '../validations/gift.schema';
+import { resolveRecipientsSchema, sendGiftSchema, verifyGiftSchema } from '../validations/gift.schema';
 import { authenticate } from '../middlewares/auth';
 
 export const giftRoutes = async (app: FastifyInstance) => {
@@ -12,4 +12,5 @@ export const giftRoutes = async (app: FastifyInstance) => {
     app.post('/send', { schema: { body: sendGiftSchema } }, giftController.sendGift);
     app.post('/verify', { schema: { body: verifyGiftSchema } }, giftController.verifyGift);
     app.post('/open/:id', giftController.openGift);
+    app.post('/recipients/resolve', { schema: { body: resolveRecipientsSchema } }, giftController.resolveRecipients);
 };

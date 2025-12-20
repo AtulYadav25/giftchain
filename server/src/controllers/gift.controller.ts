@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as giftService from '../services/gift.service';
 import { successResponse, errorResponse, paginationResponse } from '../utils/responseHandler';
 import SuiTransactionVerifier from '../utils/suiTxVerifier';
-import { VerifyGiftBody } from '../validations/gift.schema';
+import { ResolveRecipientsBody, VerifyGiftBody } from '../validations/gift.schema';
 
 
 export const sendGift = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -106,3 +106,19 @@ export const openGift = async (req: FastifyRequest<{ Params: { id: string } }>, 
         errorResponse(reply, "Something went wrong", 500);
     }
 };
+
+export const resolveRecipients = async (
+    req: FastifyRequest<{ Body: ResolveRecipientsBody }>,
+    reply: FastifyReply
+) => {
+    try {
+        const { usernames } = req.body;
+
+        const users = await giftService.resolveRecipients(usernames);
+
+        successResponse(reply, users, "Recipients resolved successfully", 200);
+    } catch (error) {
+        errorResponse(reply, error.message, 500);
+    }
+};
+

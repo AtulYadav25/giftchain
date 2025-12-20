@@ -30,4 +30,10 @@ export const openGiftSchema = z.object({
     giftId: z.string(),
 });
 
+
+export const resolveRecipientsSchema = z.object({
+    usernames: z.array(z.string()),
+});
+
+export type ResolveRecipientsBody = z.infer<typeof resolveRecipientsSchema>;
 // "GtvFV43P5gvPZh5L7gyVuhyMxrajZ63Rh5MyQiMiuaPm"
