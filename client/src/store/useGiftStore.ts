@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { api, extractData, type ApiResponse } from '../lib/api';
 import type { Gift } from '../types/gift.types';
+import toast from 'react-hot-toast';
 
 export interface PaginationMeta {
     total: number;
@@ -58,6 +59,7 @@ interface GiftActions {
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
+    resolveRecipients: (usernames: string[]) => Promise<[{ username: string, address: string }]>;
 }
 
 const useGiftStore = create<GiftState & { actions: GiftActions }>()(
@@ -194,6 +196,24 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                         isLoading: false
                     });
                 } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                    throw err;
+                }
+            },
+
+            resolveRecipients: async (usernames: string[]) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const res = await api.post<ApiResponse<{}>>(`/gifts/recipients/resolve`, { usernames });
+                    let { data, success, message } = extractData(res);
+
+                    if (success === true) {
+                        return data;
+                    } else {
+                        return data;
+                    }
+                } catch (err: any) {
+                    toast.error(err.message)
                     set({ isLoading: false, error: err.message });
                     throw err;
                 }
