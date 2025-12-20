@@ -19,66 +19,27 @@ import SendGiftModal from '../components/SendGiftModal';
 import UsernameSetupModal from '../components/UsernameSetupModal';
 import { useUser, useAuthActions, useAuthLoading } from '@/store';
 import { Camera, Save, Loader2 } from 'lucide-react';
+import GiftRevealModal from '../components/GiftRevealModal';
+import type { Gift as GiftType } from '@/types/gift.types';
 
-// Helper to generate mock data
-const generateData = (type: 'sent' | 'received', count: number) => {
-    return Array.from({ length: count }).map((_, i) => ({
-        id: i + 1,
-        // Use wallet addresses
-        address: `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}`,
-        amount: `${(Math.random() * 100).toFixed(2)} ${Math.random() > 0.5 ? 'SUI' : 'SOL'}`,
-        date: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString().split('T')[0],
-        status: Math.random() > 0.3 ? 'Opened' : 'Unopened'
-    }));
-};
+import {
+    useSentGifts,
+    useReceivedGifts,
+    useSentMeta,
+    useReceivedMeta,
+    useGiftActions,
+    useGiftLoading
+} from '@/store/useGiftStore';
 
-const UNOPENED_GIFTS = [
-    { id: 1, sender: "Alice", amount: "50 SUI", color: "from-pink-300 to-rose-300" },
-    { id: 2, sender: "Bob", amount: "10 SOL", color: "from-purple-300 to-indigo-300" },
-    { id: 3, sender: "Charlie", amount: "25 SUI", color: "from-yellow-300 to-orange-300" },
-    { id: 4, sender: "Diana", amount: "100 SOL", color: "from-emerald-300 to-teal-300" },
-];
-
-const SENT_GIFTS = generateData('sent', 30);
-const RECEIVED_GIFTS = generateData('received', 30);
-
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 8; // Adjust limit as needed
 
 const Profile = () => {
     const [activeBreakdown, setActiveBreakdown] = useState<'sent' | 'received' | null>(null);
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
 
-    // Pagination States
-    const [sentPage, setSentPage] = useState(1);
-    const [receivedPage, setReceivedPage] = useState(1);
-
-    // Pagination Helpers
-    const getPaginatedData = (data: typeof SENT_GIFTS, page: number) => {
-        const startIndex = (page - 1) * ITEMS_PER_PAGE;
-        return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    };
-
-    const totalSentPages = Math.ceil(SENT_GIFTS.length / ITEMS_PER_PAGE);
-    const totalReceivedPages = Math.ceil(RECEIVED_GIFTS.length / ITEMS_PER_PAGE);
-
-    // Address Helper
-    const formatAddress = (address: string) => {
-        return (
-            <span className="font-mono text-slate-600">
-                <span className="md:hidden">{`${address.slice(0, 6)}...${address.slice(-4)}`}</span>
-                <span className="hidden md:inline">{address}</span>
-            </span>
-        );
-    };
-
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success("Address copied!");
-    };
-
     const user = useUser();
     const { updateProfile } = useAuthActions();
-    const isProfileUpdating = useAuthLoading(); // Or specific loading state if added to store for profile only, but store logic shares isLoading
+    const isProfileUpdating = useAuthLoading();
 
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -105,29 +66,83 @@ const Profile = () => {
             setAvatarPreview(null); // Clear preview, user object should update via store
         } catch (error) {
             console.error("Failed to update avatar");
-            // Toast already handled in store or global error handler if configured?
-            // UseAuthStore subscribes to error, so toast will appear.
         }
     };
 
+    // Store Hooks
+    const sentGifts = useSentGifts();
+    const receivedGifts = useReceivedGifts();
+    const sentMeta = useSentMeta();
+    const receivedMeta = useReceivedMeta();
+    const isGiftLoading = useGiftLoading();
+
+    // Actions
+    const { fetchSentGifts, fetchReceivedGifts } = useGiftActions();
+
+    // Modal State
+    const [selectedGift, setSelectedGift] = useState<GiftType | null>(null);
+    const [modalVariant, setModalVariant] = useState<'sent' | 'received'>('sent');
+
+    const handleOpenGift = (gift: GiftType, variant: 'sent' | 'received') => {
+        setSelectedGift(gift);
+        setModalVariant(variant);
+    };
+
+    // Unopened Gifts Logic (Received & Status=sent)
+    const unopenedGifts = receivedGifts.filter(g => g.status === 'sent');
+
+    // Pagination States
+    const [sentPage, setSentPage] = useState(1);
+    const [receivedPage, setReceivedPage] = useState(1);
+
+    // Fetch Sent Gifts
+    React.useEffect(() => {
+        if (!user?.address) return;
+        fetchSentGifts(user?.address || '', sentPage, ITEMS_PER_PAGE);
+    }, [sentPage, fetchSentGifts, user?.address]);
+
+    // Fetch Received Gifts
+    React.useEffect(() => {
+        if (!user?.address) return;
+        fetchReceivedGifts(user?.address || '', receivedPage, ITEMS_PER_PAGE);
+    }, [receivedPage, fetchReceivedGifts, user?.address]);
+
+    // Total Pages (from meta)
+    const totalSentPages = sentMeta?.totalPages || 1;
+    const totalReceivedPages = receivedMeta?.totalPages || 1;
+
+    // Address Helper
+    const formatAddress = (address: string) => {
+        return (
+            <span className="font-mono text-slate-500 font-bold text-xs bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                <span className="md:hidden">{`${address.slice(0, 6)}...${address.slice(-4)}`}</span>
+                <span className="hidden md:inline">{`${address.slice(0, 12)}...${address.slice(-10)}`}</span>
+            </span>
+        );
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Address copied!");
+    };
 
     return (
-        <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-700">
+        <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-900 bg-[#E3F4FF]">
             <div className="max-w-5xl mx-auto px-6 pt-12 space-y-16">
 
                 {/* 1. Top Section */}
                 <header className="flex flex-col md:flex-row items-center gap-8 mt-12">
-                    <div className="relative group w-32 h-32">
-                        <div className="w-full h-full rounded-full bg-white p-1 shadow-lg overflow-hidden relative">
+                    <div className="relative group w-36 h-36">
+                        <div className="w-full h-full rounded-full bg-white relative border-[5px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] overflow-hidden">
                             <img
                                 src={avatarPreview || user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=santa"}
                                 alt="Avatar"
-                                className="w-full h-full rounded-full bg-blue-100 object-cover"
+                                className="w-full h-full object-cover bg-white"
                             />
 
                             {/* Hover Overlay */}
-                            <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full">
-                                <Camera className="text-white" size={24} />
+                            <label className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                <Camera className="text-white drop-shadow-md" size={32} />
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -147,7 +162,7 @@ const Profile = () => {
                                     exit={{ scale: 0, opacity: 0 }}
                                     onClick={handleSaveAvatar}
                                     disabled={isProfileUpdating}
-                                    className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg hover:bg-green-600 flex items-center gap-2 z-10 whitespace-nowrap"
+                                    className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-[#4ADE80] text-slate-900 border-[3px] border-slate-900 px-4 py-1.5 rounded-full text-sm font-black shadow-[3px_3px_0_0_rgba(15,23,42,1)] hover:translate-y-[-1px] active:translate-y-[1px] active:shadow-none flex items-center gap-2 z-10 whitespace-nowrap"
                                 >
                                     {isProfileUpdating ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                                     Save
@@ -155,217 +170,252 @@ const Profile = () => {
                             )}
                         </AnimatePresence>
 
+                        {/* Decorative Sparkle */}
                         <motion.div
                             animate={{ rotate: [0, 10, -10, 0] }}
                             transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                            className="absolute -top-2 -right-2 bg-yellow-300 text-yellow-800 p-2 rounded-full shadow-sm z-0"
+                            className="absolute -top-4 -right-4 bg-[#FDE047] text-slate-900 p-2 rounded-full border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)] z-0"
                         >
-                            <Sparkles size={20} />
+                            <Sparkles size={20} fill="currentColor" />
                         </motion.div>
                     </div>
 
-                    <div className="text-center md:text-left space-y-2">
-                        <h1 className="text-5xl md:text-6xl text-blue-900 drop-shadow-sm">Hey, {user?.username}! Your Gifts</h1>
-                        <p className="text-xl font-lexend text-blue-600/80 font-medium tracking-wide">
-                            Track everything you’ve sent and received, all wrapped with love ✨
+                    <div className="text-center md:text-left space-y-3">
+                        <h1 className="text-5xl md:text-6xl text-slate-900 drop-shadow-sm leading-tight">
+                            Hey, <span className="text-[#3B82F6]">{user?.username}</span>!
+                        </h1>
+                        <p className="text-xl font-lexend text-slate-600 font-medium tracking-wide max-w-lg">
+                            Track everything you’ve sent and received, all wrapped with big love! ✨
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setIsGiftModalOpen(true)}
-                            className="mt-4 font-lexend px-8 py-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white rounded-full font-bold shadow-lg shadow-pink-200/50 flex items-center gap-2 mx-auto md:mx-0 animate-pulse hover:animate-none transition-all"
+                            className="mt-6 font-lexend px-8 py-3 bg-[#F472B6] text-slate-900 rounded-2xl font-black text-lg border-[3px] border-slate-900 shadow-[5px_5px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[5px] transition-all flex items-center gap-2 mx-auto md:mx-0"
                         >
-                            <Heart className="fill-white" size={20} />
-                            Gift Someone
+                            <Heart className="fill-slate-900" size={24} />
+                            GIFT SOMEONE
                         </motion.button>
                     </div>
                 </header>
 
                 {/* 2. Unopened Gifts Gallery */}
-                <section>
-                    <div className="flex items-center gap-3 mb-6">
-                        <Gift className="text-pink-500" />
-                        <h2 className="text-2xl text-blue-800 ">Waiting for you...</h2>
-                    </div>
+                {unopenedGifts.length > 0 && (
+                    <section>
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="bg-[#F472B6] p-2 rounded-xl border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)]">
+                                <Gift className="text-slate-900" size={24} />
+                            </div>
+                            <h2 className="text-3xl text-slate-900 tracking-wide">WAITING FOR YOU...</h2>
+                        </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {UNOPENED_GIFTS.map((gift) => (
-                            <motion.div
-                                key={gift.id}
-                                whileHover={{ y: -5, scale: 1.02 }}
-                                className={`aspect-square rounded-3xl bg-gradient-to-br ${gift.color} shadow-lg shadow-blue-200/50 relative cursor-pointer group overflow-hidden`}
-                            >
-                                {/* Ribbon Effect */}
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <div className="w-full h-4 bg-white/30 absolute rotate-45 transform group-hover:rotate-12 transition-transform duration-500"></div>
-                                    <div className="w-4 h-full bg-white/30 absolute rotate-45 transform group-hover:-rotate-12 transition-transform duration-500"></div>
-                                </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                            {unopenedGifts.map((gift) => (
+                                <motion.div
+                                    key={gift._id}
+                                    whileHover={{ y: -6, rotate: 1 }}
+                                    onClick={() => handleOpenGift(gift, 'received')}
+                                    className="aspect-square rounded-[2rem] bg-white border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] relative cursor-pointer group overflow-hidden"
+                                >
+                                    {/* Wrapper Image */}
+                                    <img
+                                        src={gift.wrapper}
+                                        alt="Gift Wrapper"
+                                        className="w-full h-full object-cover"
+                                    />
 
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white drop-shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <span className="text-lg">From {gift.sender}</span>
-                                    <span className="text-2xl">{gift.amount}</span>
-                                </div>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/40 backdrop-blur-sm">
+                                        <div className="bg-[#FFD166] text-slate-900 border-[3px] border-slate-900 rounded-xl px-4 py-2 transform -rotate-3 mb-2 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
+                                            <span className="text-xl font-bold block leading-none">
+                                                From {(typeof gift.senderId === 'object' ? gift.senderId.username : 'Someone')}
+                                            </span>
+                                        </div>
+                                        <div className="bg-white text-slate-900 border-[3px] border-slate-900 rounded-full px-3 py-1 text-sm font-black transform rotate-2">
+                                            OPEN ME!
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
-                                <div className="absolute bottom-4 right-4 text-white/80 animate-pulse">
-                                    <Sparkles size={24} />
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </section>
-
-                {/* 3. Stats Row */}
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 3. Stats Row Using Sticker Cards */}
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <StatsCard
-                        icon={<ArrowUpRight className="text-blue-500" />}
+                        icon={<ArrowUpRight size={28} className="text-slate-900" />}
                         label="Total Sent"
-                        value="$1,250.00"
-                        color="bg-blue-50"
+                        value={`${sentMeta?.total || 0} Gifts`}
+                        color="bg-[#60A5FA]"
                         onShowBreakdown={() => setActiveBreakdown('sent')}
                     />
                     <StatsCard
-                        icon={<ArrowDownLeft className="text-green-500" />}
+                        icon={<ArrowDownLeft size={28} className="text-slate-900" />}
                         label="Total Received"
-                        value="$850.00"
-                        color="bg-green-50"
+                        value={`${receivedMeta?.total || 0} Gifts`}
+                        color="bg-[#4ADE80]"
                         onShowBreakdown={() => setActiveBreakdown('received')}
                     />
                 </section>
 
-                {/* 5. Tables Section (Updated to Full Width Stacked) */}
+                {/* 5. Tables Section */}
                 <section className="flex flex-col gap-12 font-sans">
 
                     {/* Sent Gifts Table */}
-                    <TableCard title="Gifts You Sent" icon={<ArrowUpRight size={20} className="text-blue-500" />}>
+                    <TableCard
+                        title="Gifts You Sent"
+                        color="bg-[#60A5FA]"
+                        icon={<ArrowUpRight size={20} className="text-slate-900" />}
+                    >
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm font-lexend">
-                                <thead className="text-slate-400 border-b border-slate-100">
+                            <table className="w-full text-left text-sm font-lexend text-slate-700">
+                                <thead className="text-slate-500 border-b-2 border-slate-100">
                                     <tr>
-                                        <th className="pb-3 pl-4 font-medium min-w-[200px]">To</th>
-                                        <th className="pb-3 font-medium">Amount</th>
-                                        <th className="pb-3 font-medium">Date</th>
-                                        <th className="pb-3 font-medium">Status</th>
+                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">To</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-slate-600">
-                                    {getPaginatedData(SENT_GIFTS, sentPage).map((gift) => (
-                                        <tr key={gift.id} className="border-b border-slate-50 last:border-0 hover:bg-blue-50/30 transition-colors">
-                                            <td className="py-3 pl-4 font-medium flex items-center gap-2">
-                                                {formatAddress(gift.address)}
+                                <tbody className="text-slate-700 font-medium">
+                                    {isGiftLoading && sentGifts.length === 0 ? (
+                                        <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
+                                    ) : sentGifts.map((gift) => (
+                                        <tr
+                                            key={gift._id}
+                                            onClick={() => handleOpenGift(gift, 'sent')}
+                                            className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group"
+                                        >
+                                            <td className="py-4 pl-4 flex items-center gap-2">
+                                                {formatAddress(gift.receiverWallet || '')}
                                                 <button
-                                                    onClick={() => copyToClipboard(gift.address)}
-                                                    className="p-1 hover:bg-blue-100 rounded-md text-blue-400 hover:text-blue-600 transition-colors"
-                                                    title="Copy Address"
+                                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(gift.receiverWallet); }}
+                                                    className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
                                                 >
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
-                                            <td className="py-3">{gift.amount}</td>
-                                            <td className="py-3 text-slate-400">{gift.date}</td>
-                                            <td className="py-3">
-                                                <StatusBadge status={gift.status} />
+                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                            <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
+                                            <td className="py-4">
+                                                <StatusBadge status={gift.status || 'sent'} />
                                             </td>
                                         </tr>
                                     ))}
+                                    {!isGiftLoading && sentGifts.length === 0 && (
+                                        <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts sent yet. Start gifting!</td></tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
                         {/* Pagination Controls */}
                         {totalSentPages > 1 && (
-                            <div className="flex items-center justify-end gap-2 mt-4">
+                            <div className="flex items-center justify-end gap-2 mt-6">
                                 <button
                                     onClick={() => setSentPage(p => Math.max(1, p - 1))}
-                                    disabled={sentPage === 1}
-                                    className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                                    disabled={!sentMeta?.hasPrevPage}
+                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
                                 >
-                                    <ChevronLeft size={20} />
+                                    <ChevronLeft size={24} strokeWidth={3} />
                                 </button>
-                                <span className="text-sm font-bold text-slate-500">
-                                    Page {sentPage} of {totalSentPages}
+                                <span className="text-base font-black text-slate-900 px-2">
+                                    {sentPage} / {totalSentPages}
                                 </span>
                                 <button
                                     onClick={() => setSentPage(p => Math.min(totalSentPages, p + 1))}
-                                    disabled={sentPage === totalSentPages}
-                                    className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                                    disabled={!sentMeta?.hasNextPage}
+                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
                                 >
-                                    <ChevronRight size={20} />
+                                    <ChevronRight size={24} strokeWidth={3} />
                                 </button>
                             </div>
                         )}
                     </TableCard>
 
                     {/* Received Gifts Table */}
-                    <TableCard title="Gifts You Received" icon={<ArrowDownLeft size={20} className="text-green-500" />}>
+                    <TableCard
+                        title="Gifts You Received"
+                        color="bg-[#4ADE80]"
+                        icon={<ArrowDownLeft size={20} className="text-slate-900" />}
+                    >
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm font-lexend">
-                                <thead className="text-slate-400 border-b border-slate-100">
+                            <table className="w-full text-left text-sm font-lexend text-slate-700">
+                                <thead className="text-slate-500 border-b-2 border-slate-100">
                                     <tr>
-                                        <th className="pb-3 pl-4 font-medium min-w-[200px]">From</th>
-                                        <th className="pb-3 font-medium">Amount</th>
-                                        <th className="pb-3 font-medium">Date</th>
-                                        <th className="pb-3 font-medium">Status</th>
+                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">From</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-slate-600">
-                                    {getPaginatedData(RECEIVED_GIFTS, receivedPage).map((gift) => (
-                                        <tr key={gift.id} className="border-b border-slate-50 last:border-0 hover:bg-blue-50/30 transition-colors">
-                                            <td className="py-3 pl-4 font-medium flex items-center gap-2">
-                                                {formatAddress(gift.address)}
+                                <tbody className="text-slate-700 font-medium">
+                                    {isGiftLoading && receivedGifts.length === 0 ? (
+                                        <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
+                                    ) : receivedGifts.map((gift) => (
+                                        <tr
+                                            key={gift._id}
+                                            onClick={() => handleOpenGift(gift, 'received')}
+                                            className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group"
+                                        >
+                                            <td className="py-4 pl-4 flex items-center gap-2">
+                                                {formatAddress(gift.senderWallet || '')}
                                                 <button
-                                                    onClick={() => copyToClipboard(gift.address)}
-                                                    className="p-1 hover:bg-blue-100 rounded-md text-blue-400 hover:text-blue-600 transition-colors"
-                                                    title="Copy Address"
+                                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(gift.senderWallet); }}
+                                                    className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
                                                 >
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
-                                            <td className="py-3">{gift.amount}</td>
-                                            <td className="py-3 text-slate-400">{gift.date}</td>
-                                            <td className="py-3">
-                                                <StatusBadge status={gift.status} />
+                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                            <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
+                                            <td className="py-4">
+                                                <StatusBadge status={gift.status || 'sent'} />
                                             </td>
                                         </tr>
                                     ))}
+                                    {!isGiftLoading && receivedGifts.length === 0 && (
+                                        <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts received yet.</td></tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
                         {/* Pagination Controls */}
                         {totalReceivedPages > 1 && (
-                            <div className="flex items-center justify-end gap-2 mt-4">
+                            <div className="flex items-center justify-end gap-2 mt-6">
                                 <button
                                     onClick={() => setReceivedPage(p => Math.max(1, p - 1))}
-                                    disabled={receivedPage === 1}
-                                    className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                                    disabled={!receivedMeta?.hasPrevPage}
+                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
                                 >
-                                    <ChevronLeft size={20} />
+                                    <ChevronLeft size={24} strokeWidth={3} />
                                 </button>
-                                <span className="text-sm font-bold text-slate-500">
-                                    Page {receivedPage} of {totalReceivedPages}
+                                <span className="text-base font-black text-slate-900 px-2">
+                                    {receivedPage} / {totalReceivedPages}
                                 </span>
                                 <button
                                     onClick={() => setReceivedPage(p => Math.min(totalReceivedPages, p + 1))}
-                                    disabled={receivedPage === totalReceivedPages}
-                                    className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                                    disabled={!receivedMeta?.hasNextPage}
+                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
                                 >
-                                    <ChevronRight size={20} />
+                                    <ChevronRight size={24} strokeWidth={3} />
                                 </button>
                             </div>
                         )}
                     </TableCard>
                 </section>
 
-                {/* 6. Small Description Box */}
-                <div className="bg-blue-100/50 rounded-2xl p-6 text-center max-w-2xl mx-auto border border-blue-200/50">
-                    <p className="text-blue-800/70 text-lg leading-relaxed">
+                {/* 6. Quote Box */}
+                <div className="bg-[#FFF1F2] border-[3px] border-slate-900 rounded-[2rem] p-6 text-center max-w-2xl mx-auto shadow-[6px_6px_0_0_rgba(251,113,133,1)]">
+                    <p className="text-slate-900 text-lg font-lexend font-medium leading-relaxed italic">
                         “GiftChain makes sending crypto gifts warm, personal, and memorable. Wrap your love, write a message, and let someone open joy straight from their wallet.”
                     </p>
                 </div>
 
             </div>
 
-            {/* 4. Breakdown Modal (Unified for both types) */}
+            {/* 4. Breakdown Modal Pop Style */}
             <AnimatePresence>
                 {activeBreakdown && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -374,64 +424,68 @@ const Profile = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setActiveBreakdown(null)}
-                            className="absolute inset-0 bg-blue-900/20 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"
                         />
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            initial={{ scale: 0.9, opacity: 0, y: 100 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative bg-white/80 backdrop-blur-xl border border-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center space-y-6"
+                            exit={{ scale: 0.9, opacity: 0, y: 100 }}
+                            className="relative bg-white border-[4px] border-slate-900 p-0 rounded-[2rem] shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full text-center overflow-hidden"
                         >
-                            <button
-                                onClick={() => setActiveBreakdown(null)}
-                                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
-                            >
-                                <X size={20} className="text-slate-400" />
-                            </button>
-
-                            <div className="space-y-2">
-                                <h3 className="text-2xl text-slate-800">
-                                    {activeBreakdown === 'sent' ? 'Sent Gifts Summary' : 'Received Gifts Summary'}
+                            {/* Modal Header */}
+                            <div className={`p-6 border-b-[4px] border-slate-900 ${activeBreakdown === 'sent' ? 'bg-[#60A5FA]' : 'bg-[#4ADE80]'}`}>
+                                <h3 className="text-3xl text-slate-900 drop-shadow-sm font-['Lilita_One'] tracking-wide">
+                                    {activeBreakdown === 'sent' ? 'SENT GIFTS' : 'RECEIVED GIFTS'}
                                 </h3>
-                                <p className="text-slate-500 font-sans">
+                                <button
+                                    onClick={() => setActiveBreakdown(null)}
+                                    className="absolute top-4 right-4 p-1.5 bg-white border-2 border-slate-900 rounded-full hover:scale-110 transition-transform shadow-[2px_2px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none"
+                                >
+                                    <X size={20} className="text-slate-900" strokeWidth={3} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-1">
+                                    <div className="text-7xl font-['Lilita_One'] text-slate-900 drop-shadow-[2px_2px_0_#cbd5e1]">
+                                        {activeBreakdown === 'sent' ? sentMeta?.total || 0 : receivedMeta?.total || 0}
+                                    </div>
+                                    <div className="text-slate-500 font-bold uppercase tracking-wider text-sm">
+                                        Total Gifts {activeBreakdown === 'sent' ? 'Sent' : 'Received'}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-center gap-4 py-2">
+                                    {[1, 2, 3].map((i) => (
+                                        <div key={i} className="w-12 h-12 rounded-xl bg-slate-100 border-2 border-slate-900 flex items-center justify-center text-2xl animate-bounce shadow-[4px_4px_0_0_rgba(15,23,42,1)]" style={{ animationDelay: `${i * 0.1}s` }}>
+                                            {activeBreakdown === 'sent' ? '🚀' : '🎁'}
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-slate-600 font-medium font-lexend italic">
                                     {activeBreakdown === 'sent' ? "You're spreading so much joy! 💖" : "Look at all this love! 🎁"}
                                 </p>
+
+                                <button className="w-full bg-slate-800 text-white border-[3px] border-slate-900 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-colors shadow-[4px_4px_0_0_#94a3b8] active:translate-y-[4px] active:shadow-none">
+                                    <Download size={20} strokeWidth={2.5} />
+                                    Share Stats
+                                </button>
                             </div>
-
-                            <div className="py-6 space-y-6">
-                                <div>
-                                    <div className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500 drop-shadow-sm font-['Lilita_One']">
-                                        {activeBreakdown === 'sent' ? '$1,250' : '$850'}
-                                    </div>
-                                    <div className="text-slate-400 text-sm font-sans font-medium mt-2 uppercase tracking-widest">
-                                        Total Value {activeBreakdown === 'sent' ? 'Sent' : 'Received'}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-center gap-3">
-                                    <span className="text-2xl font-bold text-slate-700 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
-                                        {activeBreakdown === 'sent' ? SENT_GIFTS.length : RECEIVED_GIFTS.length} Gifts
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-center gap-4">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-2xl animate-bounce" style={{ animationDelay: `${i * 0.1}s` }}>
-                                        {activeBreakdown === 'sent' ? '🚀' : '🎁'}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button className="w-full bg-slate-900 text-white py-4 rounded-xl font-sans font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20">
-                                <Download size={18} />
-                                Download as Image
-                            </button>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
             <SendGiftModal isOpen={isGiftModalOpen} onClose={() => setIsGiftModalOpen(false)} />
+
+            {/* Gift Reveal Modal */}
+            {selectedGift && (
+                <GiftRevealModal
+                    isOpen={!!selectedGift}
+                    onClose={() => setSelectedGift(null)}
+                    gift={selectedGift}
+                    variant={modalVariant}
+                />
+            )}
 
             {/* Username Setup Modal */}
             <UsernameSetupModal isOpen={!!user && !user.username} />
@@ -442,33 +496,37 @@ const Profile = () => {
 // Helper Components
 
 const StatsCard = ({ icon, label, value, color, onShowBreakdown }: { icon: React.ReactNode, label: string, value: string, color: string, onShowBreakdown: () => void }) => (
-    <div className={`bg-white/40 backdrop-blur-md border border-white/60 rounded-3xl p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow`}>
-        <div className="flex items-center gap-4">
-            <div className={`p-4 rounded-2xl ${color} shadow-inner`}>
+    <div className={`bg-white border-[4px] border-slate-900 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[8px_8px_0_0_rgba(15,23,42,1)] hover:translate-y-[-4px] transition-transform`}>
+        <div className="flex items-center gap-5">
+            <div className={`p-4 rounded-2xl ${color} border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)]`}>
                 {icon}
             </div>
-            <div>
-                <div className="text-sm text-slate-500 uppercase tracking-wider font-sans font-bold">{label}</div>
-                <div className="text-2xl text-slate-700">{value}</div>
+            <div className="text-center sm:text-left">
+                <div className="text-xs text-slate-500 uppercase tracking-widest font-black mb-1">{label}</div>
+                <div className="text-3xl text-slate-900 leading-none">{value}</div>
             </div>
         </div>
 
         <button
             onClick={onShowBreakdown}
-            className="bg-white/50 hover:bg-white text-slate-500 hover:text-blue-600 px-4 py-2 rounded-full font-sans text-sm font-bold transition-all border border-transparent hover:border-blue-100 shadow-sm"
+            className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-900 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-[3px] border-slate-900 shadow-[4px_4px_0_0_#cbd5e1] active:translate-y-[3px] active:shadow-none"
         >
-            Show Breakdown
+            DETAILS
         </button>
     </div>
 );
 
-const TableCard = ({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) => (
-    <div className="bg-white/60 backdrop-blur-md rounded-3xl p-8 shadow-sm border border-white/50 w-full">
-        <div className="flex items-center gap-3 mb-8 text-slate-700">
-            <div className="p-2 bg-white rounded-xl shadow-sm">
+const TableCard = ({ title, icon, color, children }: { title: string, icon: React.ReactNode, color: string, children: React.ReactNode }) => (
+    <div className="bg-white rounded-[2.5rem] p-8 border-[4px] border-slate-900 shadow-[10px_10px_0_0_rgba(15,23,42,1)] w-full relative overflow-hidden">
+
+        {/* Decorative corner stripe */}
+        <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-20 -mr-10 -mt-10 rounded-full blur-3xl pointer-events-none`}></div>
+
+        <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className={`p-3 ${color} rounded-xl border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)]`}>
                 {icon}
             </div>
-            <h3 className="text-2xl font-['Lilita_One']">{title}</h3>
+            <h3 className="text-3xl font-['Lilita_One'] text-slate-900 tracking-wide">{title}</h3>
         </div>
         {children}
     </div>
@@ -477,11 +535,11 @@ const TableCard = ({ title, icon, children }: { title: string, icon: React.React
 const StatusBadge = ({ status }: { status: string }) => {
     const isOpened = status === "Opened";
     return (
-        <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${isOpened
-            ? "bg-green-100 text-green-600"
-            : "bg-yellow-100 text-yellow-600"
+        <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide inline-flex items-center gap-1 border-2 border-slate-900 shadow-[2px_2px_0_0_rgba(15,23,42,1)] ${isOpened
+            ? "bg-[#4ADE80] text-slate-900"
+            : "bg-[#FDE047] text-slate-900"
             }`}>
-            {isOpened && <Check size={12} />}
+            {isOpened && <Check size={14} strokeWidth={3} />}
             {status}
         </span>
     );

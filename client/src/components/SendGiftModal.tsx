@@ -492,15 +492,15 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                         {step === 2 && (
                             <div className="space-y-6 font-lexend">
                                 <div>
-                                    <label className="block text-sm text-slate-500 mb-2">Your Message (Max 2000 chars)</label>
+                                    <label className="block text-sm text-slate-500 mb-2">Your Message (Max 600 chars)</label>
                                     <textarea
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
-                                        maxLength={2000}
+                                        maxLength={600}
                                         placeholder="Write something sweet..."
                                         className="w-full h-32 p-4 rounded-2xl bg-blue-50/50 border-2 border-blue-100 focus:border-blue-300 focus:ring-0 resize-none transition-all placeholder:text-blue-200"
                                     />
-                                    <div className="text-right text-xs text-slate-400 mt-1">{message.length}/2000</div>
+                                    <div className="text-right text-xs text-slate-400 mt-1">{message.length}/600</div>
                                 </div>
 
                                 <div>
