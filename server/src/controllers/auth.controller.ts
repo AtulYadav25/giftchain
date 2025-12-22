@@ -39,6 +39,24 @@ export const verify = async (req: FastifyRequest, reply: FastifyReply) => {
     }
 };
 
+export const disconnectWallet = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+
+        // Set JWT token as HTTP-only cookie
+        reply.setCookie("gc_token", null, {
+            path: "/",
+            httpOnly: true,
+            secure: true,    // Use false for local development (HTTP), true in production (HTTPS)
+            sameSite: "none", // Required for cross-origin requests with cookies
+            maxAge: 21 * 24 * 60 * 60, // 25 days
+        })
+
+        successResponse(reply, {}, 'User disconnected successfully', 200);
+    } catch (error: any) {
+        errorResponse(reply, error.message, 401);
+    }
+};
+
 export const me = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
         const { address } = req.user!;

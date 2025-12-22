@@ -57,7 +57,6 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
     }
 
     const user = await User.findById(userId);
-    console.log(userId)
     if (!user) {
         return errorResponse(reply, "User not found", 404)
     }
