@@ -10,6 +10,7 @@ use sui::balance::{Self, Balance};
 use sui::coin::{Self, Coin};
 use sui::event;
 use sui::sui::SUI;
+use sui::address;
 
 // --- Errors ---
 const ENotIntendedReceiver: u64 = 0;
@@ -23,15 +24,15 @@ const MAX_FEE_BPS: u64 = 1000; // 10% safety limit
 
 // --- Structs ---
 
-/// Capability allowing admin actions (withdraw, update fee).
+/// Capability allowing admin actions (update fee).
 public struct AdminCap has key, store {
     id: UID,
 }
 
-/// Stores collected platform fees and current fee configuration.
-public struct Treasury has key {
+/// Stores configuration: treasury address and fee bps.
+public struct GiftConfig has key {
     id: UID,
-    balance: Balance<SUI>,
+    treasury_address: address,
     fee_bps: u64,
 }
 
@@ -47,7 +48,8 @@ public struct Gift has key {
 // --- Events ---
 
 public struct GiftWrapped has copy, drop {
-    gift_db_id: String,
+    gift_db_id: String, //Id of Mongodb Gift Document
+    gift_obj_id: String, //Id of Onchain Gift Object Sent to the receiver
     sender: address,
     receiver: address,
     amount: u64,
@@ -60,11 +62,6 @@ public struct GiftClaimed has copy, drop {
     amount: u64,
 }
 
-public struct TreasuryWithdrawn has copy, drop {
-    amount: u64,
-    recipient: address,
-}
-
 public struct FeeUpdated has copy, drop {
     old_fee_bps: u64,
     new_fee_bps: u64,
@@ -72,21 +69,23 @@ public struct FeeUpdated has copy, drop {
 
 // --- Init ---
 
-/// Initialize the contract: create Treasury and AdminCap.
+/// Initialize the contract: create GiftConfig and AdminCap.
 fun init(ctx: &mut TxContext) {
+    let deployer = ctx.sender();
+
     let admin_cap = AdminCap {
         id: object::new(ctx),
     };
 
-    // Share the Treasury so it's accessible for fee deposits
-    let treasury = Treasury {
+    // Share the Config
+    let config = GiftConfig {
         id: object::new(ctx),
-        balance: balance::zero(),
+        treasury_address: deployer,
         fee_bps: INITIAL_FEE_BPS,
     };
 
-    transfer::transfer(admin_cap, ctx.sender());
-    transfer::share_object(treasury);
+    transfer::transfer(admin_cap, deployer);
+    transfer::share_object(config);
 }
 
 // --- Public Functions ---
@@ -98,7 +97,7 @@ public fun wrap_gift(
     fee_coin: &mut Coin<SUI>,
     receiver: address,
     gift_db_id: String,
-    treasury: &mut Treasury,
+    config: &GiftConfig,
     ctx: &mut TxContext,
 ) {
     let sender = tx_context::sender(ctx);
@@ -108,7 +107,7 @@ public fun wrap_gift(
     let gift_amount = coin::value(&gift_coin);
     assert!(gift_amount > 0, EZeroGiftAmount);
 
-    let fee_bps = treasury.fee_bps;
+    let fee_bps = config.fee_bps;
 
     /* ---------------- Fee Calculation ---------------- */
 
@@ -120,12 +119,16 @@ public fun wrap_gift(
     /* ---------------- Fee Handling ---------------- */
 
     let fee = coin::split(fee_coin, expected_fee, ctx);
-    balance::join(&mut treasury.balance, coin::into_balance(fee));
+    transfer::public_transfer(fee, config.treasury_address);
 
     /* ---------------- Gift Creation ---------------- */
 
+    let gift_uid = object::new(ctx);
+    let gift_address = object::uid_to_address(&gift_uid);
+    let gift_obj_id = address::to_string(gift_address);
+
     let gift = Gift {
-        id: object::new(ctx),
+        id: gift_uid,
         sender,
         receiver,
         inner: coin::into_balance(gift_coin),
@@ -137,6 +140,7 @@ public fun wrap_gift(
 
     event::emit(GiftWrapped {
         gift_db_id,
+        gift_obj_id,
         sender,
         receiver,
         amount: gift_amount,
@@ -171,30 +175,12 @@ public fun claim_gift(gift: Gift, gift_db_id: String, ctx: &mut TxContext) {
 
 // --- Admin Functions ---
 
-/// Withdraws SUI from the treasury.
-public fun withdraw_treasury(
-    _: &AdminCap,
-    treasury: &mut Treasury,
-    amount: u64,
-    recipient: address,
-    ctx: &mut TxContext,
-) {
-    let withdrawn_coin = coin::take(&mut treasury.balance, amount, ctx);
-
-    event::emit(TreasuryWithdrawn {
-        amount,
-        recipient,
-    });
-
-    transfer::public_transfer(withdrawn_coin, recipient);
-}
-
 /// Updates the platform fee.
-public fun update_fee(_: &AdminCap, treasury: &mut Treasury, new_fee_bps: u64) {
+public fun update_fee(_: &AdminCap, config: &mut GiftConfig, new_fee_bps: u64) {
     assert!(new_fee_bps <= MAX_FEE_BPS, EInvalidFee);
 
-    let old_fee_bps = treasury.fee_bps;
-    treasury.fee_bps = new_fee_bps;
+    let old_fee_bps = config.fee_bps;
+    config.fee_bps = new_fee_bps;
 
     event::emit(FeeUpdated {
         old_fee_bps,

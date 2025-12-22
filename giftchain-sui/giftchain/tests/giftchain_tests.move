@@ -4,7 +4,7 @@ module giftchain::giftchain_tests {
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
     use std::string;
-    use giftchain::gift::{Self, Gift, Treasury, AdminCap};
+    use giftchain::gift::{Self, Gift, GiftConfig, AdminCap};
 
     // --- Actors ---
     const ADMIN: address = @0xA;
@@ -22,7 +22,7 @@ module giftchain::giftchain_tests {
         // 2. Alice wraps a gift for Bob
         test_scenario::next_tx(&mut scenario, ALICE);
         {
-            let mut treasury = test_scenario::take_shared<Treasury>(&scenario);
+            let config = test_scenario::take_shared<GiftConfig>(&scenario);
             
             // Alice wants to gift 100 SUI
             // Fee is 1% => 1 SUI
@@ -30,9 +30,9 @@ module giftchain::giftchain_tests {
             let mut fee_coin = coin::mint_for_testing<SUI>(1, test_scenario::ctx(&mut scenario));
             
             let gift_id = string::utf8(b"gift_id");
-            gift::wrap_gift(gift_coin, &mut fee_coin, BOB, gift_id, &mut treasury, test_scenario::ctx(&mut scenario));
+            gift::wrap_gift(gift_coin, &mut fee_coin, BOB, gift_id, &config, test_scenario::ctx(&mut scenario));
             
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(config);
             coin::burn_for_testing(fee_coin);
         };
 
@@ -54,26 +54,8 @@ module giftchain::giftchain_tests {
             test_scenario::return_to_sender(&scenario, coin);
         };
 
-        // 5. Verify Treasury collection and Admin withdrawal
-        test_scenario::next_tx(&mut scenario, ADMIN);
-        {
-            let mut treasury = test_scenario::take_shared<Treasury>(&scenario);
-            let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
-            
-            // Withdraw the 1 SUI fee
-            gift::withdraw_treasury(
-                &admin_cap, 
-                &mut treasury, 
-                1, 
-                ADMIN, 
-                test_scenario::ctx(&mut scenario)
-            );
-
-            test_scenario::return_to_sender(&scenario, admin_cap);
-            test_scenario::return_shared(treasury);
-        };
-        
-        // 6. Verify Admin received the fee
+        // 5. Verify Treasury (ADMIN) received the fee directly
+        // Note: Admin should have received 1 SUI from Alice's transaction
         test_scenario::next_tx(&mut scenario, ADMIN);
         {
             let coin = test_scenario::take_from_sender<Coin<SUI>>(&scenario);
@@ -92,46 +74,36 @@ module giftchain::giftchain_tests {
         // 1. Admin updates fee to 5%
         test_scenario::next_tx(&mut scenario, ADMIN);
         {
-            let mut treasury = test_scenario::take_shared<Treasury>(&scenario);
+            let mut config = test_scenario::take_shared<GiftConfig>(&scenario);
             let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
             
-            gift::update_fee(&admin_cap, &mut treasury, 500); // 500 bps = 5%
+            gift::update_fee(&admin_cap, &mut config, 500); // 500 bps = 5%
             
             test_scenario::return_to_sender(&scenario, admin_cap);
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(config);
         };
 
         // 2. Alice wraps gift
         test_scenario::next_tx(&mut scenario, ALICE);
         {
-            let mut treasury = test_scenario::take_shared<Treasury>(&scenario);
+            let config = test_scenario::take_shared<GiftConfig>(&scenario);
             let gift_coin = coin::mint_for_testing<SUI>(1000, test_scenario::ctx(&mut scenario));
             let mut fee_coin = coin::mint_for_testing<SUI>(50, test_scenario::ctx(&mut scenario));
             
             // Fee 5% of 1000 = 50 SUI
             let gift_id = string::utf8(b"gift_id");
-            gift::wrap_gift(gift_coin, &mut fee_coin, BOB, gift_id, &mut treasury, test_scenario::ctx(&mut scenario));
+            gift::wrap_gift(gift_coin, &mut fee_coin, BOB, gift_id, &config, test_scenario::ctx(&mut scenario));
             
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(config);
             coin::burn_for_testing(fee_coin);
         };
 
-        // 3. Admin checks treasury has 50 SUI
+        // 3. Admin checks they received 50 SUI
         test_scenario::next_tx(&mut scenario, ADMIN);
         {
-            let mut treasury = test_scenario::take_shared<Treasury>(&scenario);
-            let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
-            
-            gift::withdraw_treasury(
-                &admin_cap, 
-                &mut treasury, 
-                50, 
-                ADMIN, 
-                test_scenario::ctx(&mut scenario)
-            );
-            
-            test_scenario::return_to_sender(&scenario, admin_cap);
-            test_scenario::return_shared(treasury);
+            let coin = test_scenario::take_from_sender<Coin<SUI>>(&scenario);
+            assert!(coin::value(&coin) == 50, 3);
+            test_scenario::return_to_sender(&scenario, coin);
         };
 
         test_scenario::end(scenario);
@@ -145,14 +117,14 @@ module giftchain::giftchain_tests {
 
         test_scenario::next_tx(&mut scenario, ADMIN);
         {
-            let mut treasury = test_scenario::take_shared<Treasury>(&scenario);
+            let mut config = test_scenario::take_shared<GiftConfig>(&scenario);
             let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
             
             // Try to set fee > 10% (1000 bps)
-            gift::update_fee(&admin_cap, &mut treasury, 1001);
+            gift::update_fee(&admin_cap, &mut config, 1001);
             
             test_scenario::return_to_sender(&scenario, admin_cap);
-            test_scenario::return_shared(treasury);
+            test_scenario::return_shared(config);
         };
         test_scenario::end(scenario);
     }
