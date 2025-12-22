@@ -32,7 +32,6 @@ export const requestMessage = async (address: string) => {
 
 export const verify = async (data: any) => {
     const { address, message, signature, nonce, userId } = data;
-    console.log(data)
 
     const user = await User.findOne({ address });
     if (!user) throw new Error('User not found');

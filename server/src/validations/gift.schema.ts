@@ -6,7 +6,7 @@ export const sendGiftSchema = z.object({
     wrapper: z.string(),
     amountUSD: z.number(),
     feeUSD: z.number(),
-    totalTokenAmount: z.number(),
+    totalTokenAmount: z.string(),
     suiStats: z.object({
         suiPrice: z.number(),
         suiHash: z.string(),
@@ -36,4 +36,12 @@ export const resolveRecipientsSchema = z.object({
 });
 
 export type ResolveRecipientsBody = z.infer<typeof resolveRecipientsSchema>;
+
+
+export const claimSubmitSchema = z.object({
+    txBytes: z.string(),
+    signature: z.string(),
+});
+
+export type ClaimSubmitBody = z.infer<typeof claimSubmitSchema>;
 // "GtvFV43P5gvPZh5L7gyVuhyMxrajZ63Rh5MyQiMiuaPm"

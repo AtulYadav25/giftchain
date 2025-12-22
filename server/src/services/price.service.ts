@@ -22,7 +22,6 @@ export const getSuiPrice = async (): Promise<number> => {
     // 1. Check Redis cache
     try {
         const cachedPrice = await redisClient.get(CACHE_KEY);
-        console.log('Cached Price:', cachedPrice);
         if (cachedPrice) {
             return parseFloat(cachedPrice.toString());
         }

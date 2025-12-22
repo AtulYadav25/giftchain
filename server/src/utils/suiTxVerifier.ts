@@ -62,8 +62,6 @@ class SuiTransactionVerifier {
                 throw new Error('Transaction not found');
             }
 
-            console.log("Step 1:")
-            console.log(JSON.stringify(txResponse, null, 2));
 
 
             // Verify transaction status
@@ -90,8 +88,7 @@ class SuiTransactionVerifier {
                 );
 
                 const giftWrappedEventParsedJson = giftWrappedEvent?.parsedJson as GiftWrappedEvent;
-                console.log("Step 2:")
-                console.log(giftWrappedEventParsedJson)
+
                 if (!giftWrappedEvent || !giftWrappedEventParsedJson?.amount) {
                     return { status: false, message: "Invalid Transaction" };
                 }
@@ -104,7 +101,7 @@ class SuiTransactionVerifier {
                 if (giftDbId !== giftWrappedEventParsedJson.gift_db_id) {
                     return { status: false, message: "Invalid Gift ID" };
                 }
-                console.log("Gift Wrapped Event Verified");
+
             }
 
             if (verifyType === 'claimGift') {
@@ -115,8 +112,7 @@ class SuiTransactionVerifier {
                 );
 
                 const giftClaimedEventParsedJson = giftClaimedEvent?.parsedJson as GiftClaimedEvent;
-                console.log("Step 2:")
-                console.log(giftClaimedEventParsedJson)
+
                 if (!giftClaimedEvent || !giftClaimedEventParsedJson?.amount) {
                     return { status: false, message: "Invalid Transaction" };
                 }
@@ -129,10 +125,8 @@ class SuiTransactionVerifier {
                 if (giftDbId !== giftClaimedEventParsedJson.gift_db_id) {
                     return { status: false, message: "Invalid Gift ID" };
                 }
-                console.log("Gift Claimed Event Verified");
             }
 
-            console.log("Transaction Verified");
 
             // Prepare verification result
             const result = {

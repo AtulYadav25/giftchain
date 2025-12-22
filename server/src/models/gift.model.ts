@@ -1,3 +1,4 @@
+import { Hash } from 'crypto';
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IGift extends Document {
@@ -19,11 +20,13 @@ export interface IGift extends Document {
     message?: string;
 
     status: 'unverified' | 'sent' | 'opened';
-    isTxConfirmed: Boolean;
+    verified: Boolean;
     openedAt?: Date;
 
-    senderTxHash?: string;
-    deliveryTxHash?: string;
+    senderTxDigest?: string;
+    onChainGiftId?: string;
+    claimTxHash?: string;
+    deliveryTxDigest?: string;
 
     chainID: 'sui';
     isAnonymous?: boolean;
@@ -102,7 +105,7 @@ const GiftSchema: Schema = new Schema(
             default: 'unverified'
         },
 
-        isTxConfirmed: {
+        verified: {
             type: Boolean,
             default: false
         },
@@ -111,12 +114,19 @@ const GiftSchema: Schema = new Schema(
             type: Date
         },
 
-        senderTxHash: {
+        senderTxDigest: {
             type: String,
             default: null
         },
-
-        deliveryTxHash: {
+        onChainGiftId: {
+            type: String,
+            default: null
+        },
+        claimTxHash: {
+            type: String,
+            default: null
+        },
+        deliveryTxDigest: {
             type: String,
             default: null
         },

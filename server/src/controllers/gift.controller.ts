@@ -2,12 +2,11 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as giftService from '../services/gift.service';
 import { successResponse, errorResponse, paginationResponse } from '../utils/responseHandler';
 import SuiTransactionVerifier from '../utils/suiTxVerifier';
-import { ResolveRecipientsBody, VerifyGiftBody } from '../validations/gift.schema';
+import { ClaimSubmitBody, ResolveRecipientsBody, VerifyGiftBody } from '../validations/gift.schema';
 
 
 export const sendGift = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
-        console.log("Creating GIFT")
         const gift = await giftService.createGift(req.user!.userId, req.body);
 
         //TODO: Verify Gift Sent Transaction by SUI Indexer
@@ -30,21 +29,25 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
         const txResult: any = await txVerifier.verifyTransaction(req.body.txDigest, { walletAddress: req.body.address.trim(), giftDbId: req.body.giftId, verifyType: req.body.verifyType });
 
         // Filter GiftWrapped events and extract gift_db_id
-        const giftIds: string[] = txResult.events
+        const giftObjs: any[] = txResult.events
             .filter((event: any) =>
                 event.type?.includes("::gift::GiftWrapped")
             )
-            .map((event: any) => event.parsedJson?.gift_db_id)
+            .map((event: any) => event.parsedJson)
             .filter(Boolean); // removes undefined/null
+
 
         //Get Gift IDs from the Event and update the Mongodb Documents of Gifts to verified true;
         if (txResult.verified) {
-            await giftService.verifyGifts(giftIds);
+            console.log(giftObjs)
+            await giftService.verifyGifts(giftObjs);
+        } else {
+            errorResponse(reply, "Transaction is not verified", 400);
         }
 
         successResponse(reply, txResult, "Gift verified successfully", 201);
     } catch (error: any) {
-        errorResponse(reply, "Something went wrong", 500);
+        errorResponse(reply, error.message, 500);
     }
 };
 
@@ -98,12 +101,24 @@ export const getOne = async (req: FastifyRequest<{ Params: { id: string } }>, re
     }
 };
 
-export const openGift = async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+export const claimIntent = async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
-        const gift = await giftService.openGift(req.params.id, req.user!.userId);
-        successResponse(reply, gift, "Gift opened successfully", 200);
+        console.log("CHecking Intent")
+        const txBytes = await giftService.claimIntent(req.params.id, req.user.address);
+        successResponse(reply, txBytes, "Gift opened successfully", 200);
     } catch (error: any) {
-        errorResponse(reply, "Something went wrong", 500);
+        errorResponse(reply, error.message, 500);
+    }
+};
+
+export const claimSubmit = async (req: FastifyRequest<{ Params: { id: string }, Body: ClaimSubmitBody }>, reply: FastifyReply) => {
+    try {
+        const { txBytes, signature } = req.body;
+
+        const txDigest = await giftService.claimSubmit(req.params.id, txBytes, signature, req.user.address);
+        successResponse(reply, txDigest, "Gift opened successfully", 200);
+    } catch (error: any) {
+        errorResponse(reply, error.message, 500);
     }
 };
 
