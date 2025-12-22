@@ -16,7 +16,7 @@ interface AuthActions {
     requestMessage: (address: string) => Promise<RequestMessageResponse>;
     verify: (data: VerifyRequestData) => Promise<VerifyResponse>;
     checkSession: () => Promise<void>;
-    disconnectWallet: () => void;
+    disconnectWallet: () => Promise<void>;
     updateProfile: (data: { username?: string; avatar?: File }) => Promise<void>;
 }
 
@@ -102,8 +102,16 @@ const useAuthStore = create<AuthState & { actions: AuthActions }>()(
                     }
                 },
 
-                disconnectWallet: () => {
-                    set({ user: null, isAuthenticated: false });
+                disconnectWallet: async () => {
+                    try {
+                        await api.get('/auth/disconnect');
+
+                        set({ user: null, isAuthenticated: false });
+                    } catch (err: any) {
+                        const msg = err.response?.data?.message || err.message || "Failed to disconnect wallet";
+                        set({ isLoading: false, error: msg });
+                        throw err;
+                    }
                 },
 
                 updateProfile: async (data: { username?: string; avatar?: File }) => {
@@ -143,7 +151,6 @@ useAuthStore.subscribe(
     (state) => state.error,
     (errorValue: any) => {
         if (errorValue) {
-            console.log("🔥 Auth Error Detected:", errorValue);
 
             // Example: show toast
             toast.error(errorValue)

@@ -12,6 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConnectModal, useCurrentAccount, useDisconnectWallet } from '@mysten/dapp-kit';
 import { LogOut, Wallet, User, Gift, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuthActions } from "@/store";
+import toast from "react-hot-toast";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
@@ -20,12 +22,24 @@ export default function Navbar() {
     const currentAccount = useCurrentAccount();
     const { mutate: disconnect } = useDisconnectWallet();
 
+    const { disconnectWallet } = useAuthActions();
+
     // Scroll detection for glass effect intensity
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    const handleDisconnect = async () => {
+        try {
+            await disconnectWallet();
+            disconnect();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to disconnect wallet");
+        }
+    }
+
 
     const isConnected = !!currentAccount?.address;
     const address = currentAccount?.address;
@@ -116,7 +130,7 @@ export default function Navbar() {
                                 <DropdownMenuSeparator className="bg-blue-50" />
 
                                 <DropdownMenuItem
-                                    onClick={() => disconnect()}
+                                    onClick={handleDisconnect}
                                     className="cursor-pointer rounded-xl focus:bg-red-50 text-red-500 focus:text-red-600 py-2.5 px-3"
                                 >
                                     <LogOut size={16} className="mr-2" />
