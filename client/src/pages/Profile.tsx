@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Gift,
@@ -30,6 +30,7 @@ import {
     useGiftActions,
     useGiftLoading
 } from '@/store/useGiftStore';
+import { useNavigate } from 'react-router-dom';
 
 const ITEMS_PER_PAGE = 8; // Adjust limit as needed
 
@@ -37,9 +38,18 @@ const Profile = () => {
     const [activeBreakdown, setActiveBreakdown] = useState<'sent' | 'received' | null>(null);
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
 
+    const navigate = useNavigate();
     const user = useUser();
     const { updateProfile } = useAuthActions();
     const isProfileUpdating = useAuthLoading();
+
+    useEffect(() => {
+        if (!user?.address) {
+            navigate('/')
+            toast.error("User not found");
+            return;
+        };
+    }, [user])
 
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -367,7 +377,7 @@ const Profile = () => {
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
-                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
                                             <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
                                             <td className="py-4">
                                                 <StatusBadge status={gift.status || 'sent'} />

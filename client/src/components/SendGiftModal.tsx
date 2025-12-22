@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from './ui/input-group';
 import { useWrapperActions, useWrappers, useWrapperLoading } from '@/store/useWrapperStore';
-import { useGiftActions } from '@/store';
+import { useGiftActions, useUser } from '@/store';
 import useGiftStore, { type SendGiftParams } from '@/store/useGiftStore';
 import { isValidSuiAddress } from '@mysten/sui/utils';
 import toast from 'react-hot-toast';
@@ -116,7 +116,8 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     const { sendGift, verifyGift, resolveRecipients } = useGiftActions();
 
     // SUI Price
-    const { getSUIPrice } = useGiftActions();
+    const { getSUIPrice, fetchSentGifts } = useGiftActions();
+    const user = useUser();
     const { suiStats } = useGiftStore((s) => s);
 
     const exchangeRates = useMemo(() => ({
@@ -183,13 +184,21 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
         if (!amountStr) return 0;
         const val = parseFloat(amountStr);
         if (isNaN(val)) return 0;
-        return Number((val / exchangeRates.SUI!).toFixed(4));
+        return Number((val / exchangeRates.SUI!));
     };
 
     // Process Gift 
     const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
     const handleProcessPayment = async () => {
+
+        // await verifyGift({
+        //     giftId: "69490384573ec28686396b5f",
+        //     txDigest: "98mBgMUSiZsk4FYFKFvHR6b2T7aun8fVDkbRF7UQ5qTD",
+        //     address: account!.address,
+        //     verifyType: 'wrapGift'
+        // });
+
 
         // 1️⃣ Validation
         // Collect usernames that need resolving
@@ -217,7 +226,6 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
             const resolvedAddress = resolvedMap.get(r.username);
 
             if (!resolvedAddress) {
-                console.log(`Invalid username: ${r.username}`);
                 toast.error(`Invalid username: ${r.username}`);
                 return r;
             }
@@ -262,7 +270,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
         }
 
         const PACKAGE_ID = import.meta.env.VITE_PACKAGE_ID;
-        const TREASURY_ID = import.meta.env.VITE_TREASURY_ID;
+        const VITE_GIFT_CONFIG = import.meta.env.VITE_GIFT_CONFIG;
         const MODULE_NAME = import.meta.env.VITE_MODULE_NAME;
 
         try {
@@ -283,13 +291,13 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                         amountUSD:
                             inputMode === 'USD'
                                 ? Number(recipient.amount)
-                                : getUSDToSUI(recipient.amount),
+                                : getRecipientValueInUSD(recipient.amount),
                         feeUSD: recipientFee,
                         suiStats,
                         totalTokenAmount:
                             inputMode === 'USD'
-                                ? getUSDToSUI(recipient.amount + recipientFee)
-                                : Number(recipient.amount + recipientFee),
+                                ? (Math.floor(getUSDToSUI(recipient.amount) * 1_000_000_000)).toString()
+                                : (Number(recipient.amount) * 1_000_000_000).toString(),
                         tokenSymbol: 'sui',
                         wrapper: selectedWrapper.wrapperImg,
                         message,
@@ -357,7 +365,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                         paymentCoin, // mutable fee source
                         tx.pure.address(recipient.address),
                         tx.pure.string(giftId), // ✅ replaced ATULYADAV
-                        tx.object(TREASURY_ID),
+                        tx.object(VITE_GIFT_CONFIG),
                     ],
                 });
             });
@@ -382,6 +390,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                             address: account!.address,
                             verifyType: 'wrapGift'
                         });
+                        fetchSentGifts(user?.address!, 1, 8)
                         toast.success('Gift sent successfully');
                         console.log(result);
                         onClose();
@@ -392,7 +401,6 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                 }
             );
         } catch (err) {
-            console.error(err);
             toast.error('Unexpected error');
         }
     };
@@ -777,8 +785,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                         <div className="flex justify-between text-slate-600">
                                             <span className="font-medium">Processing Fee <span className="text-xs text-slate-400 bg-slate-100 px-1 rounded">1%</span></span>
                                             <span className="font-bold text-slate-900">${fee.toLocaleString("en-US", {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
+                                                minimumFractionDigits: 2
                                             })}</span>
                                         </div>
                                     </div>
@@ -788,10 +795,9 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                         <div className="text-right">
                                             <div className="text-3xl font-black text-blue-600 tracking-tighter">${total.toLocaleString("en-US", {
                                                 minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
                                             })}</div>
                                             <div className="text-xs font-bold text-slate-400 bg-slate-100 inline-block px-2 py-0.5 rounded-full mt-1">
-                                                ≈ {`${getUSDToSUI(total.toString())} ${currency}`}
+                                                ≈ {`${getUSDToSUI(total.toString()).toFixed(4)} ${currency}`}
                                             </div>
                                         </div>
                                     </div>

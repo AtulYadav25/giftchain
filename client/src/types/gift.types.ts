@@ -5,7 +5,7 @@ export interface Gift {
     senderWallet: string;
     receiverWallet: string;
     amountUSD: number;
-    totalTokenAmount: number;
+    totalTokenAmount: BigInt;
     tokenSymbol: 'sui' | 'sol';
     wrapper: string; // ID or populated
     message?: string;

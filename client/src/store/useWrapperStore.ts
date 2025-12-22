@@ -41,7 +41,6 @@ const useWrapperStore = create<WrapperState & { actions: WrapperActions }>()(
                         isLoading: false
                     });
                 } catch (err: any) {
-                    console.error("Failed to fetch wrappers:", err);
                     set({ isLoading: false, error: err.message });
                 }
             },
@@ -65,7 +64,6 @@ const useWrapperStore = create<WrapperState & { actions: WrapperActions }>()(
                         isLoading: false
                     }));
                 } catch (err: any) {
-                    console.error("Failed to upload wrapper:", err);
                     set({ isLoading: false, error: err.message });
                     throw err;
                 }
@@ -81,7 +79,6 @@ const useWrapperStore = create<WrapperState & { actions: WrapperActions }>()(
                         isLoading: false
                     }));
                 } catch (err: any) {
-                    console.error("Failed to delete wrapper:", err);
                     set({ isLoading: false, error: err.message });
                     throw err;
                 }

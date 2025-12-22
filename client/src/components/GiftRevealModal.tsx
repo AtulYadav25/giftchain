@@ -11,11 +11,17 @@ import {
     Copy,
     Gift as GiftIcon,
     ArrowUpRight,
-    ArrowDownLeft
+    ArrowDownLeft,
+    Loader2
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type Gift } from '@/types/gift.types';
 import toast from 'react-hot-toast';
+
+import { useSignTransaction } from '@mysten/dapp-kit';
+import { useGiftActions } from '@/store/useGiftStore';
+import { Transaction } from '@mysten/sui/transactions';
+import { fromBase64 } from '@mysten/sui/utils';
 
 interface GiftRevealModalProps {
     isOpen: boolean;
@@ -27,7 +33,11 @@ interface GiftRevealModalProps {
 export default function GiftRevealModal({ isOpen, onClose, gift, variant }: GiftRevealModalProps) {
     const [isClaimed, setIsClaimed] = useState(gift.status === 'opened');
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+
     const modalRef = useRef<HTMLDivElement>(null);
+    const { mutateAsync: signTransaction } = useSignTransaction();
+    const { claimGiftIntent, claimGiftSubmit } = useGiftActions();
 
     useEffect(() => {
         setIsClaimed(gift.status === 'opened');
@@ -54,11 +64,48 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
         }, 250);
     };
 
-    const handleClaim = () => {
-        setIsClaimed(true);
-        triggerConfetti();
-        toast.success("Gift Claimed! (Mock)", { icon: '🎉' });
+    const handleClaim = async () => {
+        if (isProcessing || isClaimed) return;
+
+        setIsProcessing(true);
+        const toastId = toast.loading("Initiating claim...");
+
+        try {
+            // 1. Intent
+            toast.loading("Preparing transaction...", { id: toastId });
+            const { txBytes } = await claimGiftIntent(gift._id);
+
+            // 2. Sign
+            toast.loading("Please sign in your wallet...", { id: toastId });
+
+            const tx = Transaction.from(fromBase64(txBytes));
+
+            const { signature, bytes } = await signTransaction({
+                transaction: tx,
+                chain: 'sui:testnet'
+            });
+
+            console.log(bytes)
+
+            // 3. Submit — USE SIGNED BYTES
+            toast.loading("Verifying claim...", { id: toastId });
+            await claimGiftSubmit(gift._id, {
+                txBytes: bytes, // ✅ SIGNED bytes
+                signature
+            });
+
+            setIsClaimed(true);
+            toast.success("Gift Claimed Successfully!", { id: toastId, icon: '🎉' });
+            triggerConfetti();
+
+        } catch (err: any) {
+            console.log(err.message);
+            toast.error(err.message || "Failed to claim gift", { id: toastId });
+        } finally {
+            setIsProcessing(false);
+        }
     };
+
 
     const handleDownload = async () => {
         if (!modalRef.current) return;
@@ -102,24 +149,22 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
 
     const getCounterpartyInfo = () => {
         if (variant === 'received') {
-            const senderObj = typeof gift.senderId === 'object' ? gift.senderId : null;
             return {
                 label: 'From',
-                username: senderObj?.username || 'Unknown Sender',
-                avatar: senderObj?.avatar,
+                username: gift?.username || 'Unknown Sender',
+                avatar: gift?.avatar,
                 wallet: gift.senderWallet,
-                id: senderObj?._id,
+                id: gift?._id,
                 variantColor: 'bg-[#4ADE80]',
                 variantIcon: <ArrowDownLeft size={16} strokeWidth={3} />
             };
         } else {
-            const receiverObj = typeof gift.receiverId === 'object' ? gift.receiverId : null;
             return {
                 label: 'To',
-                username: receiverObj?.username || 'Unknown Recipient',
-                avatar: receiverObj?.avatar,
+                username: gift?.username || 'Unknown Recipient',
+                avatar: gift?.avatar,
                 wallet: gift.receiverWallet,
-                id: receiverObj?._id,
+                id: gift?._id,
                 variantColor: 'bg-[#60A5FA]',
                 variantIcon: <ArrowUpRight size={16} strokeWidth={3} />
             };
@@ -224,7 +269,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                                     className="inline-flex items-center gap-2 bg-[#E0F2FE] px-4 py-2 rounded-xl border-2 border-slate-900 shadow-[4px_4px_0_0_#93C5FD]"
                                 >
                                     <span className="text-[#0369A1] font-bold text-sm tracking-wide">
-                                        ≈ {gift.totalTokenAmount.toFixed(4)} {gift.tokenSymbol.toUpperCase()}
+                                        ≈ {(Number(gift.totalTokenAmount) / 1_000_000_000).toFixed(2)} {gift.tokenSymbol.toUpperCase()}
                                     </span>
                                 </motion.div>
                             </div>
@@ -284,7 +329,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                                         Personal Note
                                     </div>
                                     <p className="text-slate-900 font-lexend font-bold text-lg leading-relaxed mt-1">
-                                        "{gift.message}"
+                                        "{gift.message.length > 200 ? `${gift.message.slice(0, 200)}...` : `${gift.message}`}"
                                     </p>
                                 </motion.div>
                             )}
@@ -324,13 +369,27 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                             <div className="w-full pt-4 exclude-from-capture">
                                 {!isClaimed && variant === 'received' ? (
                                     <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
+                                        whileHover={!isProcessing ? { scale: 1.02 } : {}}
+                                        whileTap={!isProcessing ? { scale: 0.98 } : {}}
                                         onClick={handleClaim}
-                                        className="w-full py-4 bg-[#4ADE80] text-slate-900 rounded-2xl font-black text-xl border-[3px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[6px] transition-all flex items-center justify-center gap-2"
+                                        disabled={isProcessing}
+                                        className={`w-full py-4 rounded-2xl font-black text-xl border-[3px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] transition-all flex items-center justify-center gap-2
+                                            ${isProcessing
+                                                ? 'bg-gray-400 text-slate-700 cursor-wait shadow-none translate-y-[6px]'
+                                                : 'bg-[#4ADE80] text-slate-900 active:shadow-none active:translate-y-[6px]'
+                                            }`}
                                     >
-                                        <GiftIcon size={28} className="animate-bounce" strokeWidth={2.5} />
-                                        CLAIM GIFT
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 size={28} className="animate-spin" />
+                                                CLAIMING...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <GiftIcon size={28} className="animate-bounce" strokeWidth={2.5} />
+                                                CLAIM GIFT
+                                            </>
+                                        )}
                                     </motion.button>
                                 ) : (
                                     <motion.button

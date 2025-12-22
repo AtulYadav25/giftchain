@@ -32,7 +32,7 @@ export interface SendGiftParams {
     receiverWallet: string;
     amountUSD: number;
     feeUSD: number;
-    totalTokenAmount: number;
+    totalTokenAmount: string;
     tokenSymbol: 'sui';
     wrapper: string;
     message?: string;
@@ -60,7 +60,27 @@ interface GiftActions {
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
     resolveRecipients: (usernames: string[]) => Promise<[{ username: string, address: string }]>;
+    claimGiftIntent: (giftId: string) => Promise<{ txBytes: Base64URLString }>;
+    claimGiftSubmit: (giftId: string, signedTx: { txBytes: Base64URLString, signature: string }) => Promise<{ txDigest: string }>;
 }
+
+const mergeById = <T extends { _id: string }>(
+    existing: T[],
+    incoming: T[]
+): T[] => {
+    const map = new Map<string, T>();
+
+    for (const item of existing) {
+        map.set(item._id, item);
+    }
+
+    for (const item of incoming) {
+        map.set(item._id, item);
+    }
+
+    return Array.from(map.values());
+};
+
 
 const useGiftStore = create<GiftState & { actions: GiftActions }>()(
     devtools((set) => ({
@@ -111,51 +131,51 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
 
             fetchSentGifts: async (userName: string, page = 1, limit = 10) => {
                 set({ isLoading: true, error: null });
+
                 try {
-                    // Assuming the API returns { data: Gift[], meta: PaginationMeta } inside the generic response
-                    const res = await api.get<ApiResponse<Gift[]>>(`/gifts/sent/${userName}?page=${page}&limit=${limit}`);
-                    // The standard extractData returns response.data which typically is the payload.
-                    // If the backend returns { success: true, data: [...], meta: {...} }
-                    // extractData implementation is: return response.data;
-                    // So we get { success, data, meta } ? No, checking api.ts:
-                    // interface ApiResponse<T> { success: boolean; message: string; data: T; error?: string; }
-                    // extractData returns response.data.
-                    // If the API structure is as described in prompt:
-                    // { success: true, data: [..], meta: {..} }
-                    // Then ApiResponse likely needs to be flexible or we need to access the meta.
-                    // The prompt says Response format: { "success": true, "data": [], "meta": {} }
-                    // But our ApiResponse type defines data: T.
-                    // It seems the "data" field in the JSON response contains the array.
-                    // The "meta" field is a sibling of "data".
-                    // Let's modify how we access the response to get meta.
-                    // Axios returns { data: { success, data, meta } }
+                    const res = await api.get<ApiResponse<Gift[]>>(
+                        `/gifts/sent/${userName}?page=${page}&limit=${limit}`
+                    );
 
                     const { data: responseBody } = res;
-                    // @ts-ignore - Assuming response body has meta even if type def might be slightly off or needs update
-                    set({
-                        sentGifts: responseBody.data,
-                        sentMeta: responseBody.meta as any, // Cast or update type def
+
+                    set((state) => ({
+                        sentGifts:
+                            page === 1
+                                ? responseBody.data // FULL REFRESH (latest gifts)
+                                : mergeById(state.sentGifts, responseBody.data),
+                        sentMeta: responseBody.meta as any,
                         isLoading: false
-                    });
+                    }));
                 } catch (err: any) {
                     set({ isLoading: false, error: err.message });
                 }
             },
+
 
             fetchReceivedGifts: async (address: string, page = 1, limit = 10) => {
                 set({ isLoading: true, error: null });
+
                 try {
-                    const res = await api.get<ApiResponse<Gift[]>>(`/gifts/received/${address}?page=${page}&limit=${limit}`);
+                    const res = await api.get<ApiResponse<Gift[]>>(
+                        `/gifts/received/${address}?page=${page}&limit=${limit}`
+                    );
+
                     const { data: responseBody } = res;
-                    set({
-                        receivedGifts: responseBody.data,
+
+                    set((state) => ({
+                        receivedGifts:
+                            page === 1
+                                ? responseBody.data
+                                : mergeById(state.receivedGifts, responseBody.data),
                         receivedMeta: responseBody.meta as any,
                         isLoading: false
-                    });
+                    }));
                 } catch (err: any) {
                     set({ isLoading: false, error: err.message });
                 }
             },
+
 
             fetchGiftById: async (id: string) => {
                 set({ isLoading: true, error: null });
@@ -201,11 +221,45 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 }
             },
 
+            claimGiftIntent: async (giftId: string) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const res = await api.post<ApiResponse<{ txBytes: Base64URLString }>>(`/gifts/claim-intent/${giftId}`);
+                    let { data } = extractData(res);
+
+                    // Don't set loading to false here, as we continue to signing
+                    return data;
+                } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                    throw err;
+                }
+            },
+
+            claimGiftSubmit: async (giftId: string, signedTx: { txBytes: Base64URLString, signature: string }) => {
+                // Loading should already be true from intent/signing
+                try {
+                    const res = await api.post<ApiResponse<{ txDigest: string }>>(`/gifts/claim-submit/${giftId}`, signedTx);
+                    let { data } = extractData(res);
+
+                    // Update the local gift state to opened
+                    set((state) => ({
+                        receivedGifts: state.receivedGifts.map(g => g._id === giftId ? { ...g, status: 'opened' } : g),
+                        currentGift: state.currentGift?._id === giftId ? { ...state.currentGift, status: 'opened', claimTransactionId: data.txDigest } : state.currentGift,
+                        isLoading: false
+                    }));
+
+                    return data;
+                } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                    throw err;
+                }
+            },
+
             resolveRecipients: async (usernames: string[]) => {
                 set({ isLoading: true, error: null });
                 try {
                     const res = await api.post<ApiResponse<{}>>(`/gifts/recipients/resolve`, { usernames });
-                    let { data, success, message } = extractData(res);
+                    let { data, success } = extractData(res);
 
                     if (success === true) {
                         return data;
