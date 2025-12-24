@@ -23,3 +23,42 @@ body {
   min-height: 100vh;
   background: linear-gradient(180deg, #E3F4FF 0%, #BEE7F7 100%);
 }
+
+/* Remove number input spinners */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+  /* Firefox */
+}
+
+/* Default cursor */
+/* body {
+  cursor: url("../public/cursor32.png") 16 16, auto;
+} */
+
+/* Pointer cursor for clickable elements */
+/* a,
+button,
+[role="button"],
+.cursor-pointer {
+  cursor: url("../public/cursor_pointer322.png") 16 16, pointer;
+}  */
+
+
+/* Hide scrollbar but keep scrolling */
+.hide-scrollbar-page {
+  -ms-overflow-style: none;
+  /* IE & Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.hide-scrollbar-page::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari */
+}

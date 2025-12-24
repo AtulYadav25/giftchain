@@ -4,7 +4,6 @@ import {
     Gift,
     ArrowUpRight,
     ArrowDownLeft,
-    Package,
     Download,
     X,
     Sparkles,
@@ -255,7 +254,7 @@ const Profile = () => {
                     <StatsCard
                         icon={<ArrowUpRight size={28} className="text-slate-900" />}
                         label="Total Sent"
-                        value={`${sentMeta?.total || 0} Gifts`}
+                        value={`$${(user?.totalSentUSD)?.toLocaleString() || 0}`}
                         color="bg-[#60A5FA]"
                         onShowBreakdown={() => setActiveBreakdown('sent')}
                     />

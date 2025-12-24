@@ -13,7 +13,6 @@ import Profile from './pages/Profile';
 import HallOfGivers from './pages/HallOfGivers';
 import { useInitApp } from './hooks/useInitApp';
 
-
 const App = () => {
   //Initialize App with User Creds - Checks Session
   useInitApp();

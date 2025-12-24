@@ -12,14 +12,14 @@ import {
     Plus,
     Trash2,
     Loader2,
+    Info,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from './ui/input-group';
 import { useWrapperActions, useWrappers, useWrapperLoading } from '@/store/useWrapperStore';
@@ -191,14 +191,6 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
     const handleProcessPayment = async () => {
-
-        // await verifyGift({
-        //     giftId: "69490384573ec28686396b5f",
-        //     txDigest: "98mBgMUSiZsk4FYFKFvHR6b2T7aun8fVDkbRF7UQ5qTD",
-        //     address: account!.address,
-        //     verifyType: 'wrapGift'
-        // });
-
 
         // 1️⃣ Validation
         // Collect usernames that need resolving
@@ -441,6 +433,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                 />
 
+
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -649,81 +642,104 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
                                                 <div className="grid gap-5">
                                                     {/* Amount Row */}
-                                                    <div className="flex gap-4">
-                                                        <div className="flex-1">
-                                                            <label className="text-xs text-slate-500 ml-1 mb-1 block font-bold uppercase">Amount ({inputMode})</label>
-                                                            <div className="relative flex items-center">
-                                                                <InputGroup className="bg-white">
-                                                                    <InputGroupInput
-                                                                        type="number"
-                                                                        value={recipient.amount}
-                                                                        onChange={(e) => updateRecipient(recipient.id, "amount", e.target.value)}
-                                                                        placeholder="0.00"
-                                                                        className="h-12 text-lg font-bold pr-2 bg-transparent"
-                                                                    />
-                                                                    <InputGroupAddon>
-                                                                        <InputGroupText className="font-bold text-slate-500">{inputMode === 'USD' ? '$' : currency}</InputGroupText>
-                                                                    </InputGroupAddon>
-                                                                    <InputGroupAddon align="inline-end" className="min-w-[80px] justify-end">
-                                                                        <InputGroupText className="text-slate-400 text-xs font-bold pt-1">
-                                                                            {isLoadingConversion ? (
-                                                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                                                            ) : (
-                                                                                <>≈ {(() => {
-                                                                                    const val = parseFloat(recipient.amount);
-                                                                                    if (isNaN(val) || val === 0) return '0.00';
-                                                                                    const rate = exchangeRates.SUI!;
-                                                                                    if (inputMode === 'USD') {
-                                                                                        return `${(val / rate).toFixed(4)} ${currency}`;
-                                                                                    }
-                                                                                    return `$${(val * rate).toFixed(2)}`;
-                                                                                })()}</>
-                                                                            )}
-                                                                        </InputGroupText>
-                                                                    </InputGroupAddon>
-                                                                </InputGroup>
+                                                    <div className="flex flex-col sm:flex-row gap-4">
+                                                        {/* Amount Input */}
+                                                        <div className="w-full sm:flex-1">
+                                                            <label className="text-xs text-slate-500 ml-1 mb-1 block font-bold uppercase">
+                                                                Amount ({inputMode})
+                                                            </label>
 
+                                                            <InputGroup className="bg-white w-full">
+                                                                <InputGroupInput
+                                                                    type="number"
+                                                                    value={recipient.amount}
+                                                                    onChange={(e) =>
+                                                                        updateRecipient(recipient.id, "amount", e.target.value)
+                                                                    }
+                                                                    placeholder="0.00"
+                                                                    className="no-spinner h-12 text-lg font-bold pr-2 bg-transparent min-w-0"
+                                                                />
+
+                                                                {/* Currency symbol */}
+                                                                <InputGroupAddon className="shrink-0">
+                                                                    <InputGroupText className="font-bold text-slate-500">
+                                                                        {inputMode === "USD" ? "$" : currency}
+                                                                    </InputGroupText>
+                                                                </InputGroupAddon>
+
+                                                                {/* Conversion */}
+                                                                <InputGroupAddon
+                                                                    align="inline-end"
+                                                                    className="hidden sm:flex min-w-[80px] justify-end shrink-0"
+                                                                >
+                                                                    <InputGroupText className="text-slate-400 text-xs font-bold pt-1">
+                                                                        {isLoadingConversion ? (
+                                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                                        ) : (
+                                                                            <>≈ {(() => {
+                                                                                const val = parseFloat(recipient.amount);
+                                                                                if (isNaN(val) || val === 0) return "0.00";
+                                                                                const rate = exchangeRates.SUI!;
+                                                                                return inputMode === "USD"
+                                                                                    ? `${(val / rate).toFixed(4)} ${currency}`
+                                                                                    : `$${(val * rate).toFixed(2)}`;
+                                                                            })()}</>
+                                                                        )}
+                                                                    </InputGroupText>
+                                                                </InputGroupAddon>
+                                                            </InputGroup>
+
+                                                            {/* Mobile conversion display */}
+                                                            <div className="sm:hidden mt-1 text-right text-xs font-bold text-slate-400">
+                                                                {isLoadingConversion ? (
+                                                                    <Loader2 className="h-3 w-3 animate-spin inline" />
+                                                                ) : (
+                                                                    <>≈ {(() => {
+                                                                        const val = parseFloat(recipient.amount);
+                                                                        if (isNaN(val) || val === 0) return "0.00";
+                                                                        const rate = exchangeRates.SUI!;
+                                                                        return inputMode === "USD"
+                                                                            ? `${(val / rate).toFixed(4)} ${currency}`
+                                                                            : `$${(val * rate).toFixed(2)}`;
+                                                                    })()}</>
+                                                                )}
                                                             </div>
                                                         </div>
 
-                                                        {/* Currency Dropdown */}
-                                                        <div className="w-[140px]">
-                                                            <label className="text-xs text-slate-500 font-bold ml-1 mb-1 block uppercase">Currency</label>
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger className="w-full flex items-center gap-2 bg-white border border-slate-300 hover:border-slate-500 h-12 px-3 rounded-lg transition-colors outline-none">
-                                                                    <Avatar className="h-6 w-6">
-                                                                        <AvatarImage src={COIN_ASSETS.SUI.logo} />
-                                                                        <AvatarFallback>S</AvatarFallback>
-                                                                    </Avatar>
-                                                                    <span className="font-bold text-sm text-slate-700 flex-1 text-left">SUI</span>
-                                                                    <ChevronRight className="rotate-90 text-slate-400" size={14} />
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    {(['SUI'] as const).map((c) => (
-                                                                        <DropdownMenuItem key={c} onClick={() => setCurrency(c)} className="gap-2 p-2 cursor-pointer">
-                                                                            <Avatar className="h-5 w-5">
-                                                                                <AvatarImage src={COIN_ASSETS.SUI.logo} />
-                                                                                <AvatarFallback>S</AvatarFallback>
-                                                                            </Avatar>
-                                                                            <span className="font-bold">{c}</span>
-                                                                        </DropdownMenuItem>
-                                                                    ))}
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
+                                                        {/* Currency (static) */}
+                                                        <div className="w-full sm:w-28 md:w-36">
+                                                            <label className="text-xs text-slate-500 font-bold ml-1 mb-1 block uppercase">
+                                                                Currency
+                                                            </label>
+
+                                                            <div className="w-full flex items-center gap-2 bg-slate-50 border border-slate-300 h-12 px-3 rounded-lg">
+                                                                <Avatar className="h-6 w-6">
+                                                                    <AvatarImage src={COIN_ASSETS.SUI.logo} />
+                                                                    <AvatarFallback>S</AvatarFallback>
+                                                                </Avatar>
+                                                                <span className="font-bold text-sm text-slate-700">
+                                                                    SUI
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Wallet Address / Username Row - MODIFIED */}
+                                                    {/* Recipient */}
                                                     <div>
-                                                        <label className="text-xs text-slate-500 font-bold ml-1 mb-1 block uppercase">Recipient</label>
+                                                        <label className="text-xs text-slate-500 font-bold ml-1 mb-1 block uppercase">
+                                                            Recipient
+                                                        </label>
                                                         <Input
                                                             value={recipient.address || recipient.username}
-                                                            onChange={(e) => updateRecipientAddressOrUsername(recipient.id, e.target.value)}
+                                                            onChange={(e) =>
+                                                                updateRecipientAddressOrUsername(recipient.id, e.target.value)
+                                                            }
                                                             placeholder="Enter username or 0x address"
                                                             className="h-12 font-mono text-sm bg-slate-50 border-slate-200 focus:border-slate-500 focus:ring-0"
                                                         />
                                                     </div>
                                                 </div>
+
                                             </motion.div>
                                         ))}
                                     </div>
@@ -783,7 +799,18 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                             <span className="font-bold text-slate-900">{selectedWrapper?.priceUSD === 0 ? 'FREE' : `$${selectedWrapper?.priceUSD} (${recipients.length}x)`}</span>
                                         </div>
                                         <div className="flex justify-between text-slate-600">
-                                            <span className="font-medium">Processing Fee <span className="text-xs text-slate-400 bg-slate-100 px-1 rounded">1%</span></span>
+                                            <div className="flex items-center gap-1.5 font-medium">
+                                                Builder Love
+                                                <Tooltip delayDuration={0}>
+                                                    <TooltipTrigger asChild>
+                                                        <Info size={14} className="text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="max-w-[220px] text-center p-3 font-medium bg-slate-900 text-white border-0 shadow-xl">
+                                                        <p className="font-lexend">This little Builder Love keeps GiftChain alive and growing! 🥺</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <span className="text-xs text-slate-400 bg-slate-100 px-1 rounded ml-1">1%</span>
+                                            </div>
                                             <span className="font-bold text-slate-900">${fee.toLocaleString("en-US", {
                                                 minimumFractionDigits: 2
                                             })}</span>
@@ -832,7 +859,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                 } ${(!selectedWrapper && step === 1) ? 'opacity-50 cursor-not-allowed shadow-none border-slate-300 bg-slate-100 text-slate-400' : ''}`}
                         >
                             {step === 4 ? (
-                                <>Wrap & Send Love <Gift className="animate-bounce" /> 🎁</>
+                                <>Wrap & Send Gift <span className='animate-bounce'>🎁</span></>
                             ) : (
                                 <>Next Step <ChevronRight size={20} strokeWidth={3} /></>
                             )}
