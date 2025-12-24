@@ -1,12 +1,18 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import mascot from '@/assets/hero/mascot_hero.webp';
 import slovi from '@/assets/hero/slovi.png';
-import giftFactory from '@/assets/how_it_works/gift_factory.webp';
-import { ArrowRight, Gift, Heart, Sparkles, Zap, Smartphone, Link as LinkIcon, Edit } from 'lucide-react';
+import { ArrowRight, Gift, Sparkles, Smartphone, Link as LinkIcon, Edit, Wallet, PenLine, Send } from 'lucide-react';
 import CircularGallery from '@/components/CircularGallery';
 import { allWrappers } from '@/assets/wrappers/wrapperIndex';
+import toast from 'react-hot-toast';
+
+//How it works images
+import howItWorks1 from '@/assets/how_it_works/howItWorks1.png';
+import howItWorks2 from '@/assets/how_it_works/howItWorks2.png';
+import howItWorks3 from '@/assets/how_it_works/howItWorks3.png';
+import howItWorks4 from '@/assets/how_it_works/howItWorks4.png';
 
 // Prepare Wrapper Images for Gallery
 const galleryItems = allWrappers.map(w => ({ text: w.name, image: w.wrapperImg }));
@@ -132,13 +138,9 @@ function MarqueeSection() {
                 className="flex gap-12 whitespace-nowrap text-white font-bold text-lg items-center"
             >
                 {[...Array(10)].map((_, i) => (
-                    <React.Fragment key={i}>
-                        <span className="flex items-center gap-2"><Heart size={16} className="text-pink-400 fill-pink-400" /> Alice sent 50 SUI</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                        <span className="flex items-center gap-2"><Gift size={16} className="text-yellow-400" /> Bob wrapped a gift</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                        <span className="flex items-center gap-2"><Zap size={16} className="text-cyan-400 fill-cyan-400" /> 120 SOL gifted today</span>
-                    </React.Fragment>
+                    <span key={i} className="text-white font-black italic tracking-widest text-2xl mx-4">
+                        WE ALL USE GIFTCHAIN
+                    </span>
                 ))}
             </motion.div>
         </div>
@@ -146,123 +148,155 @@ function MarqueeSection() {
 }
 
 function HowItWorksSection() {
-    const textVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
-    };
-
     const steps = [
         {
-            title: "Connect your wallet",
-            desc: "Link your SUI or SOL wallet in one click securely."
+            icon: <Wallet size={32} className="text-white" />,
+            title: "Connect Wallet",
+            desc: "Link your SUI wallet securely in one click. No sign-ups, no hassle.",
+            color: "bg-blue-400",
+            rotate: "-rotate-2"
         },
         {
-            title: "Choose your wrapper",
-            desc: "Pick from our cute collection of animated gift boxes."
+            icon: <Gift size={32} className="text-white" />,
+            title: "Choose Wrapper",
+            desc: "Select from our adorable collection of wrappers to wrap your crypto gift.",
+            color: "bg-pink-400",
+            rotate: "rotate-1"
         },
         {
-            title: "Write a message",
-            desc: "Add a personal note to make it extra special."
+            icon: <PenLine size={32} className="text-white" />,
+            title: "Write Message",
+            desc: "Add a heartfelt or fun message. TBH! messages are the best part.",
+            color: "bg-purple-400",
+            rotate: "-rotate-1"
         },
         {
-            title: "Stuff it with crypto",
-            desc: "Add any amount of tokens and send it instantly!"
+            icon: <Send size={32} className="text-white" />,
+            title: "Send Instantly",
+            desc: "Load your gift with tokens and send it instantly to anyone.",
+            color: "bg-green-400",
+            rotate: "rotate-2"
         }
     ];
 
-    const words = ["Love", "Gifts", "Giveaways"];
-    const [index, setIndex] = useState(0);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setIndex((prev) => (prev + 1) % words.length);
-        }, 2000);
-        return () => clearInterval(interval);
-    }, []);
-
     return (
-        <section className="py-24 px-4 bg-[#E3F4FF] overflow-hidden">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
+        <section className="py-32 px-4 bg-slate-900 border-y-8 border-white relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
 
-                    {/* LEFT SIDE: Image + Animated Component */}
-                    <div className="w-full lg:w-1/2 flex flex-col gap-8 order-1">
-                        <div className="relative rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white/50 group">
-                            <motion.div
-                                initial={{ scale: 1 }}
-                                whileInView={{ scale: 1.1 }}
-                                transition={{ duration: 1.5, ease: "easeOut" }}
-                                viewport={{ once: false, margin: "-100px" }}
-                                className="w-full aspect-[4/3]"
-                            >
-                                <img
-                                    src={giftFactory}
-                                    alt="Gift Factory"
-                                    className="w-full h-full object-cover"
-                                />
-                            </motion.div>
+            <div className="max-w-6xl mx-auto relative z-10">
 
-                            {/* Overlay Shine Effect */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                        </div>
-
-                        {/* Custom Animated Text Component */}
-                        <div className="bg-white rounded-[2rem] p-8 shadow-xl border-4 border-blue-100 flex flex-col items-center justify-center text-center">
-                            <h3 className="text-xl text-slate-500 font-bold font-jua mb-2">Giftchain.fun for Sending</h3>
-                            <div className="h-16 overflow-hidden flex items-center justify-center">
-                                <AnimatePresence mode="popLayout">
-                                    <motion.span
-                                        key={words[index]}
-                                        initial={{ y: 50, opacity: 0, scale: 0.8 }}
-                                        animate={{ y: 0, opacity: 1, scale: 1 }}
-                                        exit={{ y: -50, opacity: 0, scale: 0.8 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                        className="text-5xl md:text-6xl font-['Lilita_One'] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 block"
-                                    >
-                                        "{words[index]}"
-                                    </motion.span>
-                                </AnimatePresence>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* RIGHT SIDE: Steps */}
-                    <div className="w-full lg:w-1/2 flex flex-col justify-center order-2">
-                        <motion.h2
-                            initial="hidden"
-                            whileInView="visible"
-                            variants={textVariants}
-                            transition={{ duration: 0.5 }}
-                            className="font-['Lilita_One'] text-5xl text-blue-900 mb-10 text-center lg:text-left"
-                        >
-                            How It Works
-                        </motion.h2>
-
-                        <div className="flex flex-col gap-6">
-                            {steps.map((step, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, x: 50 }}
-                                    whileInView={{ opacity: 1, x: 0 }}
-                                    viewport={{ once: true, margin: "-50px" }}
-                                    transition={{ delay: i * 0.15, duration: 0.6, type: "spring" }}
-                                    className="bg-white/60 backdrop-blur-md p-6 rounded-2xl border-2 border-white/50 shadow-sm hover:shadow-md transition-shadow"
-                                >
-                                    <h3 className="text-2xl font-['Lilita_One'] text-slate-700 mb-2 flex items-center gap-3">
-                                        <span className="w-8 h-8 rounded-full bg-blue-500 text-white text-lg flex items-center justify-center shadow-inner">
-                                            {i + 1}
-                                        </span>
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-slate-600 font-medium pl-11 text-lg leading-snug">
-                                        {step.desc}
-                                    </p>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-
+                {/* Header */}
+                <div className="text-center mb-24 space-y-4 relative z-20">
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        whileInView={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                        viewport={{ once: true }}
+                        className="inline-block bg-yellow-300 border-[3px] border-slate-900 shadow-[4px_4px_0_0_white] px-6 py-2 rounded-full font-black text-slate-900 mb-6 transform -rotate-2"
+                    >
+                        SIMPLE AS 1, 2, 3... 4!
+                    </motion.div>
+                    <motion.h2
+                        initial={{ y: 20, opacity: 0 }}
+                        whileInView={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="font-['Lilita_One'] text-6xl md:text-7xl text-white drop-shadow-[4px_4px_0_#2563eb]"
+                    >
+                        HOW IT WORKS
+                    </motion.h2>
                 </div>
+
+                {/* Steps Container */}
+                <div className="relative">
+
+                    {/* SVG Connector Line - Absolute & Behind */}
+                    <div className="absolute top-0 bottom-0 left-0 right-0 hidden md:block z-0 pointer-events-none">
+                        <svg className="w-full h-full" viewBox="0 0 100 400" preserveAspectRatio="none">
+                            <path
+                                d="M 25 50 C 25 100, 75 100, 75 150 C 75 200, 25 200, 25 250 C 25 300, 75 300, 75 350"
+                                fill="none"
+                                stroke="rgba(255,255,255,0.15)"
+                                strokeWidth="2"
+                                strokeDasharray="5,5"
+                                vectorEffect="non-scaling-stroke"
+                            />
+                        </svg>
+                    </div>
+
+                    <div className="space-y-12 md:space-y-0">
+                        {steps.map((step, i) => {
+                            const isEven = i % 2 === 0;
+                            return (
+                                <div key={i} className={`flex flex-col md:flex-row items-center gap-8 md:gap-16 relative z-10 md:h-[400px] ${!isEven ? 'md:flex-row-reverse' : ''}`}>
+
+                                    {/* STEP CARD (Alternates L/R) */}
+                                    <div className="w-full md:w-1/2 flex justify-center">
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                                            whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                                            viewport={{ once: true, margin: "-50px" }}
+                                            transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
+                                            whileHover={{ y: -10, rotate: 0, scale: 1.05 }}
+                                            className={`relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(255,255,255,1)] flex flex-col items-center text-center group ${step.rotate}`}
+                                        >
+                                            <div className="absolute -top-6 bg-slate-900 text-white w-12 h-12 rounded-full flex items-center justify-center font-black text-xl border-[3px] border-white shadow-md z-20">
+                                                {i + 1}
+                                            </div>
+
+                                            <div className={`w-24 h-24 rounded-full ${step.color} border-[3px] border-slate-900 flex items-center justify-center mb-6 shadow-[4px_4px_0_0_rgba(15,23,42,1)] group-hover:scale-110 transition-transform duration-300`}>
+                                                {step.icon}
+                                            </div>
+
+                                            <h3 className="font-['Lilita_One'] text-3xl text-slate-900 mb-4 uppercase tracking-wide">
+                                                {step.title}
+                                            </h3>
+
+                                            <p className="text-slate-500 font-medium font-jua text-lg leading-relaxed">
+                                                {step.desc}
+                                            </p>
+
+                                            <div className="absolute top-4 right-4 text-slate-200 opacity-50 pointer-events-none transform rotate-12">
+                                                <Sparkles size={24} />
+                                            </div>
+                                        </motion.div>
+                                    </div>
+
+                                    {/* IMAGE (Alternates R/L) */}
+                                    {/* IMAGE (Alternates R/L) */}
+                                    <div className="w-full md:w-1/2 flex justify-center px-8">
+                                        <motion.div
+                                            initial={{ opacity: 0, x: isEven ? 50 : -50 }}
+                                            whileInView={{ opacity: 1, x: 0 }}
+                                            viewport={{ once: true }}
+                                            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                                            className="w-full flex items-center justify-center relative"
+                                        >
+                                            <img
+                                                src={[howItWorks1, howItWorks2, howItWorks3, howItWorks4][i]}
+                                                alt={`Step ${i + 1}`}
+                                                className="w-full h-auto max-h-[320px] object-contain"
+                                            />
+                                        </motion.div>
+                                    </div>
+
+
+
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Bottom CTA Text */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                    className="text-center mt-32 relative z-20"
+                >
+                    <p className="text-blue-200/80 font-mono text-sm tracking-widest uppercase">Start gifting in seconds • Send smiles, not steps — gifting made easy</p>
+                </motion.div>
             </div>
         </section>
     );
@@ -270,7 +304,7 @@ function HowItWorksSection() {
 
 function WrapperShowcaseSection() {
     return (
-        <section className="py-20 relative bg-slate-900 overflow-hidden">
+        <section className="py-20 relative bg-slate-900 overflow-hidden mt-[-15px]">
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
 
             <div className="relative z-10 text-center mb-10 text-white">
@@ -347,8 +381,6 @@ function AboutSection() {
 
                 {/* Mascot Image - Absolute on Desktop, Relative/Stacked on Mobile */}
                 <motion.div
-                    initial={{ y: 200, opacity: 0 }} // Start lower
-                    whileInView={{ y: 0, opacity: 1 }} // Animate up
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className="
                         relative w-full mt-12

@@ -8,13 +8,13 @@ import toast from 'react-hot-toast';
 const GIVERS = [
     {
         id: 1,
-        name: "CaptainGenerous",
-        handle: "@cap_gen",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix",
+        name: "SLOVI",
+        handle: "@slovi",
+        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=slovionsui",
         address: "0x71C...9A2",
         giftsSent: 420,
         totalAmount: 15400,
-        socials: { twitter: "https://x.com", instagram: "https://instagram.com" }
+        socials: { twitter: "https://x.com/SloviOnSui", instagram: "https://instagram.com" }
     },
     {
         id: 2,
@@ -28,9 +28,9 @@ const GIVERS = [
     },
     {
         id: 3,
-        name: "SolanaSanta",
-        handle: "@hoho_hold",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Grandma",
+        name: "SUISanta",
+        handle: "@sui_santa",
+        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=santasui",
         address: "0x22F...C90",
         giftsSent: 155,
         totalAmount: 6750,
@@ -38,9 +38,9 @@ const GIVERS = [
     },
     {
         id: 4,
-        name: "GigaChadGiver",
-        handle: "@big_moves",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Jack",
+        name: "GigaChad",
+        handle: "@giga_chad",
+        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=gigachad",
         address: "0xA11...F44",
         giftsSent: 30,
         totalAmount: 4200,
@@ -48,9 +48,9 @@ const GIVERS = [
     },
     {
         id: 5,
-        name: "NiftyNancy",
-        handle: "@art_drop",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Willow",
+        name: "NFTLover",
+        handle: "@nft_lover",
+        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=nftlover",
         address: "0xB22...A99",
         giftsSent: 210,
         totalAmount: 3900,
@@ -58,9 +58,9 @@ const GIVERS = [
     },
     {
         id: 6,
-        name: "PixelPrince",
-        handle: "@8bit_luv",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Gizmo",
+        name: "SUIPixel",
+        handle: "@sui_pixel",
+        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=suipixel",
         address: "0xC33...D88",
         giftsSent: 66,
         totalAmount: 2100,
