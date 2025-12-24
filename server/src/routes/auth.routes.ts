@@ -7,5 +7,5 @@ export const authRoutes = async (app: FastifyInstance) => {
     app.post('/request-message', { schema: { body: requestMessageSchema } }, authController.requestMessage);
     app.post('/verify', { schema: { body: verifySchema } }, authController.verify);
     app.get('/me', { preHandler: [authenticate] }, authController.me);
-    app.get('/disconnect', { preHandler: [authenticate] }, authController.disconnectWallet);
+    app.get('/disconnect', authController.disconnectWallet);
 };
