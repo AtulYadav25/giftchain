@@ -96,12 +96,12 @@ function HeroSection({ navigate }: { navigate: any }) {
                     className="z-12 flex flex-col md:flex-row gap-4 justify-center items-center pt-4"
                 >
                     <button
-                        onClick={() => navigate('/profile')}
+                        onClick={() => toast("We are coming soon!")}
                         className="px-8 py-4 cursor-pointer z-[20] bg-white text-blue-600 rounded-full  font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2 group"
                     >
                         Send a Gift Now <ArrowRight className="group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <button onClick={() => navigate('/hall-of-givers')} className="px-8 py-4 bg-blue-700/30 text-white border-2 border-white/30 rounded-full font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-md z-[12]">
+                    <button onClick={() => toast("We are coming soon!")} className="px-8 py-4 bg-blue-700/30 text-white border-2 border-white/30 rounded-full font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-md z-[12]">
                         Hall of Givers
                     </button>
                 </motion.div>
@@ -138,10 +138,14 @@ function MarqueeSection() {
                 className="flex gap-12 whitespace-nowrap text-white font-bold text-lg items-center"
             >
                 {[...Array(10)].map((_, i) => (
-                    <span key={i} className="text-white font-black italic tracking-widest text-2xl mx-4">
+                    <span
+                        key={i}
+                        className="text-white font-black italic tracking-widest text-2xl mx-4"
+                    >
                         WE ALL USE GIFTCHAIN
                     </span>
                 ))}
+
             </motion.div>
         </div>
     );
@@ -369,12 +373,14 @@ function AboutSection() {
                         </div>
 
                         <div className="flex gap-4 mt-8">
-                            <button className="px-8 py-3 bg-blue-100/50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition border-2 border-blue-200">
-                                Follow on X
-                            </button>
-                            <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition border-2 border-slate-200">
+                            <a href="https://x.com/SloviOnSui" target="_blank" rel="noopener noreferrer">
+                                <button className="px-8 py-3 bg-blue-100/50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition border-2 border-blue-200">
+                                    Follow on X
+                                </button>
+                            </a>
+                            {/* <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition border-2 border-slate-200">
                                 Join Discord
-                            </button>
+                            </button> */}
                         </div>
                     </motion.div>
                 </div>

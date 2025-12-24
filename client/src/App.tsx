@@ -15,7 +15,7 @@ import { useInitApp } from './hooks/useInitApp';
 
 const App = () => {
   //Initialize App with User Creds - Checks Session
-  useInitApp();
+  // useInitApp();
 
 
   return (
@@ -26,8 +26,8 @@ const App = () => {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/hall-of-givers" element={<HallOfGivers />} />
+            {/* <Route path="/profile" element={<Profile />} /> */}
+            {/* <Route path="/hall-of-givers" element={<HallOfGivers />} /> */}
           </Routes>
         </main>
         {/* <Footer /> */}

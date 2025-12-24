@@ -33,7 +33,7 @@ export default function Navbar() {
 
     const handleDisconnect = async () => {
         try {
-            await disconnectWallet();
+            // await disconnectWallet();
             disconnect();
         } catch (err: any) {
             toast.error(err.message || "Failed to disconnect wallet");
@@ -113,7 +113,7 @@ export default function Navbar() {
 
                                 <DropdownMenuItem
                                     className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-blue-700 py-2.5 px-3 mb-1"
-                                    onClick={() => navigate('/profile')}
+                                    onClick={() => toast("Coming Soon")}
                                 >
                                     <User size={16} className="mr-2" />
                                     My Profile
@@ -121,7 +121,7 @@ export default function Navbar() {
 
                                 <DropdownMenuItem
                                     className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-blue-700 py-2.5 px-3 mb-1"
-                                    onClick={() => navigate('/profile')}
+                                    onClick={() => toast("Coming Soon")}
                                 >
                                     <Gift size={16} className="mr-2" />
                                     My Gifts
