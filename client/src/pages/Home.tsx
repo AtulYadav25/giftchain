@@ -83,9 +83,9 @@ function HeroSection({ navigate }: { navigate: any }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3, duration: 0.8 }}
-                    className="text-xl md:text-2xl text-blue-50 font-jua max-w-2xl mx-auto leading-relaxed"
+                    className="text-xl md:text-2xl text-blue-50 font-jua max-w-3xl mx-auto leading-relaxed"
                 >
-                    Send $SUI Tokens wrapped in beautiful, animated digital gifts.
+                    Send $SOL & $SUI Tokens wrapped in beautiful, animated digital gifts.
                     Add a message, choose a vibe, and make someone’s day.
                 </motion.p>
 

@@ -74,7 +74,6 @@ const Profile = () => {
             setAvatarFile(null); // Clear file selection
             setAvatarPreview(null); // Clear preview, user object should update via store
         } catch (error) {
-            console.error("Failed to update avatar");
         }
     };
 
@@ -361,9 +360,9 @@ const Profile = () => {
                                 <tbody className="text-slate-700 font-medium">
                                     {isGiftLoading && receivedGifts.length === 0 ? (
                                         <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
-                                    ) : receivedGifts.map((gift) => (
+                                    ) : receivedGifts.map((gift, i) => (
                                         <tr
-                                            key={gift._id}
+                                            key={i}
                                             onClick={() => handleOpenGift(gift, 'received')}
                                             className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group"
                                         >

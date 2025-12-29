@@ -22,6 +22,7 @@ export interface VerifyRequestData {
     nonce: number,
     address: string,
     userId: String,
+    chain: 'sol' | 'sui'
 }
 
 

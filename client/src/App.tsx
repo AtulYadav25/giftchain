@@ -13,12 +13,16 @@ import Profile from './pages/Profile';
 import HallOfGivers from './pages/HallOfGivers';
 import { useInitApp } from './hooks/useInitApp';
 
+//MultiChain Kit Imports
+
+
 const App = () => {
   //Initialize App with User Creds - Checks Session
   useInitApp();
 
 
   return (
+
     <Router>
       <div className="flex flex-col min-h-screen bg-[#f9fbff] text-[#1a2a3a] selection:bg-blue-300/40">
 

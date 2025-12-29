@@ -1,73 +1,71 @@
 import { useEffect } from "react";
-import { useAuthActions, useIsAuthenticated } from "@/store/index";
-import { useCurrentAccount, useSignPersonalMessage } from "@mysten/dapp-kit";
-import { toHex } from '@mysten/sui/utils'; // Import toHex for conversion
+import { useAuthActions } from "@/store/index";
 import type { VerifyRequestData } from "@/types/auth.types";
 import useAuthStore from "@/store/useAuthStore";
+import { Transaction } from '@/multichainkit/core/Transaction';
+import { useChain } from '@/multichainkit/context/ChainContext';
+// import toast from "react-hot-toast";
 
 export function useInitApp() {
-    const account = useCurrentAccount();
-    const { mutate: signPersonalMessage } = useSignPersonalMessage();
+
+    const { chain, address, activeAdapter } = useChain();
+
+    if (!chain) return null;
+
     const {
         checkSession,
         requestMessage,
-        verify,
-        disconnectWallet
+        verify
     } = useAuthActions();
 
 
     useEffect(() => {
 
         const checkConnection = async () => {
-            const isConnected = account?.address;
+            const isConnected = address;
 
             if (isConnected) {
                 try {
                     await checkSession();
                     const { isAuthenticated } = useAuthStore.getState();
                     if (!isAuthenticated) {
-                        let { nonce, userId } = await requestMessage(account?.address);
+                        let { nonce, userId } = await requestMessage(address, chain === 'solana' ? 'sol' : 'sui');
                         const messageText = `Welcome To GiftChain.fun \nNonce: ${nonce}`;
                         const message = new TextEncoder().encode(messageText);
 
-                        // Sign message with callback
-                        signPersonalMessage(
-                            { message },
-                            {
-                                onSuccess: async (result) => {
-                                    const signature = result.signature;
+                        if (!activeAdapter) {
+                            // toast.error("Please Connect Your Wallet")
+                            return;
+                        }
 
-                                    // ✅ Remove the first byte from the publicKey before sending
-                                    //No need of sending public key to backend (But only used for validating the user has public key and it is sent by authorized mysten/dappkit)
-                                    let publicKeyHex = toHex(new Uint8Array(account.publicKey));
-                                    if (publicKeyHex.startsWith('0x')) {
-                                        publicKeyHex = publicKeyHex.slice(2);
-                                    }
+                        // toast.loading("Signing message...");
 
-                                    const data: VerifyRequestData = {
-                                        message: Array.from(message),
-                                        signature,
-                                        nonce,
-                                        address: account.address,
-                                        userId,
-                                    };
+                        try {
+                            const tx = new Transaction(activeAdapter);
+                            const signature = await tx.signMessage(messageText);
 
-                                    await verify(data);
+                            if (signature) {
+                                const data: VerifyRequestData = {
+                                    message: Array.from(message),
+                                    signature,
+                                    nonce,
+                                    address,
+                                    userId,
+                                    chain: chain === 'solana' ? 'sol' : 'sui',
+                                };
 
-                                },
-                                onError: (err) => {
-                                    disconnectWallet();
-                                }
+                                await verify(data);
                             }
-                        );
+                        } catch (e: any) {
+                        }
+
                     }
                 } catch (error) {
-                    console.log(error);
                 }
             }
         };
 
         checkConnection();
-    }, [account?.address]);
+    }, [address, chain]);
 
 }
