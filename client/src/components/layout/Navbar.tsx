@@ -9,20 +9,24 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ConnectModal, useCurrentAccount, useDisconnectWallet } from '@mysten/dapp-kit';
-import { LogOut, Wallet, User, Gift, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LogOut, User, Gift, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAuthActions } from "@/store";
 import toast from "react-hot-toast";
+import { useChain } from "@/multichainkit/context/ChainContext";
+import { ChainSwitcher, ChainConnectButton } from "@/multichainkit/components/NavbarChainControl";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const currentAccount = useCurrentAccount();
-    const { mutate: disconnect } = useDisconnectWallet();
 
-    const { disconnectWallet } = useAuthActions();
+    // Multi-chain hooks
+    const { address, disconnectWallet, chain } = useChain();
+    const { disconnectWallet: disconnectAuth } = useAuthActions();
+
+    const isConnected = !!address;
+    const isHome = location.pathname === '/';
 
     // Scroll detection for glass effect intensity
     useEffect(() => {
@@ -33,17 +37,12 @@ export default function Navbar() {
 
     const handleDisconnect = async () => {
         try {
-            await disconnectWallet();
-            disconnect();
+            await disconnectAuth();
+            disconnectWallet();
         } catch (err: any) {
             toast.error(err.message || "Failed to disconnect wallet");
         }
     }
-
-
-    const isConnected = !!currentAccount?.address;
-    const address = currentAccount?.address;
-    const isHome = location.pathname === '/';
 
     return (
         <motion.nav
@@ -71,19 +70,13 @@ export default function Navbar() {
 
                 {/* Right Actions */}
                 <div className="flex items-center gap-4">
+
+                    {/* Chain Switcher */}
+                    <ChainSwitcher />
+
                     {!isConnected ? (
-                        <ConnectModal
-                            trigger={
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="px-6 py-2.5 bg-white text-blue-600 font-bold rounded-full shadow-lg hover:shadow-blue-500/20 transition-all flex items-center gap-2 text-sm md:text-base"
-                                >
-                                    <Wallet size={18} />
-                                    Connect Wallet
-                                </motion.button>
-                            }
-                        />
+                        <ChainConnectButton />
+
                     ) : (
                         <DropdownMenu>
                             <DropdownMenuTrigger className="outline-none">
@@ -95,8 +88,8 @@ export default function Navbar() {
                                         <span className="text-xs font-bold text-white/90">
                                             {address?.slice(0, 4)}...{address?.slice(-4)}
                                         </span>
-                                        <span className="text-[10px] text-blue-200 font-medium bg-blue-500/20 px-1.5 rounded-full">
-                                            Sui Network
+                                        <span className={`text-[10px] font-jua px-1.5 rounded-full ${chain === 'solana' ? 'bg-purple-500/20 text-purple-200' : 'bg-blue-500/20 text-blue-200'}`}>
+                                            {chain === 'solana' ? 'Solana Mainnet' : 'Sui Network'}
                                         </span>
                                     </div>
                                     <Avatar className="h-9 w-9 border-2 border-white/30">
