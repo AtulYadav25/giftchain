@@ -7,7 +7,6 @@ export const getSolanaBalance = async (connection: Connection, address: string):
         const balance = await connection.getBalance(publicKey);
         return (balance / LAMPORTS_PER_SOL).toFixed(4);
     } catch (e) {
-        console.error("Failed to get Solana balance", e);
         return "0.00";
     }
 };

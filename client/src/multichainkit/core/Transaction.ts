@@ -40,8 +40,6 @@ export class Transaction {
         if (!this.adapter) throw new Error("No active chain selected or wallet not connected");
         if (this.transfers.length === 0) throw new Error("No transfers to execute");
 
-        console.log(`Building transaction for ${this.adapter.type} with ${this.transfers.length} transfers`);
-
         try {
             if (this.adapter.type === 'solana') {
                 return await this.handleSolana();
@@ -49,7 +47,6 @@ export class Transaction {
                 return await this.handleSui();
             }
         } catch (error) {
-            console.error("Transaction failed:", error);
             throw error;
         }
     }
@@ -67,7 +64,6 @@ export class Transaction {
 
         // 2. Sign and Send
         const signature = await sendTransaction(tx, connection);
-        console.log("Solana Transaction Sent:", signature);
 
         // Optional: wait for confirmation (not strictly required by prompt but good UX)
         await connection.confirmTransaction(signature, 'confirmed');
@@ -88,7 +84,6 @@ export class Transaction {
             transaction: tx,
         });
 
-        console.log("Sui Transaction Executed:", result);
         return result.digest;
     }
     /**
@@ -97,7 +92,6 @@ export class Transaction {
     async signMessage(message: string): Promise<string | undefined> {
         if (!this.adapter) throw new Error("No active chain selected or wallet not connected");
 
-        console.log(`Signing message for ${this.adapter.type}`);
 
         try {
             if (this.adapter.type === 'solana') {
@@ -106,7 +100,6 @@ export class Transaction {
                 return await this.handleSignSui(message);
             }
         } catch (error) {
-            console.error("Signing failed:", error);
             throw error;
         }
     }

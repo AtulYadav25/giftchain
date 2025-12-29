@@ -20,7 +20,6 @@ export const WalletActions = () => {
             setBalance(bal);
             setStatus('Balance fetched');
         } catch (e) {
-            console.error(e);
             setStatus('Error fetching balance');
         }
     };
@@ -59,7 +58,6 @@ export const WalletActions = () => {
 
             setStatus(`Success! Tx: ${txId?.slice(0, 10)}...`);
         } catch (e: any) {
-            console.error(e);
             setStatus(`Error: ${e.message}`);
         }
     };
@@ -76,10 +74,8 @@ export const WalletActions = () => {
             const tx = new Transaction(activeAdapter);
             const signature = await tx.signMessage("Hello from MultiX!");
 
-            console.log("Signature:", signature);
             setStatus(`Message Signed! Sig: ${signature?.slice(0, 10)}... (Check Console)`);
         } catch (e: any) {
-            console.error(e);
             setStatus(`Error: ${e.message}`);
         }
     };

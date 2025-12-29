@@ -83,7 +83,7 @@ export const ChainContextProvider = ({ children }: { children: React.ReactNode }
             }
         } else if (chain === 'sui') {
             // Sui connect is usually handled by the UI ConnectButton which triggers the modal
-            console.log("For Sui, please use the Connect Button in the UI");
+
         }
     };
 
