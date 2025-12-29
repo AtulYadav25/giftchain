@@ -18,10 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type Gift } from '@/types/gift.types';
 import toast from 'react-hot-toast';
 
-import { useSignTransaction } from '@mysten/dapp-kit';
 import { useGiftActions } from '@/store/useGiftStore';
-import { Transaction } from '@mysten/sui/transactions';
-import { fromBase64 } from '@mysten/sui/utils';
+import { useChain } from '@/multichainkit/context/ChainContext';
 
 interface GiftRevealModalProps {
     isOpen: boolean;
@@ -35,9 +33,10 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
     const [isDownloading, setIsDownloading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    const { address } = useChain();
+
     const modalRef = useRef<HTMLDivElement>(null);
-    const { mutateAsync: signTransaction } = useSignTransaction();
-    const { claimGiftIntent, claimGiftSubmit } = useGiftActions();
+    const { claimGiftSubmit } = useGiftActions();
 
     useEffect(() => {
         setIsClaimed(gift.status === 'opened');
@@ -62,44 +61,22 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
             confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
             confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
         }, 250);
+        handleClaim();
     };
 
     const handleClaim = async () => {
-        if (isProcessing || isClaimed) return;
+        if (isProcessing || isClaimed || address === gift.senderWallet) return;
 
         setIsProcessing(true);
         const toastId = toast.loading("Initiating claim...");
 
         try {
-            // 1. Intent
-            toast.loading("Preparing transaction...", { id: toastId });
-            const { txBytes } = await claimGiftIntent(gift._id);
-
-            // 2. Sign
-            toast.loading("Please sign in your wallet...", { id: toastId });
-
-            const tx = Transaction.from(fromBase64(txBytes));
-
-            const { signature, bytes } = await signTransaction({
-                transaction: tx,
-                chain: 'sui:testnet'
-            });
-
-            console.log(bytes)
-
-            // 3. Submit — USE SIGNED BYTES
-            toast.loading("Verifying claim...", { id: toastId });
-            await claimGiftSubmit(gift._id, {
-                txBytes: bytes, // ✅ SIGNED bytes
-                signature
-            });
+            await claimGiftSubmit(gift._id);
 
             setIsClaimed(true);
             toast.success("Gift Claimed Successfully!", { id: toastId, icon: '🎉' });
-            triggerConfetti();
 
         } catch (err: any) {
-            console.log(err.message);
             toast.error(err.message || "Failed to claim gift", { id: toastId });
         } finally {
             setIsProcessing(false);
@@ -135,7 +112,6 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
             link.click();
             toast.success("Image downloaded!", { id: toastId });
         } catch (err) {
-            console.error("Download failed:", err);
             toast.error("Could not generate image. Check browser console.", { id: toastId });
         } finally {
             setIsDownloading(false);
