@@ -19,9 +19,9 @@ interface GiftState {
     receivedMeta: PaginationMeta | null;
     sentMeta: PaginationMeta | null;
     currentGift: Gift | null;
-    suiStats: {
-        suiPrice: number;
-        suiHash: string;
+    tokenStats: {
+        tokenPrice: number;
+        tokenHash: string;
     };
     isLoading: boolean;
     error: string | null;
@@ -33,13 +33,13 @@ export interface SendGiftParams {
     amountUSD: number;
     feeUSD: number;
     totalTokenAmount: string;
-    tokenSymbol: 'sui';
+    tokenSymbol: 'sui' | 'sol';
     wrapper: string;
     message?: string;
-    chainId: 'sui';
-    suiStats: {
-        suiPrice: number;
-        suiHash: string;
+    chain: 'sui' | 'sol';
+    tokenStats: {
+        tokenPrice: number;
+        tokenHash: string;
     };
     isAnonymous: boolean;
 }
@@ -59,9 +59,10 @@ interface GiftActions {
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
+    getSOLPrice: () => Promise<void>;
     resolveRecipients: (usernames: string[]) => Promise<[{ username: string, address: string }]>;
     claimGiftIntent: (giftId: string) => Promise<{ txBytes: Base64URLString }>;
-    claimGiftSubmit: (giftId: string, signedTx: { txBytes: Base64URLString, signature: string }) => Promise<{ txDigest: string }>;
+    claimGiftSubmit: (giftId: string) => Promise<{ txDigest: string }>;
 }
 
 const mergeById = <T extends { _id: string }>(
@@ -90,9 +91,9 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
         sentMeta: null,
         currentGift: null,
         isLoading: false,
-        suiStats: {
-            suiPrice: null,
-            suiHash: null
+        tokenStats: {
+            tokenPrice: null,
+            tokenHash: null
         },
         error: null,
 
@@ -205,13 +206,30 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             getSUIPrice: async () => {
                 set({ isLoading: true, error: null });
                 try {
-                    const res = await api.get<ApiResponse<{ priceUSD: number, suiHash: string }>>(`/prices/sui`);
+                    const res = await api.get<ApiResponse<{ priceUSD: number, tokenHash: string }>>(`/prices/sui`);
                     let { data } = extractData(res);
-                    console.log(data)
                     set({
-                        suiStats: {
-                            suiPrice: data.priceUSD,
-                            suiHash: data.suiHash
+                        tokenStats: {
+                            tokenPrice: data.priceUSD,
+                            tokenHash: data.tokenHash
+                        },
+                        isLoading: false
+                    });
+                } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                    throw err;
+                }
+            },
+
+            getSOLPrice: async () => {
+                set({ isLoading: true, error: null });
+                try {
+                    const res = await api.get<ApiResponse<{ priceUSD: number, tokenHash: string }>>(`/prices/sol`);
+                    let { data } = extractData(res);
+                    set({
+                        tokenStats: {
+                            tokenPrice: data.priceUSD,
+                            tokenHash: data.tokenHash
                         },
                         isLoading: false
                     });
@@ -235,10 +253,10 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 }
             },
 
-            claimGiftSubmit: async (giftId: string, signedTx: { txBytes: Base64URLString, signature: string }) => {
+            claimGiftSubmit: async (giftId: string) => {
                 // Loading should already be true from intent/signing
                 try {
-                    const res = await api.post<ApiResponse<{ txDigest: string }>>(`/gifts/claim-submit/${giftId}`, signedTx);
+                    const res = await api.get<ApiResponse<{ txDigest: string }>>(`/gifts/claim-gift/${giftId}`);
                     let { data } = extractData(res);
 
                     // Update the local gift state to opened

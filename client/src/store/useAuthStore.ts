@@ -13,7 +13,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-    requestMessage: (address: string) => Promise<RequestMessageResponse>;
+    requestMessage: (address: string, chain: 'sol' | 'sui') => Promise<RequestMessageResponse>;
     verify: (data: VerifyRequestData) => Promise<VerifyResponse>;
     checkSession: () => Promise<void>;
     disconnectWallet: () => Promise<void>;
@@ -35,11 +35,11 @@ const useAuthStore = create<AuthState & { actions: AuthActions }>()(
             error: null,
 
             actions: {
-                requestMessage: async (address): Promise<RequestMessageResponse> => {
+                requestMessage: async (address, chain): Promise<RequestMessageResponse> => {
                     set({ isLoading: true, error: null });
                     try {
                         // Send API request and get the full response
-                        const res = await api.post<ApiResponse<RequestMessageResponse>>('/auth/request-message', { address });
+                        const res = await api.post<ApiResponse<RequestMessageResponse>>('/auth/request-message', { address, chain });
 
                         const { data } = extractData(res);
                         const { nonce, userId } = data;
