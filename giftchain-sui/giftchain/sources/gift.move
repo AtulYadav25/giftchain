@@ -6,14 +6,11 @@
 module giftchain::gift;
 
 use std::string::String;
-use sui::balance::{Self, Balance};
 use sui::coin::{Self, Coin};
 use sui::event;
 use sui::sui::SUI;
-use sui::address;
 
 // --- Errors ---
-const ENotIntendedReceiver: u64 = 0;
 const EInvalidFee: u64 = 1;
 const EIncorrectFeeAmount: u64 = 2;
 const EZeroGiftAmount: u64 = 3;
@@ -36,30 +33,14 @@ public struct GiftConfig has key {
     fee_bps: u64,
 }
 
-/// Represents a wrapped gift containing SUI.
-/// Can only be unwrapped by the `receiver`.
-public struct Gift has key {
-    id: UID,
-    sender: address,
-    receiver: address,
-    inner: Balance<SUI>,
-}
-
 // --- Events ---
 
-public struct GiftWrapped has copy, drop {
+public struct GiftSent has copy, drop {
     gift_db_id: String, //Id of Mongodb Gift Document
-    gift_obj_id: String, //Id of Onchain Gift Object Sent to the receiver
     sender: address,
     receiver: address,
     amount: u64,
     fee_deducted: u64,
-}
-
-public struct GiftClaimed has copy, drop {
-    gift_db_id: String,
-    claimer: address,
-    amount: u64,
 }
 
 public struct FeeUpdated has copy, drop {
@@ -121,56 +102,20 @@ public fun wrap_gift(
     let fee = coin::split(fee_coin, expected_fee, ctx);
     transfer::public_transfer(fee, config.treasury_address);
 
-    /* ---------------- Gift Creation ---------------- */
+    /* ---------------- Gift Sending ---------------- */
 
-    let gift_uid = object::new(ctx);
-    let gift_address = object::uid_to_address(&gift_uid);
-    let gift_obj_id = address::to_string(gift_address);
+    transfer::public_transfer(gift_coin, receiver);
 
-    let gift = Gift {
-        id: gift_uid,
-        sender,
-        receiver,
-        inner: coin::into_balance(gift_coin),
-    };
-
-    transfer::transfer(gift, receiver);
 
     /* ---------------- Events ---------------- */
 
-    event::emit(GiftWrapped {
+    event::emit(GiftSent {
         gift_db_id,
-        gift_obj_id,
         sender,
         receiver,
         amount: gift_amount,
         fee_deducted: expected_fee,
     });
-}
-
-/// Claims a gift. Must be called by the intended receiver.
-/// The gift object is destroyed and funds transferred to the caller.
-public fun claim_gift(gift: Gift, gift_db_id: String, ctx: &mut TxContext) {
-    let Gift { id, sender: _, receiver, inner } = gift;
-
-    // Verify caller is the intended receiver
-    assert!(ctx.sender() == receiver, ENotIntendedReceiver);
-
-    let amount = inner.value();
-
-    // Unwrap and send funds
-    let coin = coin::from_balance(inner, ctx);
-    transfer::public_transfer(coin, ctx.sender());
-
-    // Emit event
-    event::emit(GiftClaimed {
-        gift_db_id,
-        claimer: ctx.sender(),
-        amount,
-    });
-
-    // Delete the object
-    id.delete();
 }
 
 // --- Admin Functions ---

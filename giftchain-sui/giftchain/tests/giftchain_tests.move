@@ -4,7 +4,7 @@ module giftchain::giftchain_tests {
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
     use std::string;
-    use giftchain::gift::{Self, Gift, GiftConfig, AdminCap};
+    use giftchain::gift::{Self, GiftConfig, AdminCap};
 
     // --- Actors ---
     const ADMIN: address = @0xA;
@@ -36,15 +36,6 @@ module giftchain::giftchain_tests {
             coin::burn_for_testing(fee_coin);
         };
 
-        // 3. Bob claims the gift
-        test_scenario::next_tx(&mut scenario, BOB);
-        {
-            // Verify gift exists and is owned by Bob
-            let gift = test_scenario::take_from_sender<Gift>(&scenario);
-            
-            let gift_id = string::utf8(b"gift_id");
-            gift::claim_gift(gift, gift_id, test_scenario::ctx(&mut scenario));
-        };
 
         // 4. Verify funds received by Bob
         test_scenario::next_tx(&mut scenario, BOB);
