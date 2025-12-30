@@ -63,6 +63,7 @@ type Step = 1 | 2 | 3 | 4;
 interface SendGiftModalProps {
     isOpen: boolean;
     onClose: () => void;
+    recipientUsername?: string;
 }
 
 interface Recipient {
@@ -72,7 +73,7 @@ interface Recipient {
     amount: string;
 }
 
-export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
+export default function SendGiftModal({ isOpen, onClose, recipientUsername }: SendGiftModalProps) {
     const [step, setStep] = useState<Step>(1);
     const [wrapperType, setWrapperType] = useState<'free' | 'premium'>('free');
     const [selectedWrapper, setSelectedWrapper] = useState<any>(null);
@@ -135,8 +136,16 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
     // Recipient State
     const [recipients, setRecipients] = useState<Recipient[]>([
-        { id: '1', username: '', address: '', amount: '' }
+        { id: '1', username: recipientUsername || '', address: '', amount: '' }
     ]);
+
+    // Reset recipients when recipientUsername changes or modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setRecipients([{ id: '1', username: recipientUsername || '', address: '', amount: '' }]);
+            setStep(1);
+        }
+    }, [isOpen, recipientUsername]);
 
     // Simulate loading when amount changes
     useEffect(() => {

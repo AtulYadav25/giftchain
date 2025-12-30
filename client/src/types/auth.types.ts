@@ -11,6 +11,7 @@ export interface User {
     sentCount: number;
     receivedCount: number;
     referralsCount: number;
+    bio?: string;
     createdAt: string;
     updatedAt: string;
 }

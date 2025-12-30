@@ -1,40 +1,60 @@
-// import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css'
 
 //Import Layouts
 import Navbar from '@/components/layout/Navbar';
-// import { Footer } from './components/Footer';
-// import { Home } from './pages/Home';
-// import { Home } from './pages/Home';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+
+// Pages
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import HallOfGivers from './pages/HallOfGivers';
-import { useInitApp } from './hooks/useInitApp';
+import DashboardHome from './pages/dashboard/Home';
+import DashboardGifts from './pages/dashboard/Gifts';
+import DashboardGoals from './pages/dashboard/Goals';
+import DashboardSettings from './pages/dashboard/Settings';
+import PublicProfile from './pages/PublicProfile';
 
-//MultiChain Kit Imports
+import { useInitApp } from './hooks/useInitApp';
 
 
 const App = () => {
   //Initialize App with User Creds - Checks Session
   useInitApp();
 
-
   return (
-
     <Router>
       <div className="flex flex-col min-h-screen bg-[#f9fbff] text-[#1a2a3a] selection:bg-blue-300/40">
 
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
+        <Routes>
+          {/* Public Pages with Navbar - Use a wrapper Route */}
+          <Route element={
+            <>
+              <Navbar />
+              <main className="flex-grow">
+                <Outlet />
+              </main>
+            </>
+          }>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/hall-of-givers" element={<HallOfGivers />} />
-          </Routes>
-        </main>
-        {/* <Footer /> */}
+
+            {/* Note: PublicProfile (/:username) should be last to avoid catching other paths */}
+            <Route path="/:username" element={<PublicProfile />} />
+          </Route>
+
+          {/* Dashboard Routes */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Navigate to="home" replace />} />
+            <Route path="home" element={<DashboardHome />} />
+            <Route path="gifts" element={<DashboardGifts />} />
+            <Route path="goals" element={<DashboardGoals />} />
+            <Route path="settings" element={<DashboardSettings />} />
+          </Route>
+
+        </Routes>
 
         <Toaster
           position="bottom-right"

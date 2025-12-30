@@ -358,3 +358,270 @@ export const useTodos = () => useTodoStore((s) => s.todos);
 export const useAddTodo = () => useTodoStore((s) => s.addTodo);
 
 Separate actions from state ie. Use a stable actions object
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+You are editing my client-side React application.
+
+I already have:
+
+A Received Gifts table
+
+A Sent Gifts table
+
+A Wrapper section showing gift wrappers
+
+A Zustand gift store fetching gifts from backend
+
+Now I want to implement unopened / opened gift experience + a fun bragging modal UI.
+
+🔹 Backend Data Assumptions (IMPORTANT)
+
+Each gift object already includes:
+
+status: "sent" → unopened
+
+status: "opened" → opened & claimed
+
+amountUSD
+
+totalTokenAmount (Amount is in SUI Like 1.554 SUI not USD)
+
+wrapper (Wrapper Image URL)
+
+sender / receiver:
+
+username
+
+avatar
+
+
+⚠️ Do NOT make any extra API calls to fetch sender or receiver info, my backend filters and gives username and avatar accordingly.
+All required data is already included in the gift object.
+
+🔹 Feature Requirements
+✅ 1. Unopened vs Opened Logic
+
+Gifts with status === "sent" → Unopened
+
+Gifts with status === "opened" → Opened / Claimed
+
+Wrapper Section
+
+Show ONLY unopened received gifts
+
+Display the wrapper image
+
+Clicking a wrapper opens the Gift Modal
+
+✅ 2. Gift Modal (Core Feature)
+
+Create a fun, playful modal (NOT professional looking).
+
+Use:
+
+npm i canvas-confetti
+
+Modal behavior:
+
+Open when:
+
+Clicking an unopened gift wrapper
+
+Clicking any row in Received Gifts table
+
+Clicking any row in Sent Gifts table
+
+Trigger confetti animation when modal opens
+
+✅ 3. Modal UI Content (Very Important)
+🏷️ Header
+
+Show text at the top:
+“Giftchain.fun”
+
+Fun typography, playful colors
+
+💰 Gift Amount (Big & Centered)
+
+Show amount in USD (BIG text)
+
+$12.00
+
+
+Below it, small text:
+
+≈ 4.2 SUI
+
+👤 Sender / Receiver Card
+
+Depending on context:
+
+Received gifts → show Sender
+
+Sent gifts → show Receiver
+
+Card must include:
+
+Avatar image
+
+Username
+
+Wallet address (shortened and this address will be either receiverWallet or senderWallet depending on the context received or sent, for sent show receiver and vice versa)
+
+Copy button (copy full wallet address)
+
+Interaction:
+
+Clicking this card navigates to:
+
+/<username>
+
+✅ 4. Claim Flow (Mock Only for Now)
+
+If gift is unopened:
+
+Show “Claim Gift” button
+
+When clicked:
+
+Trigger confetti animation again
+
+Update UI locally to:
+
+Mark gift as claimed
+
+Replace button with “Download as Image”
+
+⚠️ Claiming is frontend-only mock
+(no backend integration yet)
+
+✅ 5. Download as Image (VERY IMPORTANT)
+
+When clicking “Download as Image”:
+
+Download the modal UI as an image
+
+The downloaded image must:
+
+Be an exact visual replica
+
+Same fonts
+
+Same colors
+
+Same layout
+
+Include Giftchain.fun branding
+
+Receiver should be able to share it for bragging rights.
+
+(Use canvas / html-to-image / dom-to-image — choose best approach)
+
+✅ 6. Tables Behavior Update
+Sent & Received Gifts Table
+
+Clicking any row opens the same Gift Modal
+
+Modal content adapts automatically:
+
+Sent → show receiver info
+
+Received → show sender info
+
+🔹 UI / UX Direction (DO NOT IGNORE)
+
+Make it fun
+
+Make it surprising
+
+Playful colors
+
+Soft animations
+
+Not corporate / not professional
+
+Delight the user
+
+🔹 Engineering Constraints
+
+Reuse existing Zustand store
+
+Do NOT break current pagination
+
+Keep code clean & readable
+
+Follow existing project patterns
+
+Avoid unnecessary re-renders
+
+Confetti should not leak memory
+
+🎯 Final Result
+
+After your changes:
+
+Users clearly see unopened vs opened gifts
+
+Opening a gift feels rewarding
+
+Claiming feels celebratory
+
+Downloaded image is share-worthy
+
+No mock data left for display logic (except mock claim action)
