@@ -7,7 +7,6 @@ import { errorHandler } from './middlewares/errorHandler';
 import { authRoutes } from './routes/auth.routes';
 import { giftRoutes } from './routes/gift.routes';
 import { wrapperRoutes } from './routes/wrapper.routes';
-import { paymentRoutes } from './routes/payment.routes';
 import { userRoutes } from './routes/user.routes';
 import { priceRoutes } from './routes/price.routes';
 
@@ -38,6 +37,5 @@ app.register(giftRoutes, { prefix: '/gifts' });
 app.register(wrapperRoutes, { prefix: '/wrappers' });
 app.register(userRoutes, { prefix: '/user' });
 app.register(priceRoutes, { prefix: '/prices' });
-// app.register(paymentRoutes, { prefix: '/payments' }); NOTNOW
 
 export default app;

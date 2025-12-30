@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const requestMessageSchema = z.object({
-    address: z.string().min(3)
+    address: z.string().min(3),
+    chain: z.string(),
 });
 
 export const verifySchema = z.object({

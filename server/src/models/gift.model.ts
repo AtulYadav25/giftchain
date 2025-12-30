@@ -9,11 +9,11 @@ export interface IGift extends Document {
 
     amountUSD: number;
     feeUSD: number;
-    totalTokenAmount: number;
-    tokenSymbol: 'sui';
-    suiStats: {
-        suiPrice: number;
-        suiHash: string;
+    totalTokenAmount: number; //In Token Value MIST or LAMPORTS e.g: 1.1 SUI as 11110000 MIST or 4.5 SOL 45000000 LAMPORTS
+    tokenSymbol: 'sui' | 'sol';
+    tokenStats: {
+        tokenPrice: number; //Price is in USD (Fetched From CMC API)
+        tokenHash: string; //Includes Server JWT encrypted object {tokenPrice: //}
     };
 
     wrapper: string;
@@ -24,11 +24,8 @@ export interface IGift extends Document {
     openedAt?: Date;
 
     senderTxDigest?: string;
-    onChainGiftId?: string;
-    claimTxHash?: string;
-    deliveryTxDigest?: string;
 
-    chainID: 'sui';
+    chain: 'sui' | 'sol';
     isAnonymous?: boolean;
 }
 
@@ -65,12 +62,12 @@ const GiftSchema: Schema = new Schema(
             required: true
         },
 
-        suiStats: {
-            suiPrice: {
+        tokenStats: {
+            tokenPrice: {
                 type: Number,
                 required: true
             },
-            suiHash: {
+            tokenHash: {
                 type: String,
                 required: true
             }
@@ -83,7 +80,7 @@ const GiftSchema: Schema = new Schema(
 
         tokenSymbol: {
             type: String,
-            enum: ['sui'],
+            enum: ['sui', 'sol'],
             required: true
         },
 
@@ -118,22 +115,10 @@ const GiftSchema: Schema = new Schema(
             type: String,
             default: null
         },
-        onChainGiftId: {
-            type: String,
-            default: null
-        },
-        claimTxHash: {
-            type: String,
-            default: null
-        },
-        deliveryTxDigest: {
-            type: String,
-            default: null
-        },
 
-        chainID: {
+        chain: {
             type: String,
-            enum: ['sui'],
+            enum: ['sui', 'sol'],
             default: 'sui'
         },
 
@@ -167,7 +152,7 @@ const GiftSchema: Schema = new Schema(
 // Indexes
 GiftSchema.index({ receiverWallet: 1 });
 GiftSchema.index({ senderWallet: 1 });
-GiftSchema.index({ chainID: 1 });
+GiftSchema.index({ chain: 1 });
 GiftSchema.index({ status: 1 });
 
 export const Gift = mongoose.model<IGift>('Gift', GiftSchema);

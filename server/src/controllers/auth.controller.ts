@@ -5,13 +5,13 @@ import { User } from '../models/user.model';
 
 export const requestMessage = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
-        const { address } = req.body as { address: string };
+        const { address, chain } = req.body as { address: string, chain: 'sol' | 'sui' };
 
         if (!address) {
             return errorResponse(reply, "Wallet address is required", 400);
         }
 
-        const result = await authService.requestMessage(address);
+        const result = await authService.requestMessage(address, chain);
 
         return successResponse(reply, result, "Signing message generated", 200);
     } catch (error: any) {

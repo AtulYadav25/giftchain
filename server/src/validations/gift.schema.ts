@@ -7,21 +7,21 @@ export const sendGiftSchema = z.object({
     amountUSD: z.number(),
     feeUSD: z.number(),
     totalTokenAmount: z.string(),
-    suiStats: z.object({
-        suiPrice: z.number(),
-        suiHash: z.string(),
+    tokenStats: z.object({
+        tokenPrice: z.number(),
+        tokenHash: z.string(),
     }),
-    tokenSymbol: z.enum(['sui']),
+    tokenSymbol: z.enum(['sui', 'sol']),
     message: z.string().optional(),
-    chainId: z.enum(['sui']),
+    chain: z.enum(['sui', 'sol']),
     isAnonymous: z.boolean().optional(),
 });
 
 export const verifyGiftSchema = z.object({
-    giftId: z.string(),
+    giftId: z.string(), //GIFT Modal Mongoose ID
     address: z.string(),
     txDigest: z.string(),
-    verifyType: z.enum(['wrapGift', 'claimGift']),
+    verifyType: z.enum(['wrapGift']),
 });
 
 export type VerifyGiftBody = z.infer<typeof verifyGiftSchema>;
@@ -38,10 +38,4 @@ export const resolveRecipientsSchema = z.object({
 export type ResolveRecipientsBody = z.infer<typeof resolveRecipientsSchema>;
 
 
-export const claimSubmitSchema = z.object({
-    txBytes: z.string(),
-    signature: z.string(),
-});
-
-export type ClaimSubmitBody = z.infer<typeof claimSubmitSchema>;
 // "GtvFV43P5gvPZh5L7gyVuhyMxrajZ63Rh5MyQiMiuaPm"

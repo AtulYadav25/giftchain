@@ -4,6 +4,7 @@ import cloudinary from '../config/cloudinary';
 import { errorResponse, successResponse } from '../utils/responseHandler';
 
 export const upload = async (req: FastifyRequest, reply: FastifyReply) => {
+    //TODO : Accept Video also in this upload and store in cloudinary
     const parts = req.parts();
     let name = 'custom';
     let priceUSD = 0.3;

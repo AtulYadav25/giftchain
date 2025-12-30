@@ -14,7 +14,6 @@ const createGift = async (senderId, data) => {
         message: data.message,
         status: 'sent',
         senderTxHash: data.senderTxHash || null,
-        deliveryTxHash: data.deliveryTxHash || null,
         chainID: data.chainID, // 'sui' | 'solana'
         isAnonymous: data.isAnonymous || false
     });

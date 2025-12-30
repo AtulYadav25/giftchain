@@ -4,16 +4,20 @@ export interface IUser extends Document {
     username: string;           // referral ID
     avatar?: string;
     address: string;            // wallet address
+    chain: 'sol' | 'sui';
     referredBy?: string;        // who referred this user
     nonce: Number;
 
     totalSentUSD: number;       // total $ amount user has sent
     totalReceivedUSD: number;   // total $ amount user has received
-    referralRewardsUSD: number; // referral rewards earned
 
     sentCount: number;          // how many gifts user sent
     receivedCount: number;      // how many gifts user received
-    referralsCount: number;     // how many users they referred
+
+    socials: {
+        platform: string;
+        link: string;
+    }[];
 
     createdAt: Date;
     updatedAt: Date;
@@ -35,6 +39,11 @@ const UserSchema: Schema = new Schema(
             required: true,
             unique: true
         },
+        chain: {
+            type: String,
+            required: true,
+            enum: ['sol', 'sui']
+        },
         referredBy: {
             type: String, // username of referrer
             default: null
@@ -53,10 +62,6 @@ const UserSchema: Schema = new Schema(
             type: Number,
             default: 0
         },
-        referralRewardsUSD: {
-            type: Number,
-            default: 0
-        },
 
         // --- Counts ---
         sentCount: {
@@ -67,10 +72,14 @@ const UserSchema: Schema = new Schema(
             type: Number,
             default: 0
         },
-        referralsCount: {
-            type: Number,
-            default: 0
-        },
+
+        socials: [
+            {
+                platform: String,
+                link: String
+            }
+        ],
+
         lastAvatarUpdate: {
             type: Date,
             default: null

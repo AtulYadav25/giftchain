@@ -6,6 +6,7 @@ declare module "fastify" {
             address: string;
             nonce: string;
             userId: string;
+            chain: 'sol' | 'sui';
         };
 
         query: {

@@ -7,7 +7,7 @@ import { createHash } from 'crypto';
 
 const client = getClient('testnet');
 
-export const createGift = async (senderId: string, data: any) => {
+export const createGift = async (senderId: string, data: any, chain: string) => {
     const gift = await Gift.create({
         senderId,
         senderWallet: data.senderWallet,
@@ -15,9 +15,9 @@ export const createGift = async (senderId: string, data: any) => {
 
         amountUSD: data.amountUSD, // In USD eg: 100 USD
         totalTokenAmount: Number(data.totalTokenAmount), // In SUI(MIST) eg: 1.154 SUI but stored 11545558885
-        tokenSymbol: data.tokenSymbol, // 'sui'
+        tokenSymbol: data.tokenSymbol, // 'sui' | 'sol'
         feeUSD: data.feeUSD, // In USD eg: 1 USD
-        suiStats: data.suiStats,
+        tokenStats: data.tokenStats,
 
         wrapper: data.wrapper,
         message: data.message,
@@ -26,9 +26,8 @@ export const createGift = async (senderId: string, data: any) => {
         verified: false,
 
         senderTxHash: null,
-        deliveryTxHash: null,
 
-        chainID: data.chainID, // 'sui' 
+        chain, // 'sui' | 'sol' 
         isAnonymous: false
     });
 
@@ -40,7 +39,39 @@ type GiftObj = {
     amount: number;
 };
 
-export const verifyGifts = async (giftObjs: GiftObj[]) => {
+export const verifySOLGifts = async ({
+    giftIds,
+    sender,
+}: {
+    giftIds: string[];
+    sender: string;
+}) => {
+    const gifts = await Gift.find(
+        {
+            _id: { $in: giftIds },
+            senderWallet: sender,
+            verified: { $ne: true },
+        },
+        { _id: 1 }
+    );
+
+    if (gifts.length !== giftIds.length) {
+        throw new Error('Invalid or already verified gift');
+    }
+
+    await Gift.updateMany(
+        { _id: { $in: giftIds } },
+        {
+            $set: {
+                verified: true,
+                status: 'sent',
+            },
+        }
+    );
+};
+
+
+export const verifySUIGifts = async (giftObjs: GiftObj[]) => {
     const giftIds = giftObjs.map(g => g.gift_db_id.toString());
 
     // Lookup maps (MIST everywhere)
@@ -48,11 +79,6 @@ export const verifyGifts = async (giftObjs: GiftObj[]) => {
         giftObjs.map(g => [g.gift_db_id.toString(), Number(g.amount)])
     );
 
-    const giftObjIdMap = new Map(
-        giftObjs.map(g => [g.gift_db_id.toString(), `0x${g.gift_obj_id}`])
-    );
-
-    console.log(giftObjIdMap)
     // Fetch only what we need
     const gifts = await Gift.find(
         { _id: { $in: giftIds } },
@@ -84,8 +110,7 @@ export const verifyGifts = async (giftObjs: GiftObj[]) => {
                 update: {
                     $set: {
                         status: 'sent',
-                        verified: true,
-                        onChainGiftId: giftObjIdMap.get(gift._id.toString()),
+                        verified: true
                     },
                 },
             },
@@ -150,9 +175,9 @@ export const getSentGifts = async (
                 totalTokenAmount: 1,
                 tokenSymbol: 1,
 
-                suiStats: {
-                    suiPrice: 1,
-                    suiHash: 1
+                tokenStats: {
+                    tokenPrice: 1,
+                    tokenHash: 1
                 },
 
                 wrapper: 1,
@@ -185,7 +210,8 @@ export const getReceivedGifts = async (address: string, page = 1, limit = 10) =>
         // 1️⃣ Match sender wallet
         {
             $match: {
-                receiverWallet: address
+                receiverWallet: address,
+                verified: true
             }
         },
 
@@ -229,9 +255,9 @@ export const getReceivedGifts = async (address: string, page = 1, limit = 10) =>
                 totalTokenAmount: 1,
                 tokenSymbol: 1,
 
-                suiStats: {
-                    suiPrice: 1,
-                    suiHash: 1
+                tokenStats: {
+                    tokenPrice: 1,
+                    tokenHash: 1
                 },
 
                 wrapper: 1,
@@ -274,62 +300,8 @@ export function hashTxBytes(bytes: Uint8Array): string {
 }
 
 
-export const claimIntent = async (
+export const claimGift = async (
     giftId: string,
-    walletAddress: string
-) => {
-    const gift = await Gift.findOne({
-        _id: giftId,
-        status: 'sent',
-    });
-
-    if (!gift) {
-        throw new Error('Gift not found or already claimed');
-    }
-
-    if (gift.receiverWallet !== walletAddress) {
-        throw new Error('Not authorized to open this gift');
-    }
-
-    const tx = new Transaction();
-    tx.setSender(walletAddress);
-    tx.setGasBudget(5_000_000);
-
-    const PACKAGE_ID = process.env.PACKAGE_ID!;
-    const MODULE_NAME = process.env.MODULE_NAME!;
-
-    tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::claim_gift`,
-        arguments: [
-            tx.object(gift.onChainGiftId),
-            tx.pure.string(gift._id.toString()),
-        ],
-    });
-
-    // 🔒 Deterministic build
-    const txBytes = await tx.build({ client });
-
-    // 🔐 Hash raw bytes (NOT base64)
-    const txHash = hashTxBytes(txBytes);
-
-    // Save intent hash
-    await Gift.updateOne(
-        { _id: giftId, status: 'sent' },
-        { claimTxHash: txHash }
-    );
-
-    // Send BASE64 to frontend
-    return {
-        txBytes: Buffer.from(txBytes).toString('base64'),
-    };
-};
-
-
-
-export const claimSubmit = async (
-    giftId: string,
-    txBytesBase64: string,
-    signature: string,
     claimerAddress: string
 ) => {
     const gift = await Gift.findOne({
@@ -345,97 +317,18 @@ export const claimSubmit = async (
         throw new Error('Not authorized to open this gift');
     }
 
-    console.log("Step 1 : Completed Receiver is Claimer Verification")
-
-    // Decode base64 → Uint8Array
-    const txBytes = Uint8Array.from(
-        Buffer.from(txBytesBase64, 'base64')
-    );
-
-    console.log("Step 2 : Completed Transaction Bytes Decoding")
-
-    // 🔐 Verify intent hash
-    const receivedHash = hashTxBytes(txBytes);
-
-    console.log("Step 3 : Completed Transaction Intent Hash Verification")
-
-    if (receivedHash !== gift.claimTxHash) {
-        throw new Error('Transaction intent mismatch');
-    }
-
-    console.log("Step 4 : Completed Transaction Intent Hash Verification")
-
-    // Parse tx for validation
-    const parsedTx = Transaction.from(txBytes);
-
-    console.log("Step 5 : Completed Transaction Parsing")
-
-    if (parsedTx.getData().sender !== gift.receiverWallet) {
-        throw new Error('Invalid transaction sender');
-    }
-
-    console.log("Step 6 : Completed Transaction Sender Verification")
-
-    // 🚀 Execute sponsored tx
-    const result = await client.executeTransactionBlock({
-        transactionBlock: txBytes,
-        signature,
-        options: {
-            showEffects: true,
-            showObjectChanges: true,
-        },
-    });
-
-    console.log("Step 7 : Completed Transaction Execution")
-
-    if (result.effects?.status.status !== 'success') {
-        throw new Error('Transaction execution failed');
-    }
-
-    console.log(result.objectChanges)
-
-    console.log("Step 8 : Completed Transaction Execution Verification")
-
-    // 🔍 Verify gift object deletion
-    const deleted = result.objectChanges?.some(
-        (c: any) =>
-            c.type === 'deleted' &&
-            c.objectId === gift.onChainGiftId
-    );
-
-    console.log("Step 9 : Completed Gift Object Deletion Verification")
-
-    if (!deleted) {
-        throw new Error('Gift was not claimed on-chain');
-    }
-
-    console.log("Step 10 : Completed Gift Object Deletion Verification")
-
     // ✅ Final DB update (idempotent)
     await Gift.updateOne(
         { _id: giftId, status: 'sent' },
         {
             status: 'opened',
             openedAt: new Date(),
-            deliveryTxDigest: result.digest,
         }
     );
 
-    return {
-        txDigest: result.digest,
-    };
-};
+    return true //isClaimed: True
 
-// Step 1 : Completed Receiver is Claimer Verification
-// Step 2 : Completed Transaction Bytes Decoding
-// Step 3 : Completed Transaction Intent Hash Verification
-// Step 4 : Completed Transaction Intent Hash Verification
-// Step 5 : Completed Transaction Parsing
-// Step 6 : Completed Transaction Sender Verification
-// Step 7 : Completed Transaction Execution
-// Step 8 : Completed Transaction Execution Verification
-// Step 9 : Completed Gift Object Deletion Verification
-// Terminate batch job (Y/N)? Y
+};
 
 export const deleteUnverifiedGifts = async (userId: string) => {
     const now = new Date();
@@ -443,10 +336,11 @@ export const deleteUnverifiedGifts = async (userId: string) => {
     await Gift.deleteMany({ createdAt: { $lt: tenMinutesAgo }, verified: false, senderId: userId });
 };
 
-export const resolveRecipients = async (usernames: string[]) => {
+export const resolveRecipients = async (usernames: string[], chain: string) => {
     // 1️⃣ Fetch all matching users
     const users = await User.find({
-        username: { $in: usernames }
+        username: { $in: usernames },
+        chain,
     }).select("username");
 
     // 2️⃣ Map for fast lookup

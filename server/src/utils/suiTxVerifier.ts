@@ -13,7 +13,7 @@ const PACKAGE_ID = process.env.PACKAGE_ID
 
 
 //Types
-interface GiftWrappedEvent {
+interface GiftSentEvent {
     gift_db_id: string,
     sender: string,
     receiver: string,
@@ -21,17 +21,6 @@ interface GiftWrappedEvent {
     fee_deducted: number
 }
 
-interface PlatformFeeCollectedEvent {
-    gift_db_id: string,
-    amount: number
-}
-
-
-interface GiftClaimedEvent {
-    gift_db_id: String,
-    claimer: String,
-    amount: number
-}
 
 
 class SuiTransactionVerifier {
@@ -40,7 +29,7 @@ class SuiTransactionVerifier {
         this.client = getClient('testnet');
     }
 
-    async verifyTransaction(txDigest, { walletAddress, giftDbId, verifyType }: { walletAddress: string, giftDbId: string, verifyType: 'wrapGift' | 'claimGift' }, options = { maxAgeMinutes: 10 }) {
+    async verifyTransaction(txDigest, { walletAddress, giftId }: { walletAddress: string, giftId: string }, options = { maxAgeMinutes: 10 }) {
         try {
             // Validate transaction digest format
             if (!isValidTransactionDigest(txDigest)) {
@@ -80,51 +69,25 @@ class SuiTransactionVerifier {
             }
 
 
-            if (verifyType === 'wrapGift') {
 
-                // Verify GiftWrapped event
-                const giftWrappedEvent = txResponse.events.find(
-                    event => event.type === `${PACKAGE_ID}::${MODULE_NAME}::GiftWrapped`
-                );
+            // Verify GiftWrapped event
+            const giftSentEvent = txResponse.events.find(
+                event => event.type === `${PACKAGE_ID}::${MODULE_NAME}::GiftSent`
+            );
 
-                const giftWrappedEventParsedJson = giftWrappedEvent?.parsedJson as GiftWrappedEvent;
+            const giftSentEventParsedJson = giftSentEvent?.parsedJson as GiftSentEvent;
 
-                if (!giftWrappedEvent || !giftWrappedEventParsedJson?.amount) {
-                    return { status: false, message: "Invalid Transaction" };
-                }
-
-                const giftAmount = BigInt(giftWrappedEventParsedJson.amount);
-                if (giftAmount <= 0n) {
-                    return { status: false, message: "Invalid Payment Amount" };
-                }
-
-                if (giftDbId !== giftWrappedEventParsedJson.gift_db_id) {
-                    return { status: false, message: "Invalid Gift ID" };
-                }
-
+            if (!giftSentEvent || !giftSentEventParsedJson?.amount) {
+                return { status: false, message: "Invalid Transaction" };
             }
 
-            if (verifyType === 'claimGift') {
+            const giftAmount = BigInt(giftSentEventParsedJson.amount);
+            if (giftAmount <= 0n) {
+                return { status: false, message: "Invalid Payment Amount" };
+            }
 
-                // Verify GiftUnwrapped event
-                const giftClaimedEvent = txResponse.events.find(
-                    event => event.type === `${PACKAGE_ID}::${MODULE_NAME}::GiftClaimed`
-                );
-
-                const giftClaimedEventParsedJson = giftClaimedEvent?.parsedJson as GiftClaimedEvent;
-
-                if (!giftClaimedEvent || !giftClaimedEventParsedJson?.amount) {
-                    return { status: false, message: "Invalid Transaction" };
-                }
-
-                const giftAmount = BigInt(giftClaimedEventParsedJson.amount);
-                if (giftAmount <= 0n) {
-                    return { status: false, message: "Invalid Payment Amount" };
-                }
-
-                if (giftDbId !== giftClaimedEventParsedJson.gift_db_id) {
-                    return { status: false, message: "Invalid Gift ID" };
-                }
+            if (giftId !== giftSentEventParsedJson.gift_db_id) {
+                return { status: false, message: "Invalid Gift ID" };
             }
 
 

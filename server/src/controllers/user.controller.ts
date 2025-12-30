@@ -50,13 +50,7 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
         return errorResponse(reply, "Error processing upload", 500)
     }
 
-    // @ts-ignore - Assuming user is populated by auth middleware
-    const userId = req.user?.userId;
-    if (!userId) {
-        return errorResponse(reply, "Unauthorized", 401)
-    }
-
-    const user = await User.findById(userId);
+    const user = await User.findById(req.user?.userId);
     if (!user) {
         return errorResponse(reply, "User not found", 404)
     }
