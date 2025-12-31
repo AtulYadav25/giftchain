@@ -63,6 +63,7 @@ type Step = 1 | 2 | 3 | 4;
 interface SendGiftModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialRecipient?: { address: string; username?: string };
 }
 
 interface Recipient {
@@ -72,7 +73,7 @@ interface Recipient {
     amount: string;
 }
 
-export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
+export default function SendGiftModal({ isOpen, onClose, initialRecipient }: SendGiftModalProps) {
     const [step, setStep] = useState<Step>(1);
     const [wrapperType, setWrapperType] = useState<'free' | 'premium'>('free');
     const [selectedWrapper, setSelectedWrapper] = useState<any>(null);
@@ -83,6 +84,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
     // Wrapper Store Integration
     const { fetchWrappers, uploadWrapper, deleteWrapper } = useWrapperActions();
+    const { giftTxLoadingStates } = useGiftStore();
     const wrappers = useWrappers();
     const isWrapperLoading = useWrapperLoading();
 
@@ -95,6 +97,8 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
             wrapperType === 'free' ? w.priceUSD === 0 : w.priceUSD > 0
         );
     }, [wrappers, wrapperType]);
+
+    //TODO (NEXT PHASE) : Allow User to send video as wrapper in gift
 
     // Handle File Upload
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -137,6 +141,21 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
     const [recipients, setRecipients] = useState<Recipient[]>([
         { id: '1', username: '', address: '', amount: '' }
     ]);
+
+    useEffect(() => {
+        if (isOpen && initialRecipient) {
+            setRecipients([{
+                id: '1',
+                username: initialRecipient.username || '',
+                address: initialRecipient.address || '',
+                amount: ''
+            }]);
+        } else if (isOpen) {
+            // Reset if opening without initial recipient (and not already editing - actually isOpen toggle handles reset usually but let's be safe)
+            // We only reset on open if there's no initial recipient to avoid stale state
+            setRecipients([{ id: '1', username: '', address: '', amount: '' }]);
+        }
+    }, [isOpen, initialRecipient]);
 
     // Simulate loading when amount changes
     useEffect(() => {
@@ -317,6 +336,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                 : getRecipientValueInUSD(recipient.amount),
                         feeUSD: recipientFee,
                         tokenStats,
+                        mediaType: 'image',
                         totalTokenAmount:
                             inputMode === 'USD'
                                 ? (Math.floor(getUSDToToken(recipient.amount) * 1_000_000_000)).toString()
@@ -539,6 +559,11 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
         }
     }
 
+    const loadingText: Record<number, string> = {
+        1: "Wrapping Gift",
+        2: "Sign Transaction",
+        3: "Verifying Transaction",
+    };
 
     if (!isOpen) return null;
 
@@ -562,7 +587,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={onClose}
+                    onClick={giftTxLoadingStates === 0 ? onClose : undefined}
                     className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                 />
 
@@ -586,6 +611,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                         </h2>
                         <button
                             onClick={onClose}
+                            disabled={giftTxLoadingStates > 0}
                             className="p-2 bg-white border-2 border-slate-900 text-slate-900 hover:scale-110 active:scale-95 transition-all rounded-full shadow-[2px_2px_0_0_rgba(15,23,42,1)] relative z-10"
                         >
                             <X size={20} strokeWidth={3} />
@@ -625,6 +651,7 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
                                                 ref={fileInputRef}
                                                 className="hidden"
                                                 accept="image/*"
+                                                disabled={isWrapperLoading}
                                                 onChange={handleFileChange}
                                             />
                                             {isWrapperLoading ? <Loader2 className="animate-spin" /> : <Plus size={32} strokeWidth={2.5} />}
@@ -974,10 +1001,10 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
                     {/* Footer Navigation */}
                     <div className="p-6 border-t-[4px] border-slate-900 bg-white flex justify-between items-center relative z-20">
-                        {step > 1 ? (
+                        {(step > 1 && giftTxLoadingStates === 0) ? (
                             <button
                                 onClick={handleBack}
-                                className="px-6 py-3 rounded-2xl font-lexend text-slate-900 font-bold flex items-center gap-2 transition-all bg-white border-[3px] border-slate-900 shadow-[4px_4px_0_0_#CBD5E1] hover:bg-slate-50 active:shadow-none active:translate-y-[4px]"
+                                className="px-5 py-3 rounded-2xl font-lexend text-slate-900 font-bold flex items-center gap-2 transition-all bg-white border-[3px] border-slate-900 shadow-[4px_4px_0_0_#CBD5E1] hover:bg-slate-50 active:shadow-none active:translate-y-[4px]"
                             >
                                 <ChevronLeft size={20} strokeWidth={3} /> Back
                             </button>
@@ -985,17 +1012,36 @@ export default function SendGiftModal({ isOpen, onClose }: SendGiftModalProps) {
 
                         <button
                             onClick={step === 4 ? handleProcessPayment : handleNext}
-                            disabled={step === 1 && !selectedWrapper}
-                            className={`px-8 py-3 rounded-2xl font-black font-lexend text-slate-900 flex items-center gap-2 transition-all active:translate-y-[4px] active:shadow-none ${step === 4
-                                ? 'bg-[#4ADE80] hover:bg-[#22c55e] w-full md:w-auto justify-center border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] text-lg'
+                            disabled={(step === 1 && !selectedWrapper) || giftTxLoadingStates > 0 || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0))}
+                            className={`px-5 py-3 text-md w-auto rounded-2xl font-black font-lexend text-slate-900 flex items-center gap-2 transition-all active:translate-y-[4px] active:shadow-none ${step === 4
+                                ? 'bg-[#4ADE80] hover:bg-[#22c55e] w-auto md:w-auto justify-center border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] text-md'
                                 : 'bg-[#F472B6] hover:bg-[#ec4899] border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)]'
-                                } ${(!selectedWrapper && step === 1) ? 'opacity-50 cursor-not-allowed shadow-none border-slate-300 bg-slate-100 text-slate-400' : ''}`}
+                                } ${((!selectedWrapper && step === 1) || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0))) ? 'opacity-50 cursor-not-allowed shadow-none border-slate-300 bg-slate-100 text-slate-400' : ''}`}
                         >
+
+
                             {step === 4 ? (
-                                <>Wrap & Send Gift <span className='animate-bounce'>🎁</span></>
+                                giftTxLoadingStates ? (
+                                    <>
+                                        <Loader2 className="animate-spin" />
+                                        {loadingText[giftTxLoadingStates] ?? (
+                                            <>
+                                                Wrap Gift <span className="animate-bounce">🎁</span>
+                                            </>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        Wrap Gift <span className="animate-bounce">🎁</span>
+                                    </>
+                                )
                             ) : (
-                                <>Next Step <ChevronRight size={20} strokeWidth={3} /></>
+                                <>
+                                    Next Step <ChevronRight size={20} strokeWidth={3} />
+                                </>
                             )}
+
+
                         </button>
                     </div>
 
