@@ -13,6 +13,7 @@
         "@fastify/cors": "^10.1.0",
         "@fastify/jwt": "^9.0.0",
         "@fastify/multipart": "^9.0.0",
+        "@fastify/rate-limit": "^10.3.0",
         "@ika.xyz/sdk": "^0.2.3",
         "@mysten/sui": "^1.45.2",
         "@solana/kit": "^5.1.0",
@@ -26,7 +27,9 @@
         "fastify-type-provider-zod": "^4.0.0",
         "jsonwebtoken": "^9.0.3",
         "mongoose": "^8.0.0",
+        "nanoid": "^5.1.6",
         "redis": "^5.10.0",
+        "sharp": "^0.34.5",
         "zod": "^3.22.0"
     },
     "devDependencies": {
