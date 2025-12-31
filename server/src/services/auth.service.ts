@@ -2,7 +2,7 @@ import { User } from '../models/user.model';
 import { signAccessToken } from '../utils/jwt';
 import { verifyPersonalMessageSignature } from '@mysten/sui/verify';
 import crypto from "crypto";
-import bs58 from "bs58"
+import { nanoid } from 'nanoid';
 
 //Solana Imports
 import {
@@ -22,7 +22,7 @@ export const requestMessage = async (address: string, chain: string) => {
 
     if (!user) {
         // Create new user with nonce
-        user = await User.create({ address, nonce, chain });
+        user = await User.create({ address, nonce, chain, username: `gc@${nanoid()}` });
     } else {
         // Update nonce for existing user
         user.nonce = nonce;
@@ -46,7 +46,6 @@ export const verify = async (data: any) => {
     if (!user) throw new Error('User not found');
 
     if (user.chain === 'sol') {
-        //TODO : Test Solana Personal Verification
         const messageBytes = new Uint8Array(message);
         const rawSig = Uint8Array.from(Buffer.from(signature, 'hex'));
 
