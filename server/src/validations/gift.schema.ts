@@ -12,10 +12,13 @@ export const sendGiftSchema = z.object({
         tokenHash: z.string(),
     }),
     tokenSymbol: z.enum(['sui', 'sol']),
+    mediaType: z.enum(['image', 'video']),
     message: z.string().optional(),
     chain: z.enum(['sui', 'sol']),
     isAnonymous: z.boolean().optional(),
 });
+
+export type SendGiftBody = z.infer<typeof sendGiftSchema>;
 
 export const verifyGiftSchema = z.object({
     giftId: z.string(), //GIFT Modal Mongoose ID

@@ -8,7 +8,6 @@ const envSchema = z.object({
     MONGO_URI: z.string().min(1),
     JWT_SECRET: z.string().min(1),
     JWT_REFRESH_SECRET: z.string().min(1),
-    SUI_PRIVATE_KEY: z.string().optional(),
     COOKIE_SECRET: z.string().min(1),
     CLOUDINARY_CLOUD_NAME: z.string().min(1),
     CLOUDINARY_API_KEY: z.string().min(1),
@@ -17,7 +16,9 @@ const envSchema = z.object({
     KV_REST_API_URL: z.string().optional(),
     KV_REST_API_TOKEN: z.string().optional(),
     REDIS_URL: z.string().min(1),
-    IKA_PRIVATE_KEY: z.string().optional()
+    SOL_FEE_COLLECTOR_ADDRESS: z.string(),
+    CLOUD_NAME: z.string().min(1),
+    IMAGE_HOST: z.string().min(1)
 });
 
 const _env = envSchema.safeParse(process.env);

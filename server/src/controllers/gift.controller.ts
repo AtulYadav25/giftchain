@@ -2,15 +2,28 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as giftService from '../services/gift.service';
 import { successResponse, errorResponse, paginationResponse } from '../utils/responseHandler';
 import SuiTransactionVerifier from '../utils/suiTxVerifier';
-import { ResolveRecipientsBody, VerifyGiftBody } from '../validations/gift.schema';
+import { ResolveRecipientsBody, SendGiftBody, VerifyGiftBody } from '../validations/gift.schema';
 import SolTransactionVerifier from '../utils/solanaTxVerifier';
 import { Signature } from '@solana/kit';
 import { Gift } from '../models/gift.model';
+import jwt from 'jsonwebtoken';
 
 
-export const sendGift = async (req: FastifyRequest, reply: FastifyReply) => {
+export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, reply: FastifyReply) => {
     try {
-        //TODO : Reject Gift Creation If User has > 5 Unverified Gifts, Make user delete it to continue creating Gifts
+
+        const totalUnverifiedGifts = await Gift.countDocuments({ senderWallet: req.user!.address, verified: false });
+
+        if (totalUnverifiedGifts >= 5) {
+            return errorResponse(reply, "You have reached the limit of unverified gifts", 400);
+        }
+
+        //Verify with jwt for the tokenStats
+        const tokenStats = await jwt.verify(req.body.tokenStats.tokenHash, process.env.JWT_SECRET!);
+        if (!tokenStats) {
+            return errorResponse(reply, "Invalid tokenStats", 400);
+        }
+
         const gift = await giftService.createGift(req.user!.userId, req.body, req.user.chain);
 
 
@@ -34,8 +47,6 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
         }
 
 
-        //TODO : Also Verify that the totalTokenAmount === the Transaction tokens amount 
-        //NOTE : Verify with the tokenStats for comparing the totalTokenAmount and transaction value
         if (req.user.chain === 'sol') {
             const solTxVerifier = new SolTransactionVerifier();
             const txResult: any = await solTxVerifier.verifyTransaction(req.body.txDigest as Signature, { walletAddress: req.body.address.trim() });
@@ -58,8 +69,6 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
             const txVerifier = new SuiTransactionVerifier();
             const txResult: any = await txVerifier.verifyTransaction(req.body.txDigest, { walletAddress: req.body.address.trim(), giftId: req.body.giftId });
 
-            //TODO: Deploy a new Smart contract where the SUI Coins are sent directly to  the receiver instead of wrapping it in Object
-
             // Filter GiftWrapped events and extract gift_db_id
             const giftObjs: any[] = txResult.events
                 .filter((event: any) =>
@@ -71,7 +80,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
 
             //Get Gift IDs from the Event and update the Mongodb Documents of Gifts to verified true;
             if (txResult.verified) {
-                await giftService.verifySUIGifts(giftObjs);
+                await giftService.verifySUIGifts(giftObjs, req.body.address.trim());
             } else {
                 errorResponse(reply, "Transaction is not verified", 400);
             }
@@ -90,13 +99,33 @@ export const getSent = async (req: FastifyRequest<{ Params: { address: string } 
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
-        const { data, total } = await giftService.getSentGifts(
+        const { data } = await giftService.getSentGifts(
             req.params.address,
             page,
             limit
         );
 
-        return paginationResponse(reply, data, total, page, limit, 200);
+        return paginationResponse(reply, data, 100, page, limit, 200);
+
+    } catch (error: any) {
+        return errorResponse(reply, "Something went wrong", 500);
+    }
+};
+
+export const getMyGifts = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const query = req.query as { page?: string; limit?: string };
+        const page = Number(query.page) || 1;
+        const limit = Number(query.limit) || 10;
+
+        const { data } = await giftService.getSentGifts(
+            req.user.address,
+            page,
+            limit,
+            true
+        );
+
+        return paginationResponse(reply, data, 100, page, limit, 200);
 
     } catch (error: any) {
         return errorResponse(reply, "Something went wrong", 500);
@@ -110,13 +139,13 @@ export const getReceived = async (req: FastifyRequest<{ Params: { address: strin
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
-        const { data, total } = await giftService.getReceivedGifts(
+        const { data } = await giftService.getReceivedGifts(
             req.params.address,
             page,
             limit
         );
 
-        return paginationResponse(reply, data, total, page, limit, 200);
+        return paginationResponse(reply, data, 100, page, limit, 200);
 
     } catch (error: any) {
         return errorResponse(reply, "Something went wrong", 500);

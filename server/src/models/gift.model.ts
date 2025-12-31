@@ -1,5 +1,6 @@
 import { Hash } from 'crypto';
 import mongoose, { Schema, Document } from 'mongoose';
+import { buildImageUrl } from '../utils/imageHelper';
 
 export interface IGift extends Document {
     senderId: mongoose.Types.ObjectId;
@@ -18,6 +19,8 @@ export interface IGift extends Document {
 
     wrapper: string;
     message?: string;
+
+    mediaType: 'image' | 'video';
 
     status: 'unverified' | 'sent' | 'opened';
     verified: Boolean;
@@ -122,6 +125,12 @@ const GiftSchema: Schema = new Schema(
             default: 'sui'
         },
 
+        mediaType: {
+            type: String,
+            enum: ['image', 'video'],
+            default: 'image'
+        },
+
         isAnonymous: {
             type: Boolean,
             default: false
@@ -134,6 +143,11 @@ const GiftSchema: Schema = new Schema(
                 if (ret.isAnonymous) {
                     delete ret.senderId;
                 }
+
+                if (ret.wrapper) {
+                    ret.wrapper = buildImageUrl(ret.wrapper);
+                }
+
                 return ret;
             }
         },

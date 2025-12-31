@@ -29,7 +29,7 @@ export const uploadWrapper = async (
             // Optional: you can further resize if still > 500 KB
             if (uploadBuffer.length > 500 * 1024) {
                 uploadBuffer = await sharp(uploadBuffer)
-                    .resize({ width: 1024 }) // scale down width proportionally
+                    .resize({ width: 1024, withoutEnlargement: true, }) // scale down width proportionally
                     .jpeg({ quality: 75 })
                     .toBuffer();
             }

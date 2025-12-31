@@ -9,6 +9,7 @@ export const giftRoutes = async (app: FastifyInstance) => {
     app.get('/:id', giftController.getOne);
 
     app.addHook('preHandler', authenticate);
+    app.get('/me/sent', giftController.getMyGifts);
     app.post('/send', { schema: { body: sendGiftSchema } }, giftController.sendGift);
     app.post('/verify', { schema: { body: verifyGiftSchema } }, giftController.verifyGift);
     app.get('/claim-gift/:id', giftController.claimGift);

@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { buildImageUrl } from '../utils/imageHelper';
+
 export interface IWrapper extends Document {
     name: string;
     wrapperImg: string; // Cloudinary URL
@@ -18,7 +20,18 @@ const WrapperSchema: Schema = new Schema(
         customWrapper: { type: Boolean, default: true },
         createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+        toJSON: {
+            transform(doc, ret) {
+                if (ret.wrapperImg) {
+                    ret.wrapperImg = buildImageUrl(ret.wrapperImg);
+                }
+
+                return ret;
+            }
+        }
+    }
 );
 
 

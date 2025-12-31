@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { buildImageUrl } from '../utils/imageHelper';
 
 export interface IUser extends Document {
     username: string;           // referral ID
@@ -19,8 +20,15 @@ export interface IUser extends Document {
         link: string;
     }[];
 
+    bio?: string[];
+    banner?: string;
+    settings?: {
+        show_gift_sent: Boolean;
+    };
+
     createdAt: Date;
     updatedAt: Date;
+    usernameLower: string;
     lastAvatarUpdate?: Date;
 }
 
@@ -56,11 +64,13 @@ const UserSchema: Schema = new Schema(
         // --- Giftchain Stats ---
         totalSentUSD: {
             type: Number,
-            default: 0
+            default: 0,
+            index: true
         },
         totalReceivedUSD: {
             type: Number,
-            default: 0
+            default: 0,
+            index: true
         },
 
         // --- Counts ---
@@ -80,12 +90,48 @@ const UserSchema: Schema = new Schema(
             }
         ],
 
+        bio: {
+            type: [String],
+            default: ["Hey, I'm On GiftChain"]
+        },
+        banner: {
+            type: String,
+            default: null
+        },
+
+        settings: {
+            show_gift_sent: {
+                type: Boolean,
+                default: true
+            }
+        },
+        usernameLower: {
+            type: String,
+            unique: true,
+            default: null
+        },
+
         lastAvatarUpdate: {
             type: Date,
             default: null
         }
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+        toJSON: {
+            transform(doc, ret) {
+                if (ret.banner) {
+                    ret.banner = buildImageUrl(ret.banner);
+                }
+
+                if (ret.avatar) {
+                    ret.avatar = buildImageUrl(ret.avatar);
+                }
+
+                return ret;
+            }
+        }
+    }
 );
 
 export const User = mongoose.model<IUser>('User', UserSchema);
