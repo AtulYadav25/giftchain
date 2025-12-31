@@ -39,6 +39,27 @@ export const verify = async (req: FastifyRequest, reply: FastifyReply) => {
     }
 };
 
+export const checkUsernameAvailability = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const { username } = req.body as { username: string };
+
+        if (username === 'admin' || username === 'profile') {
+            return errorResponse(reply, "Username not available", 400)
+        }
+
+        // Set JWT token as HTTP-only cookie
+        const user = await User.findOne({ usernameLower: username.toLowerCase() });
+
+        if (user) {
+            return errorResponse(reply, "Username already taken", 400)
+        }
+
+        successResponse(reply, { available: true }, 'Username available', 200);
+    } catch (error: any) {
+        errorResponse(reply, error.message, 401);
+    }
+};
+
 export const disconnectWallet = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
 
