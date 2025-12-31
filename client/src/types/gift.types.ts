@@ -9,7 +9,7 @@ export interface Gift {
     tokenSymbol: 'sui' | 'sol';
     wrapper: string; // ID or populated
     message?: string;
-    status: 'sent' | 'opened';
+    status: 'sent' | 'opened' | 'unverified';
     verified: boolean;
     openedAt?: string;
     senderTxHash?: string;

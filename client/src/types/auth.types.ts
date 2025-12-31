@@ -2,17 +2,18 @@ export interface User {
     _id: string;
     username: string;
     avatar?: string;
+    banner?: string;
     address: string;
-    referredBy?: string;
-    nonce: number;
+    nonce?: number;
+    bio?: string[];
     totalSentUSD: number;
     totalReceivedUSD: number;
-    referralRewardsUSD: number;
+    settings?: { show_gift_sent: boolean };
     sentCount: number;
     receivedCount: number;
-    referralsCount: number;
     createdAt: string;
     updatedAt: string;
+    socials?: { platform: string; link: string }[];
 }
 
 

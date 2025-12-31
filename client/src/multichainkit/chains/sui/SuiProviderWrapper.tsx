@@ -16,8 +16,8 @@ const queryClient = new QueryClient();
 export const SuiProviderWrapper = ({ children }: { children: React.ReactNode }) => {
     return (
         <QueryClientProvider client={queryClient}>
-            <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
-                <WalletProvider>
+            <SuiClientProvider networks={networkConfig} defaultNetwork="testnet" >
+                <WalletProvider autoConnect>
                     {children}
                 </WalletProvider>
             </SuiClientProvider>

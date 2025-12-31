@@ -11,7 +11,10 @@ import Navbar from '@/components/layout/Navbar';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import HallOfGivers from './pages/HallOfGivers';
+import PublicProfile from './pages/PublicProfile';
 import { useInitApp } from './hooks/useInitApp';
+import UsernameSetupModal from './components/UsernameSetupModal';
+import { useUser } from './store';
 
 //MultiChain Kit Imports
 
@@ -20,18 +23,21 @@ const App = () => {
   //Initialize App with User Creds - Checks Session
   useInitApp();
 
+  const user = useUser();
+
 
   return (
 
     <Router>
       <div className="flex flex-col min-h-screen bg-[#f9fbff] text-[#1a2a3a] selection:bg-blue-300/40">
-
+        <UsernameSetupModal isOpen={!!user && user.username.includes("gc@")} />
         <Navbar />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/hall-of-givers" element={<HallOfGivers />} />
+            <Route path="/:username" element={<PublicProfile />} />
           </Routes>
         </main>
         {/* <Footer /> */}

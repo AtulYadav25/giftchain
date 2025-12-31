@@ -5,7 +5,7 @@ import type { Gift } from '../types/gift.types';
 import toast from 'react-hot-toast';
 
 export interface PaginationMeta {
-    total: number;
+    total: number | null;
     page: number;
     limit: number;
     totalPages: number;
@@ -23,6 +23,7 @@ interface GiftState {
         tokenPrice: number;
         tokenHash: string;
     };
+    giftTxLoadingStates: number;
     isLoading: boolean;
     error: string | null;
 }
@@ -37,6 +38,7 @@ export interface SendGiftParams {
     wrapper: string;
     message?: string;
     chain: 'sui' | 'sol';
+    mediaType: 'image';
     tokenStats: {
         tokenPrice: number;
         tokenHash: string;
@@ -55,6 +57,7 @@ interface GiftActions {
     sendGift: (giftData: SendGiftParams) => Promise<Gift>;
     verifyGift: (giftData: VerifyGiftParams) => Promise<any>;
     fetchSentGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
+    fetchMySentGifts: (page?: number, limit?: number) => Promise<void>;
     fetchReceivedGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
@@ -82,7 +85,9 @@ const mergeById = <T extends { _id: string }>(
     return Array.from(map.values());
 };
 
-
+//TODO : Same API Endpoint can be do both the work of fetchSentGifts and fetchMySentGifts, Update 
+// API Endpoint to check if user is authenticated, if yes then proceed with fetchMySentGifts else
+// fetchSentGifts
 const useGiftStore = create<GiftState & { actions: GiftActions }>()(
     devtools((set) => ({
         sentGifts: [],
@@ -91,6 +96,7 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
         sentMeta: null,
         currentGift: null,
         isLoading: false,
+        giftTxLoadingStates: 0,
         tokenStats: {
             tokenPrice: null,
             tokenHash: null
@@ -99,15 +105,28 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
 
         actions: {
             sendGift: async (giftData: SendGiftParams) => {
-                set({ isLoading: true, error: null });
+                set({ giftTxLoadingStates: 1, error: null });
                 try {
                     const res = await api.post<ApiResponse<Gift>>('/gifts/send', giftData);
                     let { data } = extractData(res);
                     set((state) => ({
                         sentGifts: [...state.sentGifts, data],
-                        isLoading: false
+                        giftTxLoadingStates: 2
                     }));
                     return data;
+                } catch (err: any) {
+                    set({ giftTxLoadingStates: 0, error: err.message });
+                    throw err;
+                }
+            },
+
+            deleteUnVerifiedGift: async (giftId: string) => {
+                try {
+                    await api.get<ApiResponse<any>>(`/gifts/delete-unverified/${giftId}`);
+
+                    toast.success("Gift Deleted!");
+
+                    return;
                 } catch (err: any) {
                     set({ isLoading: false, error: err.message });
                     throw err;
@@ -115,20 +134,22 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             },
 
             verifyGift: async (giftData: VerifyGiftParams) => {
-                set({ isLoading: true, error: null });
+                set({ giftTxLoadingStates: 3, error: null });
                 try {
                     const res = await api.post<ApiResponse<Gift>>('/gifts/verify', giftData);
                     let { data } = extractData(res);
-                    set((state) => ({
-                        receivedGifts: [...state.receivedGifts, data],
-                        isLoading: false
-                    }));
+                    // set((state) => ({
+                    //     sentGifts: [...state.sentGifts, data],
+                    //     giftTxLoadingStates: 4
+                    // }));
                     return data;
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
+                    set({ giftTxLoadingStates: 0, error: err.message });
                     throw err;
                 }
             },
+
+
 
             fetchSentGifts: async (userName: string, page = 1, limit = 10) => {
                 set({ isLoading: true, error: null });
@@ -136,6 +157,29 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 try {
                     const res = await api.get<ApiResponse<Gift[]>>(
                         `/gifts/sent/${userName}?page=${page}&limit=${limit}`
+                    );
+
+                    const { data: responseBody } = res;
+
+                    set((state) => ({
+                        sentGifts:
+                            page === 1
+                                ? responseBody.data // FULL REFRESH (latest gifts)
+                                : mergeById(state.sentGifts, responseBody.data),
+                        sentMeta: responseBody.meta as any,
+                        isLoading: false
+                    }));
+                } catch (err: any) {
+                    set({ isLoading: false, error: err.message });
+                }
+            },
+
+            fetchMySentGifts: async (page = 1, limit = 10) => {
+                set({ isLoading: true, error: null });
+
+                try {
+                    const res = await api.get<ApiResponse<Gift[]>>(
+                        `/gifts/me/sent?page=${page}&limit=${limit}`
                     );
 
                     const { data: responseBody } = res;

@@ -1,79 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Instagram, Twitter, MessageCircle, Youtube, Heart, Gift } from 'lucide-react';
+import { FaInstagram, FaXTwitter, FaYoutube, FaGift } from 'react-icons/fa6';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import toast from 'react-hot-toast';
-
-// --- MOCK DATA ---
-const GIVERS = [
-    {
-        id: 1,
-        name: "SLOVI",
-        handle: "@slovi",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=slovionsui",
-        address: "0x71C...9A2",
-        giftsSent: 420,
-        totalAmount: 15400,
-        socials: { twitter: "https://x.com/SloviOnSui", instagram: "https://instagram.com" }
-    },
-    {
-        id: 2,
-        name: "SuiSweetie",
-        handle: "@glitter_queen",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka",
-        address: "0x89B...1B3",
-        giftsSent: 89,
-        totalAmount: 8200,
-        socials: { snapchat: "https://snapchat.com", youtube: "https://youtube.com" }
-    },
-    {
-        id: 3,
-        name: "SUISanta",
-        handle: "@sui_santa",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=santasui",
-        address: "0x22F...C90",
-        giftsSent: 155,
-        totalAmount: 6750,
-        socials: { twitter: "https://x.com", youtube: "https://youtube.com" }
-    },
-    {
-        id: 4,
-        name: "GigaChad",
-        handle: "@giga_chad",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=gigachad",
-        address: "0xA11...F44",
-        giftsSent: 30,
-        totalAmount: 4200,
-        socials: { instagram: "https://instagram.com" }
-    },
-    {
-        id: 5,
-        name: "NFTLover",
-        handle: "@nft_lover",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=nftlover",
-        address: "0xB22...A99",
-        giftsSent: 210,
-        totalAmount: 3900,
-        socials: { twitter: "https://x.com", snapchat: "https://snapchat.com" }
-    },
-    {
-        id: 6,
-        name: "SUIPixel",
-        handle: "@sui_pixel",
-        avatar: "https://api.dicebear.com/9.x/avataaars/svg?seed=suipixel",
-        address: "0xC33...D88",
-        giftsSent: 66,
-        totalAmount: 2100,
-        socials: { youtube: "https://youtube.com" }
-    }
-];
+import { useNavigate } from 'react-router-dom';
+import SOLANA from '@/assets/solana.png'
+import SUI from '@/assets/sui.png'
+import { useAuthActions } from '@/store';
+import useAuthStore from '@/store/useAuthStore';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 export default function HallOfGivers() {
-    // Sort by amount
-    const sortedGivers = [...GIVERS].sort((a, b) => b.totalAmount - a.totalAmount);
+
+    const { topGivers, topGiversMeta } = useAuthStore((state) => state);
+    const { fetchTopGivers } = useAuthActions();
+
+    useEffect(() => {
+        fetchTopGivers();
+    }, []);
 
     return (
-        <div className="min-h-screen bg-[#FFF0F5] relative overflow-x-hidden font-jua">
+        <div className="min-h-screen bg-[#FFF0F5] relative font-jua">
 
             {/* --- Background Decor --- */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -92,7 +38,7 @@ export default function HallOfGivers() {
             <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 mt-24">
 
                 {/* --- Header --- */}
-                <header className="text-center mb-16 space-y-4">
+                <header className="text-center mb-12 space-y-4">
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -113,11 +59,33 @@ export default function HallOfGivers() {
                     </motion.p>
                 </header>
 
-                {/* --- The Grid --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {sortedGivers.map((giver, index) => (
-                        <GiverCard key={giver.id} giver={giver} index={index} />
-                    ))}
+                {/* --- The List --- */}
+                <div className="max-w-[650px]  mx-auto flex flex-col gap-5">
+                    <InfiniteScroll
+                        dataLength={topGivers.length} //This is important field to render the next data
+                        next={fetchTopGivers}
+                        hasMore={false}
+                        loader={<h4>Loading...</h4>}
+                        endMessage={
+                            <p style={{ textAlign: 'center' }}>
+                                <b>Yay! You have seen it all</b>
+                            </p>
+                        }
+                        // below props only if you need pull down functionality
+                        refreshFunction={fetchTopGivers}
+                        pullDownToRefresh
+                        pullDownToRefreshThreshold={50}
+                        pullDownToRefreshContent={
+                            <h3 style={{ textAlign: 'center' }}>&#8595; Pull down to refresh</h3>
+                        }
+                        releaseToRefreshContent={
+                            <h3 style={{ textAlign: 'center' }}>&#8593; Release to refresh</h3>
+                        }
+                    >
+                        {topGivers.map((giver, index) => (
+                            <GiverCard key={giver._id} giver={giver} index={index} />
+                        ))}
+                    </InfiniteScroll>
                 </div>
 
                 {/* --- Footer Note --- */}
@@ -128,121 +96,137 @@ export default function HallOfGivers() {
         </div>
     );
 }
+//TODO : Update in Server If i can optimize the image of banner and avatar and sent to cloudinary
 
-function GiverCard({ giver, index }: { giver: any, index: number }) {
-    const isTop3 = index < 3;
+function GiverCard({ giver, index }: { giver: any; index: number }) {
+    const navigate = useNavigate();
+    const isTopGiver = index === 0;
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(giver.address);
-        toast.success("Copied Address!", { icon: "📋" });
-    };
+    const cardStyles = isTopGiver
+        ? "bg-yellow-300 shadow-md"
+        : "bg-white border-slate-200 hover:border-pink-200";
+
+    const username = giver.username.replace('@', '');
+
+    const chain = giver.chain; // "solana" | "sui"
+
+    const getSocial = (platform: string) => {
+        return giver.socials?.find((s: any) => s.platform === platform)?.link;
+    }
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1, type: "spring" }}
-            whileHover={{ y: -10, rotate: index % 2 === 0 ? 1 : -1 }}
+            onClick={() => navigate(`/${username}`)}
+
+            whileTap={{ scale: 0.98 }}
             className={`
-                relative bg-white rounded-[2.5rem] p-6 
-                border-4 ${isTop3 ? 'border-yellow-400' : 'border-blue-100'}
-                shadow-[8px_8px_0px_rgba(0,0,0,0.05)]
-                flex flex-col gap-4 group
+                relative w-full rounded-2xl border-2 cursor-pointer
+                transition-all overflow-hidden
+                ${cardStyles} 
             `}
         >
-            {/* Rank Badge (Cute) */}
-            {isTop3 && (
-                <div className="absolute -top-6 -right-6 rotate-12 bg-yellow-400 text-yellow-900 w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl border-4 border-white shadow-lg z-20">
-                    #{index + 1}
-                </div>
-            )}
+            {/* ───────── Chain Header ───────── */}
+            <div
+                className={`
+        w-full h-8 flex items-center justify-center gap-2
+        text-xs font-bold tracking-widest
+        ${chain === "sol" ? "bg-black text-white" : "bg-blue-500 text-white"}
+    `}
+            >
+                <img
+                    src={chain === "sol" ? SOLANA : SUI}
+                    alt={chain === "sol" ? "Solana" : "Sui"}
+                    className="h-5 w-5 object-contain"
+                />
 
-            {/* Header: Avatar + Info */}
-            <div className="flex items-center gap-4">
-                <div className="relative">
-                    <Avatar className="w-20 h-20 border-4 border-pink-100 bg-pink-50">
-                        <AvatarImage src={giver.avatar} />
-                        <AvatarFallback>{giver.name[0]}</AvatarFallback>
-                    </Avatar>
-                    {/* Tiny heart badge */}
-                    <div className="absolute -bottom-1 -right-1 bg-red-400 text-white p-1.5 rounded-full border-2 border-white">
-                        <Heart size={14} fill="currentColor" />
-                    </div>
-                </div>
-
-                <div className="overflow-hidden">
-                    <h3 className="font-['Lilita_One'] text-2xl text-slate-800 truncate">{giver.name}</h3>
-                    <div className="flex items-center gap-2 bg-slate-100 rounded-full px-3 py-1 mt-1 w-fit hover:bg-slate-200 transition-colors">
-                        <span className="text-slate-500 text-sm font-mono truncate max-w-[80px]">{giver.address}</span>
-                        <button onClick={handleCopy} className="text-slate-400 hover:text-slate-600">
-                            <Copy size={12} />
-                        </button>
-                    </div>
-                </div>
+                <span>
+                    {chain === "sol" ? "SOLANA" : "SUI"}
+                </span>
             </div>
 
-            {/* Stats Block */}
-            <div className="bg-[#F0F9FF] rounded-3xl p-4 flex justify-between items-center border-2 border-[#E0F2FE]">
-                <div className="text-center">
-                    <div className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">Gifts Sent</div>
-                    <div className="text-2xl font-black text-blue-500 flex items-center justify-center gap-1">
-                        <Gift size={20} className="mb-1" /> {giver.giftsSent}
-                    </div>
-                </div>
-                <div className="w-[2px] h-10 bg-blue-100 rounded-full" />
-                <div className="text-center">
-                    <div className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">Total Value</div>
-                    <div className="text-2xl font-black text-green-500">
-                        ${giver.totalAmount.toLocaleString()}
-                    </div>
-                </div>
-            </div>
 
-            {/* Socials Row */}
-            <div className="flex gap-2 justify-center pt-2">
-                {giver.socials.twitter && (
-                    <SocialIcon icon={<Twitter size={18} />} label="This is X (Twitter)" color="bg-black text-white" />
-                )}
-                {giver.socials.instagram && (
-                    <SocialIcon icon={<Instagram size={18} />} label="This is Instagram" color="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white" />
-                )}
-                {giver.socials.snapchat && (
-                    <SocialIcon icon={<MessageCircle size={18} />} label="This is Snapchat" color="bg-yellow-400 text-white" />
-                )}
-                {giver.socials.youtube && (
-                    <SocialIcon icon={<Youtube size={18} />} label="This is YouTube" color="bg-red-600 text-white" />
-                )}
+            {/* ───────── Card Body ───────── */}
+            <div className="p-4 sm:p-5 flex items-center justify-between gap-4">
+                {/* Left Side */}
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <Avatar
+                            className={`w-14 h-14 sm:w-16 sm:h-16 border-2 ${isTopGiver
+                                ? "border-amber-300 ring-2 ring-amber-100"
+                                : "border-white shadow-sm"
+                                }`}
+                        >
+                            <AvatarImage src={giver.avatar} />
+                            <AvatarFallback className="font-main text-white bg-gray-500">
+                                {giver.username[0]}
+                            </AvatarFallback>
+                        </Avatar>
+
+                        {isTopGiver && (
+                            <div className="absolute -top-2 -right-2 bg-yellow-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border border-white">
+                                👑
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col items-start gap-1">
+                        <h3 className="text-lg sm:text-2xl font-main leading-wider text-slate-800">
+                            @{giver.username}
+                        </h3>
+
+                        {/* Socials */}
+                        <div
+                            className="flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {getSocial("twitter") && (
+                                <SocialLink
+                                    href={getSocial("twitter")}
+                                    icon={<FaXTwitter size={14} />}
+                                    color="hover:text-black"
+                                />
+                            )}
+                            {getSocial("instagram") && (
+                                <SocialLink
+                                    href={getSocial("instagram")}
+                                    icon={<FaInstagram size={16} />}
+                                    color="hover:text-pink-500"
+                                />
+                            )}
+                            {getSocial("youtube") && (
+                                <SocialLink
+                                    href={getSocial("youtube")}
+                                    icon={<FaYoutube size={16} />}
+                                    color="hover:text-red-500"
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Side */}
+                <div className="text-right">
+                    <div className={`text-xl sm:text-3xl font-main ${giver.chain === 'sol' ? 'text-black' : 'text-blue-500'}`}>
+                        ${giver.totalSentUSD.toLocaleString()}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                        sent
+                    </div>
+                </div>
             </div>
         </motion.div>
     );
 }
 
-function SocialIcon({ icon, label, color }: { icon: React.ReactNode, label: string, color: string }) {
-    const [isHovered, setIsHovered] = useState(false);
-
+function SocialLink({ href, icon, color }: { href: string; icon: React.ReactNode; color: string }) {
     return (
-        <div
-            className="relative"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-slate-400 transition-colors ${color}`}
         >
-            <AnimatePresence>
-                {isHovered && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                        animate={{ opacity: 1, y: -40, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="absolute left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-1.5 rounded-xl whitespace-nowrap z-50 pointer-events-none font-bold"
-                    >
-                        {label}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <button className={`w-10 h-10 ${color} rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform shadow-md`}>
-                {icon}
-            </button>
-        </div>
+            {icon}
+        </a>
     );
 }
