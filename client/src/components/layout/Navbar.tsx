@@ -49,7 +49,7 @@ export default function Navbar() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${!isHome
-                ? "bg-pink-600 py-3 shadow-lg" // Solid blue for other pages
+                ? "bg-pink-600 py-3 shadow-lg !relative" // Solid blue for other pages
                 : scrolled
                     ? "bg-[#2e9aff]/80 backdrop-blur-xl border-b border-white/20 py-3 shadow-lg shadow-blue-500/10" // Tinted glass on scroll
                     : "bg-transparent py-5" // Transparent at top of home

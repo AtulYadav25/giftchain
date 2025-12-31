@@ -15,7 +15,7 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
     const [isValid, setIsValid] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { updateProfile } = useAuthActions();
+    const { updateProfile, checkUsernameAvailability } = useAuthActions();
 
     // Debounce check
     useEffect(() => {
@@ -36,13 +36,16 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
         const timer = setTimeout(async () => {
             setIsChecking(true);
 
-            // Simulate API Check
-            await new Promise(resolve => setTimeout(resolve, 800));
+            if (username === 'admin' || username === 'profile') {
+                setIsAvailable(false);
+                setIsValid(false);
+                setIsChecking(false);
+                return;
+            }
 
-            // Mock Logic: "admin" is taken, others available
-            const isTaken = username.toLowerCase() === 'admin' || username.toLowerCase() === 'system';
-            setIsAvailable(!isTaken);
-            setIsValid(!isTaken);
+            const isAvailable = await checkUsernameAvailability(username);
+            setIsAvailable(isAvailable);
+            setIsValid(isAvailable);
             setIsChecking(false);
 
         }, 600);
@@ -55,8 +58,7 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
 
         setIsSubmitting(true);
         try {
-            // Simulate API Update
-            await new Promise(resolve => setTimeout(resolve, 1000));
+
             updateProfile({ username });
             toast.success(`Welcome, ${username}!`);
         } catch (error) {
