@@ -11,15 +11,21 @@ import {
     ChevronLeft,
     ChevronRight,
     Check,
-    Heart
+    Heart,
+    Settings,
+    Camera,
+    Save
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SendGiftModal from '../components/SendGiftModal';
-import UsernameSetupModal from '../components/UsernameSetupModal';
-import { useUser, useAuthActions, useAuthLoading } from '@/store';
-import { Camera, Save, Loader2 } from 'lucide-react';
+import EditProfileModal from '../components/EditProfileModal';
+import { useUser, useAuthActions, useAuthLoading, useAuthSessionLoading } from '@/store';
+import { Loader2 } from 'lucide-react';
 import GiftRevealModal from '../components/GiftRevealModal';
+import VerifyGiftModal from '../components/VerifyGiftModal';
 import type { Gift as GiftType } from '@/types/gift.types';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import SocialIconDetector from '../components/SocialIconDetector';
 
 import {
     useSentGifts,
@@ -31,27 +37,45 @@ import {
 } from '@/store/useGiftStore';
 import { useNavigate } from 'react-router-dom';
 
-const ITEMS_PER_PAGE = 8; // Adjust limit as needed
+const ITEMS_PER_PAGE = 8;
+
+
+function normalizeUrl(url: string) {
+    if (!url) return "#";
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+
+    return `https://${url}`;
+}
+
 
 const Profile = () => {
     const [activeBreakdown, setActiveBreakdown] = useState<'sent' | 'received' | null>(null);
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
+    const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+    // const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
     const navigate = useNavigate();
     const user = useUser();
     const { updateProfile } = useAuthActions();
     const isProfileUpdating = useAuthLoading();
+    const isSessionLoading = useAuthSessionLoading();
 
     useEffect(() => {
-        if (!user?.address) {
+        if (!user?.address && isSessionLoading === false) {
             navigate('/')
             toast.error("User not found");
             return;
         };
-    }, [user])
+    }, [user, isSessionLoading])
 
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+    // TODO : When Clicked on Unverified status gift then show a modal to verify the gift by giving the txDigest as input
+    // TODO : Also Allow Unverified Gift to delete and create API Endpoint in backend
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -85,7 +109,7 @@ const Profile = () => {
     const isGiftLoading = useGiftLoading();
 
     // Actions
-    const { fetchSentGifts, fetchReceivedGifts } = useGiftActions();
+    const { fetchMySentGifts, fetchReceivedGifts } = useGiftActions();
 
     // Modal State
     const [selectedGift, setSelectedGift] = useState<GiftType | null>(null);
@@ -106,8 +130,8 @@ const Profile = () => {
     // Fetch Sent Gifts
     React.useEffect(() => {
         if (!user?.address) return;
-        fetchSentGifts(user?.address || '', sentPage, ITEMS_PER_PAGE);
-    }, [sentPage, fetchSentGifts, user?.address]);
+        fetchMySentGifts(sentPage, ITEMS_PER_PAGE);
+    }, [sentPage, fetchMySentGifts, user?.address]);
 
     // Fetch Received Gifts
     React.useEffect(() => {
@@ -116,8 +140,8 @@ const Profile = () => {
     }, [receivedPage, fetchReceivedGifts, user?.address]);
 
     // Total Pages (from meta)
-    const totalSentPages = sentMeta?.totalPages || 1;
-    const totalReceivedPages = receivedMeta?.totalPages || 1;
+    const totalSentPages = Math.ceil((user?.sentCount || 0) / ITEMS_PER_PAGE) || 1;
+    const totalReceivedPages = Math.ceil((user?.receivedCount || 0) / ITEMS_PER_PAGE) || 1;
 
     // Address Helper
     const formatAddress = (address: string) => {
@@ -134,22 +158,44 @@ const Profile = () => {
         toast.success("Address copied!");
     };
 
+    if (isSessionLoading) {
+        return <div className="min-h-screen flex items-center justify-center bg-[#E3F4FF]"><Loader2 className="animate-spin text-slate-900" size={48} /></div>;
+    }
+
     return (
         <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-900 bg-[#E3F4FF]">
-            <div className="max-w-5xl mx-auto px-6 pt-12 space-y-16">
 
-                {/* 1. Top Section */}
-                <header className="flex flex-col md:flex-row items-center gap-8 mt-12">
-                    <div className="relative group w-36 h-36">
+            {/* Banner Section */}
+            <div className="h-48 md:h-64 w-full bg-slate-200 relative overflow-hidden border-b-[4px] border-slate-900">
+                {user?.banner ? (
+                    <img src={user.banner} alt="Profile Banner" className="w-full h-full object-cover" />
+                ) : (
+                    <div className="w-full h-full bg-[#A5F3FC]"> {/* Default Placeholder Color */}
+                        <div className="w-full h-full opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #0f172a 2px, transparent 2.5px)', backgroundSize: '24px 24px' }}></div>
+                    </div>
+                )}
+            </div>
+
+            <div className="max-w-5xl mx-auto px-6 -mt-20 relative z-10 space-y-12">
+
+                {/* 1. Header & Profile Card */}
+                <header className="flex flex-col md:flex-row items-start gap-8">
+                    {/* Avatar Group */}
+                    <div className="relative group w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
                         <div className="w-full h-full rounded-full bg-white relative border-[5px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] overflow-hidden">
-                            <img
-                                src={avatarPreview || user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=santa"}
-                                alt="Avatar"
-                                className="w-full h-full object-cover bg-white"
-                            />
+                            <Avatar className="w-full h-full">
+                                <AvatarImage
+                                    src={avatarPreview || user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=santa"}
+                                    alt="Avatar"
+                                    className="object-cover bg-white"
+                                />
+                                <AvatarFallback className="text-4xl font-black bg-slate-200">
+                                    {user?.username?.[0]?.toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
 
                             {/* Hover Overlay */}
-                            <label className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <label className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-20">
                                 <Camera className="text-white drop-shadow-md" size={32} />
                                 <input
                                     type="file"
@@ -170,7 +216,7 @@ const Profile = () => {
                                     exit={{ scale: 0, opacity: 0 }}
                                     onClick={handleSaveAvatar}
                                     disabled={isProfileUpdating}
-                                    className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-[#4ADE80] text-slate-900 border-[3px] border-slate-900 px-4 py-1.5 rounded-full text-sm font-black shadow-[3px_3px_0_0_rgba(15,23,42,1)] hover:translate-y-[-1px] active:translate-y-[1px] active:shadow-none flex items-center gap-2 z-10 whitespace-nowrap"
+                                    className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-[#4ADE80] text-slate-900 border-[3px] border-slate-900 px-4 py-1.5 rounded-full text-sm font-black shadow-[3px_3px_0_0_rgba(15,23,42,1)] hover:translate-y-[-1px] active:translate-y-[1px] active:shadow-none flex items-center gap-2 z-10 whitespace-nowrap z-[100]"
                                 >
                                     {isProfileUpdating ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                                     Save
@@ -182,28 +228,72 @@ const Profile = () => {
                         <motion.div
                             animate={{ rotate: [0, 10, -10, 0] }}
                             transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                            className="absolute -top-4 -right-4 bg-[#FDE047] text-slate-900 p-2 rounded-full border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)] z-0"
+                            className="absolute -top-2 -right-2 bg-[#FDE047] text-slate-900 p-2 rounded-full border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)] z-10"
                         >
                             <Sparkles size={20} fill="currentColor" />
                         </motion.div>
                     </div>
 
-                    <div className="text-center md:text-left space-y-3">
-                        <h1 className="text-5xl md:text-6xl text-slate-900 drop-shadow-sm leading-tight">
-                            Hey, <span className="text-[#3B82F6]">{user?.username}</span>!
-                        </h1>
-                        <p className="text-xl font-lexend text-slate-600 font-medium tracking-wide max-w-lg">
-                            Track everything you’ve sent and received, all wrapped with big love! ✨
-                        </p>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsGiftModalOpen(true)}
-                            className="mt-6 font-lexend px-8 py-3 bg-[#F472B6] text-slate-900 rounded-2xl font-black text-lg border-[3px] border-slate-900 shadow-[5px_5px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[5px] transition-all flex items-center gap-2 mx-auto md:mx-0"
-                        >
-                            <Heart className="fill-slate-900" size={24} />
-                            GIFT SOMEONE
-                        </motion.button>
+                    {/* Profile Info & Actions */}
+                    <div className="flex-1 mt-5 pt-6 md:pt-20 space-y-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-4xl md:text-5xl text-slate-900 drop-shadow-sm leading-tight">
+                                    @{user?.username}
+                                </h1>
+                                {/* <div className="mt-2 flex items-center gap-2">
+                                    {user?.address && formatAddress(user.address)}
+                                </div> */}
+                            </div>
+
+                            <div className="flex items-center gap-6">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setIsEditProfileOpen(true)}
+                                    className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[4px] transition-all flex items-center gap-2 text-sm"
+                                >
+                                    <Settings size={18} />
+                                    Edit Profile
+                                </motion.button>
+
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setIsGiftModalOpen(true)}
+                                    className="px-5 py-2.5 bg-[#F472B6] text-slate-900 rounded-xl tracking-wider text-white border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[4px] transition-all flex items-center gap-2 text-lg"
+                                >
+                                    <Heart className="fill-white" size={18} />
+                                    Send Gift
+                                </motion.button>
+                            </div>
+                        </div>
+
+                        {/* Bio Section */}
+                        {user?.bio && user.bio.length > 0 && (
+                            <div className="font-lexend text-slate-600 font-medium leading-relaxed max-w-2xl bg-white/50 p-4 rounded-xl border-2 border-slate-200/50 backdrop-blur-sm">
+                                {user.bio.map((paragraph, index) => (
+                                    <p key={index} className="mb-2 last:mb-0">{paragraph}</p>
+                                ))}
+
+                                {/* Social Icons */}
+                                {user.socials && user.socials.length > 0 && (
+                                    <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t-2 border-slate-100">
+                                        {user.socials.map((social, index) => (
+                                            <a
+                                                key={index}
+                                                href={normalizeUrl(social.link)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 bg-white text-slate-400 hover:text-slate-900 hover:scale-110 transition-all rounded-lg border-2 border-transparent hover:border-slate-200 hover:shadow-sm"
+                                            >
+                                                <SocialIconDetector url={social.link} className="w-5 h-5" />
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -225,13 +315,11 @@ const Profile = () => {
                                     onClick={() => handleOpenGift(gift, 'received')}
                                     className="aspect-square rounded-[2rem] bg-white border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] relative cursor-pointer group overflow-hidden"
                                 >
-                                    {/* Wrapper Image */}
                                     <img
                                         src={gift.wrapper}
                                         alt="Gift Wrapper"
                                         className="w-full h-full object-cover"
                                     />
-
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/40 backdrop-blur-sm">
                                         <div className="bg-[#FFD166] text-slate-900 border-[3px] border-slate-900 rounded-xl px-4 py-2 transform -rotate-3 mb-2 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
                                             <span className="text-xl font-bold block leading-none">
@@ -260,7 +348,7 @@ const Profile = () => {
                     <StatsCard
                         icon={<ArrowDownLeft size={28} className="text-slate-900" />}
                         label="Total Received"
-                        value={`${receivedMeta?.total || 0} Gifts`}
+                        value={`${user?.receivedCount || 0} Gifts`}
                         color="bg-[#4ADE80]"
                         onShowBreakdown={() => setActiveBreakdown('received')}
                     />
@@ -269,117 +357,71 @@ const Profile = () => {
                 {/* 5. Tables Section */}
                 <section className="flex flex-col gap-12 font-sans">
 
-                    {/* Sent Gifts Table */}
-                    <TableCard
-                        title="Gifts You Sent"
-                        color="bg-[#60A5FA]"
-                        icon={<ArrowUpRight size={20} className="text-slate-900" />}
-                    >
+                    {/* SENT GIFTS TABLE */}
+                    <TableCard title="Gifts Sent" color="bg-[#60A5FA]" icon={<ArrowUpRight size={20} className="text-slate-900" />}>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm font-lexend text-slate-700">
                                 <thead className="text-slate-500 border-b-2 border-slate-100">
                                     <tr>
-                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">To</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
+                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[100px]">To</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider min-w-[100px]">Amount</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider min-w-[100px]">Date</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider min-w-[100px]">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
                                     {isGiftLoading && sentGifts.length === 0 ? (
                                         <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
                                     ) : sentGifts.map((gift) => (
-                                        <tr
-                                            key={gift._id}
-                                            onClick={() => handleOpenGift(gift, 'sent')}
-                                            className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group"
-                                        >
+                                        <tr key={gift._id} onClick={() => handleOpenGift(gift, 'sent')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                             <td className="py-4 pl-4 flex items-center gap-2">
                                                 {formatAddress(gift.receiverWallet || '')}
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(gift.receiverWallet); }}
-                                                    className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
-                                                >
+                                                <button onClick={(e) => { e.stopPropagation(); copyToClipboard(gift.receiverWallet); }} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100">
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
                                             <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
                                             <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
-                                            <td className="py-4">
-                                                <StatusBadge status={gift.status || 'sent'} />
-                                            </td>
+                                            <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
                                         </tr>
                                     ))}
                                     {!isGiftLoading && sentGifts.length === 0 && (
-                                        <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts sent yet. Start gifting!</td></tr>
+                                        <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts sent yet.</td></tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
-
-                        {/* Pagination Controls */}
                         {totalSentPages > 1 && (
-                            <div className="flex items-center justify-end gap-2 mt-6">
-                                <button
-                                    onClick={() => setSentPage(p => Math.max(1, p - 1))}
-                                    disabled={!sentMeta?.hasPrevPage}
-                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
-                                >
-                                    <ChevronLeft size={24} strokeWidth={3} />
-                                </button>
-                                <span className="text-base font-black text-slate-900 px-2">
-                                    {sentPage} / {totalSentPages}
-                                </span>
-                                <button
-                                    onClick={() => setSentPage(p => Math.min(totalSentPages, p + 1))}
-                                    disabled={!sentMeta?.hasNextPage}
-                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
-                                >
-                                    <ChevronRight size={24} strokeWidth={3} />
-                                </button>
-                            </div>
+                            <PaginationControls page={sentPage} totalPages={totalSentPages} setPage={setSentPage} />
                         )}
                     </TableCard>
 
-                    {/* Received Gifts Table */}
-                    <TableCard
-                        title="Gifts You Received"
-                        color="bg-[#4ADE80]"
-                        icon={<ArrowDownLeft size={20} className="text-slate-900" />}
-                    >
+                    {/* RECEIVED GIFTS TABLE */}
+                    <TableCard title="Gifts Received" color="bg-[#4ADE80]" icon={<ArrowDownLeft size={20} className="text-slate-900" />}>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm font-lexend text-slate-700">
                                 <thead className="text-slate-500 border-b-2 border-slate-100">
                                     <tr>
-                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">From</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
+                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[100px]">From</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider min-w-[100px]">Amount</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider min-w-[100px]">Date</th>
+                                        <th className="pb-3 font-black uppercase text-xs tracking-wider min-w-[100px]">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
                                     {isGiftLoading && receivedGifts.length === 0 ? (
                                         <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
                                     ) : receivedGifts.map((gift, i) => (
-                                        <tr
-                                            key={i}
-                                            onClick={() => handleOpenGift(gift, 'received')}
-                                            className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group"
-                                        >
+                                        <tr key={i} onClick={() => handleOpenGift(gift, 'received')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                             <td className="py-4 pl-4 flex items-center gap-2">
                                                 {formatAddress(gift.senderWallet || '')}
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(gift.senderWallet); }}
-                                                    className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
-                                                >
+                                                <button onClick={(e) => { e.stopPropagation(); copyToClipboard(gift.senderWallet); }} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100">
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
                                             <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
                                             <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
-                                            <td className="py-4">
-                                                <StatusBadge status={gift.status || 'sent'} />
-                                            </td>
+                                            <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
                                         </tr>
                                     ))}
                                     {!isGiftLoading && receivedGifts.length === 0 && (
@@ -388,28 +430,8 @@ const Profile = () => {
                                 </tbody>
                             </table>
                         </div>
-
-                        {/* Pagination Controls */}
                         {totalReceivedPages > 1 && (
-                            <div className="flex items-center justify-end gap-2 mt-6">
-                                <button
-                                    onClick={() => setReceivedPage(p => Math.max(1, p - 1))}
-                                    disabled={!receivedMeta?.hasPrevPage}
-                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
-                                >
-                                    <ChevronLeft size={24} strokeWidth={3} />
-                                </button>
-                                <span className="text-base font-black text-slate-900 px-2">
-                                    {receivedPage} / {totalReceivedPages}
-                                </span>
-                                <button
-                                    onClick={() => setReceivedPage(p => Math.min(totalReceivedPages, p + 1))}
-                                    disabled={!receivedMeta?.hasNextPage}
-                                    className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
-                                >
-                                    <ChevronRight size={24} strokeWidth={3} />
-                                </button>
-                            </div>
+                            <PaginationControls page={receivedPage} totalPages={totalReceivedPages} setPage={setReceivedPage} />
                         )}
                     </TableCard>
                 </section>
@@ -423,70 +445,35 @@ const Profile = () => {
 
             </div>
 
-            {/* 4. Breakdown Modal Pop Style */}
+            {/* Modals */}
             <AnimatePresence>
                 {activeBreakdown && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setActiveBreakdown(null)}
-                            className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 100 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 100 }}
-                            className="relative bg-white border-[4px] border-slate-900 p-0 rounded-[2rem] shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full text-center overflow-hidden"
-                        >
-                            {/* Modal Header */}
-                            <div className={`p-6 border-b-[4px] border-slate-900 ${activeBreakdown === 'sent' ? 'bg-[#60A5FA]' : 'bg-[#4ADE80]'}`}>
-                                <h3 className="text-3xl text-slate-900 drop-shadow-sm font-['Lilita_One'] tracking-wide">
-                                    {activeBreakdown === 'sent' ? 'SENT GIFTS' : 'RECEIVED GIFTS'}
-                                </h3>
-                                <button
-                                    onClick={() => setActiveBreakdown(null)}
-                                    className="absolute top-4 right-4 p-1.5 bg-white border-2 border-slate-900 rounded-full hover:scale-110 transition-transform shadow-[2px_2px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none"
-                                >
-                                    <X size={20} className="text-slate-900" strokeWidth={3} />
-                                </button>
-                            </div>
-
-                            <div className="p-8 space-y-6">
-                                <div className="space-y-1">
-                                    <div className="text-7xl font-['Lilita_One'] text-slate-900 drop-shadow-[2px_2px_0_#cbd5e1]">
-                                        {activeBreakdown === 'sent' ? sentMeta?.total || 0 : receivedMeta?.total || 0}
-                                    </div>
-                                    <div className="text-slate-500 font-bold uppercase tracking-wider text-sm">
-                                        Total Gifts {activeBreakdown === 'sent' ? 'Sent' : 'Received'}
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-center gap-4 py-2">
-                                    {[1, 2, 3].map((i) => (
-                                        <div key={i} className="w-12 h-12 rounded-xl bg-slate-100 border-2 border-slate-900 flex items-center justify-center text-2xl animate-bounce shadow-[4px_4px_0_0_rgba(15,23,42,1)]" style={{ animationDelay: `${i * 0.1}s` }}>
-                                            {activeBreakdown === 'sent' ? '🚀' : '🎁'}
-                                        </div>
-                                    ))}
-                                </div>
-                                <p className="text-slate-600 font-medium font-lexend italic">
-                                    {activeBreakdown === 'sent' ? "You're spreading so much joy! 💖" : "Look at all this love! 🎁"}
-                                </p>
-
-                                <button className="w-full bg-slate-800 text-white border-[3px] border-slate-900 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-colors shadow-[4px_4px_0_0_#94a3b8] active:translate-y-[4px] active:shadow-none">
-                                    <Download size={20} strokeWidth={2.5} />
-                                    Share Stats
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
+                    <BreakdownModal
+                        type={activeBreakdown}
+                        onClose={() => setActiveBreakdown(null)}
+                        count={activeBreakdown === 'sent' ? sentMeta?.total || 0 : receivedMeta?.total || 0}
+                    />
                 )}
             </AnimatePresence>
+
             <SendGiftModal isOpen={isGiftModalOpen} onClose={() => setIsGiftModalOpen(false)} />
 
-            {/* Gift Reveal Modal */}
-            {selectedGift && (
+            {user && (
+                <EditProfileModal
+                    isOpen={isEditProfileOpen}
+                    onClose={() => setIsEditProfileOpen(false)}
+                    user={user}
+                />
+            )}
+
+            {/* Verify Gift Modal */}
+            {selectedGift && selectedGift.status === 'unverified' && modalVariant === 'sent' ? (
+                <VerifyGiftModal
+                    isOpen={!!selectedGift}
+                    onClose={() => setSelectedGift(null)}
+                    gift={selectedGift}
+                />
+            ) : selectedGift && (
                 <GiftRevealModal
                     isOpen={!!selectedGift}
                     onClose={() => setSelectedGift(null)}
@@ -496,10 +483,12 @@ const Profile = () => {
             )}
 
             {/* Username Setup Modal */}
-            <UsernameSetupModal isOpen={!!user && !user.username} />
+
         </div>
     );
 };
+
+// Helper Components
 
 // Helper Components
 
@@ -515,26 +504,25 @@ const StatsCard = ({ icon, label, value, color, onShowBreakdown }: { icon: React
             </div>
         </div>
 
-        <button
+        {/* <button
             onClick={onShowBreakdown}
             className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-900 px-5 py-2.5 rounded-xl text-sm font-black transition-all border-[3px] border-slate-900 shadow-[4px_4px_0_0_#cbd5e1] active:translate-y-[3px] active:shadow-none"
         >
             DETAILS
-        </button>
+        </button> */}
     </div>
 );
 
 const TableCard = ({ title, icon, color, children }: { title: string, icon: React.ReactNode, color: string, children: React.ReactNode }) => (
-    <div className="bg-white rounded-[2.5rem] p-8 border-[4px] border-slate-900 shadow-[10px_10px_0_0_rgba(15,23,42,1)] w-full relative overflow-hidden">
-
+    <div className="bg-white rounded-[2.5rem]  p-8 border-[4px] border-slate-900 shadow-[10px_10px_0_0_rgba(15,23,42,1)] w-full relative overflow-hidden">
         {/* Decorative corner stripe */}
         <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-20 -mr-10 -mt-10 rounded-full blur-3xl pointer-events-none`}></div>
-
+        {/* Title Header */}
         <div className="flex items-center gap-4 mb-8 relative z-10">
             <div className={`p-3 ${color} rounded-xl border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)]`}>
                 {icon}
             </div>
-            <h3 className="text-3xl font-['Lilita_One'] text-slate-900 tracking-wide">{title}</h3>
+            <h3 className="text-2xl md:text-3xl font-['Lilita_One'] text-slate-900 tracking-wide">{title}</h3>
         </div>
         {children}
     </div>
@@ -552,5 +540,79 @@ const StatusBadge = ({ status }: { status: string }) => {
         </span>
     );
 };
+
+const PaginationControls = ({ page, totalPages, setPage }: { page: number, totalPages: number, setPage: (p: number | ((prev: number) => number)) => void }) => (
+    <div className="flex items-center justify-end gap-2 mt-6">
+        <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
+        >
+            <ChevronLeft size={24} strokeWidth={3} />
+        </button>
+        <span className="text-base font-black text-slate-900 px-2">
+            {page} / {totalPages}
+        </span>
+        <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="p-2 rounded-lg border-2 border-transparent hover:border-slate-900 disabled:opacity-30 disabled:hover:border-transparent text-slate-900 transition-colors"
+        >
+            <ChevronRight size={24} strokeWidth={3} />
+        </button>
+    </div>
+);
+
+const BreakdownModal = ({ type, onClose, count }: { type: 'sent' | 'received', onClose: () => void, count: number }) => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"
+        />
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 100 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 100 }}
+            className="relative bg-white border-[4px] border-slate-900 p-0 rounded-[2rem] shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-sm w-full text-center overflow-hidden"
+        >
+            <div className={`p-6 border-b-[4px] border-slate-900 ${type === 'sent' ? 'bg-[#60A5FA]' : 'bg-[#4ADE80]'}`}>
+                <h3 className="text-3xl text-slate-900 drop-shadow-sm font-['Lilita_One'] tracking-wide">
+                    {type === 'sent' ? 'SENT GIFTS' : 'RECEIVED GIFTS'}
+                </h3>
+                <button onClick={onClose} className="absolute top-4 right-4 p-1.5 bg-white border-2 border-slate-900 rounded-full hover:scale-110 transition-transform shadow-[2px_2px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none">
+                    <X size={20} className="text-slate-900" strokeWidth={3} />
+                </button>
+            </div>
+
+            <div className="p-8 space-y-6">
+                <div className="space-y-1">
+                    <div className="text-7xl font-['Lilita_One'] text-slate-900 drop-shadow-[2px_2px_0_#cbd5e1]">{count}</div>
+                    <div className="text-slate-500 font-bold uppercase tracking-wider text-sm">
+                        Total Gifts {type === 'sent' ? 'Sent' : 'Received'}
+                    </div>
+                </div>
+
+                <div className="flex justify-center gap-4 py-2">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="w-12 h-12 rounded-xl bg-slate-100 border-2 border-slate-900 flex items-center justify-center text-2xl animate-bounce shadow-[4px_4px_0_0_rgba(15,23,42,1)]" style={{ animationDelay: `${i * 0.1}s` }}>
+                            {type === 'sent' ? '🚀' : '🎁'}
+                        </div>
+                    ))}
+                </div>
+                <p className="text-slate-600 font-medium font-lexend italic">
+                    {type === 'sent' ? "You're spreading so much joy! 💖" : "Look at all this love! 🎁"}
+                </p>
+
+                <button className="w-full bg-slate-800 text-white border-[3px] border-slate-900 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-900 transition-colors shadow-[4px_4px_0_0_#94a3b8] active:translate-y-[4px] active:shadow-none">
+                    <Download size={20} strokeWidth={2.5} />
+                    Share Stats
+                </button>
+            </div>
+        </motion.div>
+    </div>
+);
 
 export default Profile;
