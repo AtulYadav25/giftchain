@@ -1,6 +1,7 @@
 import { createSolanaClient, SolClient } from './solana';
 import { Signature } from '@solana/kit';
 import { Gift } from '../models/gift.model';
+import { config } from '../config/env';
 
 const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
@@ -143,8 +144,43 @@ class SolTransactionVerifier {
             }
 
             /* -------------------------------------------------
-               5️⃣ (Optional) verify platform fee transfer here
+               5️⃣ TODO : (Optional) verify platform fee transfer here
             ------------------------------------------------- */
+            /* -------------------------------------------------
+   5️⃣ Verify platform fee transfer (1%)
+------------------------------------------------- */
+            const treasuryAddress = config.SOL_FEE_COLLECTOR_ADDRESS;
+            if (!treasuryAddress) {
+                throw new Error('Treasury address not configured');
+            }
+
+            // Sum total gift lamports (already verified on-chain)
+            const totalGiftLamports = verifiedGifts.reduce(
+                (sum, g) => sum + Number(g.amount),
+                0
+            );
+
+            // Calculate required fee (1%)
+            const requiredFeeLamports = Math.floor(totalGiftLamports * 0.01);
+
+            // Find fee transfer
+            const feeTransferIndex = transfers.findIndex(
+                t =>
+                    t.to === treasuryAddress &&
+                    t.lamports >= requiredFeeLamports
+            );
+
+            if (feeTransferIndex === -1) {
+                return {
+                    status: false,
+                    message: 'Platform fee not paid or insufficient',
+                };
+            }
+
+            // Consume fee transfer (prevents reuse)
+            // transfers.splice(feeTransferIndex, 1);
+
+
 
             return {
                 status: true,
