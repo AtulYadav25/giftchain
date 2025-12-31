@@ -4,30 +4,80 @@ import cloudinary from '../config/cloudinary';
 import { errorResponse, successResponse } from '../utils/responseHandler';
 
 export const upload = async (req: FastifyRequest, reply: FastifyReply) => {
-    //TODO : Accept Video also in this upload and store in cloudinary
     const parts = req.parts();
+
     let name = 'custom';
     let priceUSD = 0.3;
+
     let fileBuffer: Buffer | undefined;
+    let fileMime: string | undefined;
+    let resourceType: 'image' | 'video' | undefined;
 
     try {
         for await (const part of parts) {
             if (part.type === 'file') {
+                fileMime = part.mimetype;
                 fileBuffer = await part.toBuffer();
+            }
+
+            if (part.type === 'field' && part.fieldname === 'name') {
+                name = part.value as string;
+            }
+
+            if (part.type === 'field' && part.fieldname === 'priceUSD') {
+                priceUSD = Number(part.value);
             }
         }
 
-        if (!fileBuffer) {
-            errorResponse(reply, "Missing required fields (file, name, priceUSD)", 400);
+        if (!fileBuffer || !fileMime) {
+            return errorResponse(reply, "Wrapper file is required", 400);
         }
 
-        const wrapper = await wrapperService.uploadWrapper(name, fileBuffer, priceUSD, req.user!.userId);
-        successResponse(reply, wrapper, "Wrapper Uploaded", 201);
-    } catch (error: any) {
+        /* ---------------- File Type Detection ---------------- */
+        if (fileMime.startsWith('image/')) {
+            resourceType = 'image';
+        } else if (fileMime.startsWith('video/')) {
+            resourceType = 'video';
+        } else {
+            return errorResponse(
+                reply,
+                "Only image or video files are allowed",
+                400
+            );
+        }
+
+        /* ---------------- Size Validation ---------------- */
+        const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+        const MAX_VIDEO_SIZE = 10 * 1024 * 1024; // 10MB
+
+        if (
+            (resourceType === 'image' && fileBuffer.length > MAX_IMAGE_SIZE) ||
+            (resourceType === 'video' && fileBuffer.length > MAX_VIDEO_SIZE)
+        ) {
+            return errorResponse(
+                reply,
+                resourceType === 'image'
+                    ? "Image must be less than 2MB"
+                    : "Video must be less than 10MB",
+                400
+            );
+        }
+
+        const wrapper = await wrapperService.uploadWrapper(
+            name,
+            fileBuffer,
+            priceUSD,
+            req.user!.userId,
+            resourceType // 👈 new
+        );
+
+        return successResponse(reply, wrapper, "Wrapper Uploaded", 201);
+    } catch (error) {
         console.error(error);
-        errorResponse(reply, "Something went wrong", 500);
+        return errorResponse(reply, "Something went wrong", 500);
     }
 };
+
 
 export const getAll = async (req: FastifyRequest, reply: FastifyReply) => {
     // Assuming auth middleware handles ensuring req.user exists if this route is protected,
