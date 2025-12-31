@@ -4,6 +4,7 @@ import { User } from '../models/user.model';
 import { Transaction } from '@mysten/sui/transactions';
 import { getClient } from '../utils/sui';
 import { createHash } from 'crypto';
+import { extractImagePublicId } from '../utils/imageHelper';
 
 const client = getClient('testnet');
 
@@ -19,8 +20,9 @@ export const createGift = async (senderId: string, data: any, chain: string) => 
         feeUSD: data.feeUSD, // In USD eg: 1 USD
         tokenStats: data.tokenStats,
 
-        wrapper: data.wrapper,
+        wrapper: extractImagePublicId(data.wrapper),
         message: data.message,
+        mediaType: data.mediaType,
 
         status: 'unverified',
         verified: false,
@@ -52,8 +54,9 @@ export const verifySOLGifts = async ({
             senderWallet: sender,
             verified: { $ne: true },
         },
-        { _id: 1 }
+        { _id: 1, amountUSD: 1, receiverWallet: 1 }
     );
+
 
     if (gifts.length !== giftIds.length) {
         throw new Error('Invalid or already verified gift');
@@ -68,10 +71,49 @@ export const verifySOLGifts = async ({
             },
         }
     );
+
+    const totalUSD = gifts.reduce(
+        (acc, gift) => acc + (Number(gift.amountUSD) || 0),
+        0
+    );
+
+    //Update the totalSentUSD of senderWallet to +amount of this gift
+    await User.updateOne(
+        { address: sender },
+        { $inc: { totalSentUSD: totalUSD, sentCount: gifts.length } }
+    );
+
+    const receiverTotals = new Map<string, number>();
+
+    for (const gift of gifts) {
+        if (!gift.receiverWallet) continue;
+        receiverTotals.set(
+            gift.receiverWallet,
+            (receiverTotals.get(gift.receiverWallet) || 0) + Number(gift.amountUSD || 0)
+        );
+    }
+
+    const receiverUpdates = Array.from(receiverTotals.entries()).map(
+        ([wallet, amount]) =>
+            User.updateOne(
+                { address: wallet },
+                {
+                    $inc: {
+                        totalReceivedUSD: amount,
+                        receivedCount: 1,
+                    },
+                }
+            )
+    );
+
+    await Promise.all(receiverUpdates);
+
+
+
 };
 
 
-export const verifySUIGifts = async (giftObjs: GiftObj[]) => {
+export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string) => {
     const giftIds = giftObjs.map(g => g.gift_db_id.toString());
 
     // Lookup maps (MIST everywhere)
@@ -82,7 +124,7 @@ export const verifySUIGifts = async (giftObjs: GiftObj[]) => {
     // Fetch only what we need
     const gifts = await Gift.find(
         { _id: { $in: giftIds } },
-        { totalTokenAmount: 1 }
+        { totalTokenAmount: 1, amountUSD: 1 }
     ).lean();
 
     // 1️⃣ Ensure all gifts exist
@@ -116,6 +158,43 @@ export const verifySUIGifts = async (giftObjs: GiftObj[]) => {
             },
         }))
     );
+
+    //Update the totalSentUSD of senderWallet to +amount of this gift
+    const totalUSD = gifts.reduce(
+        (acc, gift) => acc + (Number(gift.amountUSD) || 0),
+        0
+    );
+
+    //Update the totalSentUSD of senderWallet to +amount of this gift
+    await User.updateOne(
+        { address: sender },
+        { $inc: { totalSentUSD: totalUSD, sentCount: gifts.length } }
+    );
+
+    const receiverTotals = new Map<string, number>();
+
+    for (const gift of gifts) {
+        if (!gift.receiverWallet) continue;
+        receiverTotals.set(
+            gift.receiverWallet,
+            (receiverTotals.get(gift.receiverWallet) || 0) + Number(gift.amountUSD || 0)
+        );
+    }
+
+    const receiverUpdates = Array.from(receiverTotals.entries()).map(
+        ([wallet, amount]) =>
+            User.updateOne(
+                { address: wallet },
+                {
+                    $inc: {
+                        totalReceivedUSD: amount,
+                        receivedCount: 1,
+                    },
+                }
+            )
+    );
+
+    await Promise.all(receiverUpdates);
 };
 
 
@@ -123,7 +202,8 @@ export const verifySUIGifts = async (giftObjs: GiftObj[]) => {
 export const getSentGifts = async (
     address: string,
     page = 1,
-    limit = 10
+    limit = 10,
+    isAuthenticated = false
 ) => {
     const skip = (page - 1) * limit;
 
@@ -131,7 +211,8 @@ export const getSentGifts = async (
         // 1️⃣ Match sender wallet
         {
             $match: {
-                senderWallet: address
+                senderWallet: address,
+                ...(!isAuthenticated ? { verified: true } : {})
             }
         },
 
@@ -196,9 +277,7 @@ export const getSentGifts = async (
         }
     ]);
 
-    const total = await Gift.countDocuments({ senderWallet: address });
-
-    return { data, total };
+    return { data };
 };
 
 
@@ -276,9 +355,7 @@ export const getReceivedGifts = async (address: string, page = 1, limit = 10) =>
         }
     ]);
 
-    const total = await Gift.countDocuments({ receiverWallet: address });
-
-    return { data, total };
+    return { data };
 };
 
 export const getGiftById = async (giftId: string) => {
