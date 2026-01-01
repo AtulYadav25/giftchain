@@ -7,6 +7,7 @@ import SolTransactionVerifier from '../utils/solanaTxVerifier';
 import { Signature } from '@solana/kit';
 import { Gift } from '../models/gift.model';
 import jwt from 'jsonwebtoken';
+import { truncateToTwoDecimals } from '../utils/jwt';
 
 
 export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, reply: FastifyReply) => {
@@ -19,9 +20,13 @@ export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, repl
         }
 
         //Verify with jwt for the tokenStats
-        const tokenStats = await jwt.verify(req.body.tokenStats.tokenHash, process.env.JWT_SECRET!);
+        const tokenStats: any = await jwt.verify(req.body.tokenStats.tokenHash, process.env.JWT_SECRET!);
         if (!tokenStats) {
             return errorResponse(reply, "Invalid tokenStats", 400);
+        }
+
+        if (tokenStats.chain === req.user.chain && Number(req.body.totalTokenAmount) !== (truncateToTwoDecimals(req.body.amountUSD) / tokenStats.priceUSD)) {
+            return errorResponse(reply, "Not Authenticated Transaction!", 400);
         }
 
         const gift = await giftService.createGift(req.user!.userId, req.body, req.user.chain);
