@@ -185,12 +185,12 @@ const Profile = () => {
                         <div className="w-full h-full rounded-full bg-white relative border-[5px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] overflow-hidden">
                             <Avatar className="w-full h-full">
                                 <AvatarImage
-                                    src={avatarPreview || user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=santa"}
+                                    src={avatarPreview || user?.avatar}
                                     alt="Avatar"
                                     className="object-cover bg-white"
                                 />
                                 <AvatarFallback className="text-4xl font-black bg-slate-200">
-                                    {user?.username?.[0]?.toUpperCase()}
+                                    {user?.username?.slice(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
 

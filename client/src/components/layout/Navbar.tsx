@@ -15,6 +15,7 @@ import { useAuthActions } from "@/store";
 import toast from "react-hot-toast";
 import { useChain } from "@/multichainkit/context/ChainContext";
 import { ChainSwitcher, ChainConnectButton } from "@/multichainkit/components/NavbarChainControl";
+import { useUser } from "@/store/useAuthStore";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
@@ -23,6 +24,7 @@ export default function Navbar() {
 
     // Multi-chain hooks
     const { address, disconnectWallet, chain } = useChain();
+    const user = useUser();
     const { disconnectWallet: disconnectAuth } = useAuthActions();
 
     const isConnected = !!address;
@@ -93,8 +95,8 @@ export default function Navbar() {
                                         </span>
                                     </div>
                                     <Avatar className="h-9 w-9 border-2 border-white/30">
-                                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`} />
-                                        <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">GC</AvatarFallback>
+                                        <AvatarImage src={user?.avatar} />
+                                        <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.username.slice(0, 2)}</AvatarFallback>
                                     </Avatar>
                                     <ChevronDown size={14} className="text-white/70" />
                                 </motion.div>

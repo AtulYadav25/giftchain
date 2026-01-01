@@ -14,8 +14,6 @@ import {
 import toast from 'react-hot-toast';
 import SendGiftModal from '../components/SendGiftModal';
 import { useParams } from 'react-router-dom';
-import { api, extractData } from '@/lib/api';
-import type { User } from '@/types/auth.types';
 import type { Gift as GiftType } from '@/types/gift.types';
 import GiftRevealModal from '../components/GiftRevealModal';
 import { useGiftActions, useGiftLoading, useReceivedGifts, useReceivedMeta, useSentGifts, useSentMeta } from '@/store/useGiftStore';
@@ -35,8 +33,6 @@ const PublicProfile = () => {
 
     const sentGifts = useSentGifts();
     const receivedGifts = useReceivedGifts();
-    const sentMeta = useSentMeta();
-    const receivedMeta = useReceivedMeta();
     const isGiftLoading = useGiftLoading();
 
     // Actions
@@ -161,12 +157,12 @@ const PublicProfile = () => {
                         <div className="w-full h-full rounded-full bg-white relative border-[5px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] overflow-hidden">
                             <Avatar className="w-full h-full">
                                 <AvatarImage
-                                    src={profileUser.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=santa"}
+                                    src={profileUser.avatar}
                                     alt="Avatar"
                                     className="object-cover bg-white"
                                 />
                                 <AvatarFallback className="text-4xl font-black bg-slate-200">
-                                    {profileUser.username[0]?.toUpperCase()}
+                                    {profileUser.username.slice(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
                         </div>
@@ -241,7 +237,7 @@ const PublicProfile = () => {
                     <StatsCard
                         icon={<ArrowDownLeft size={28} className="text-slate-900" />}
                         label="Total Received"
-                        value={`${receivedMeta?.total || 0} Gifts`}
+                        value={`${profileUser?.receivedCount || 0} Gifts`}
                         color="bg-[#4ADE80]"
                         onShowBreakdown={() => { }}
                     />
