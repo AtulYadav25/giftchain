@@ -20,9 +20,11 @@ export const requestMessage = async (address: string, chain: string) => {
     // Look for existing user
     let user = await User.findOne({ address });
 
+    let unique_id = `gc@${nanoid()}`;
     if (!user) {
         // Create new user with nonce
-        user = await User.create({ address, nonce, chain, username: `gc@${nanoid()}` });
+        user = await User.create({ address, nonce, chain, username: unique_id, usernameLower: unique_id.toLowerCase() });
+
     } else {
         // Update nonce for existing user
         user.nonce = nonce;
