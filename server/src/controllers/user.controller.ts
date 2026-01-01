@@ -9,7 +9,7 @@ export const getPublicUserDetails = async (req: FastifyRequest<{ Params: { usern
     try {
         const { username } = req.params;
         // Search safe public fields
-        const user = await User.findOne({ usernameLower: username.toLowerCase() }).select('username avatar bio banner settings socials address createdAt totalSentUSD totalReceivedUSD sentCount receivedCount');
+        const user = await User.findOne({ usernameLower: username.toLowerCase() }).select('username avatar bio banner settings socials address createdAt totalSentUSD sentCount receivedCount');
 
         if (!user) {
             return errorResponse(reply, "User not found", 404)
@@ -34,7 +34,7 @@ export const getTopGivers = async (req: FastifyRequest<{ Params: { username: str
             return errorResponse(reply, "Invalid page or limit", 400)
         }
 
-        const users = await User.find({}).sort({ totalSentUSD: -1 }).skip((page - 1) * limit).limit(limit).select('username avatar socials totalSentUSD');
+        const users = await User.find({}).sort({ totalSentUSD: -1 }).skip((page - 1) * limit).limit(limit).select('username avatar socials chain totalSentUSD');
 
         paginationResponse(reply, users, 100, page, limit, 200)
     } catch (error) {

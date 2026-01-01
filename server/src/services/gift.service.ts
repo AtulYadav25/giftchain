@@ -5,6 +5,7 @@ import { Transaction } from '@mysten/sui/transactions';
 import { getClient } from '../utils/sui';
 import { createHash } from 'crypto';
 import { extractImagePublicId } from '../utils/imageHelper';
+import { truncateToTwoDecimals } from '../utils/jwt';
 
 const client = getClient('testnet');
 
@@ -14,7 +15,7 @@ export const createGift = async (senderId: string, data: any, chain: string) => 
         senderWallet: data.senderWallet,
         receiverWallet: data.receiverWallet,
 
-        amountUSD: data.amountUSD, // In USD eg: 100 USD
+        amountUSD: truncateToTwoDecimals(data.amountUSD), // In USD eg: 100 USD
         totalTokenAmount: Number(data.totalTokenAmount), // In SUI(MIST) eg: 1.154 SUI but stored 11545558885
         tokenSymbol: data.tokenSymbol, // 'sui' | 'sol'
         feeUSD: data.feeUSD, // In USD eg: 1 USD
