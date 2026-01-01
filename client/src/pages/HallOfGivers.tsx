@@ -8,6 +8,7 @@ import SUI from '@/assets/sui.png'
 import { useAuthActions } from '@/store';
 import useAuthStore from '@/store/useAuthStore';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import SocialIconDetector, { detectPlatform } from '@/components/SocialIconDetector';
 
 export default function HallOfGivers() {
 
@@ -60,7 +61,7 @@ export default function HallOfGivers() {
                 </header>
 
                 {/* --- The List --- */}
-                <div className="max-w-[650px]  mx-auto flex flex-col gap-5">
+                <div className="max-w-[650px]  mx-auto ">
                     <InfiniteScroll
                         dataLength={topGivers.length} //This is important field to render the next data
                         next={fetchTopGivers}
@@ -81,6 +82,7 @@ export default function HallOfGivers() {
                         releaseToRefreshContent={
                             <h3 style={{ textAlign: 'center' }}>&#8593; Release to refresh</h3>
                         }
+                        className='flex flex-col gap-6'
                     >
                         {topGivers.map((giver, index) => (
                             <GiverCard key={giver._id} giver={giver} index={index} />
@@ -108,7 +110,7 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
 
     const username = giver.username.replace('@', '');
 
-    const chain = giver.chain; // "solana" | "sui"
+    const chain = giver.chain; // "sol" | "sui"
 
     const getSocial = (platform: string) => {
         return giver.socials?.find((s: any) => s.platform === platform)?.link;
@@ -170,7 +172,7 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
                     </div>
 
                     <div className="flex flex-col items-start gap-1">
-                        <h3 className="text-lg sm:text-2xl font-main leading-wider text-slate-800">
+                        <h3 className="text-lg sm:text-2xl font-main leading-wider text-slate-800 mb-1">
                             @{giver.username}
                         </h3>
 
@@ -179,27 +181,15 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
                             className="flex items-center gap-2"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {getSocial("twitter") && (
-                                <SocialLink
-                                    href={getSocial("twitter")}
-                                    icon={<FaXTwitter size={14} />}
-                                    color="hover:text-black"
-                                />
-                            )}
-                            {getSocial("instagram") && (
-                                <SocialLink
-                                    href={getSocial("instagram")}
-                                    icon={<FaInstagram size={16} />}
-                                    color="hover:text-pink-500"
-                                />
-                            )}
-                            {getSocial("youtube") && (
-                                <SocialLink
-                                    href={getSocial("youtube")}
-                                    icon={<FaYoutube size={16} />}
-                                    color="hover:text-red-500"
-                                />
-                            )}
+                            {
+                                giver.socials.map((s: any) => (
+                                    <SocialLink
+                                        href={s.link}
+                                        icon={<SocialIconDetector url={s.link} className="!w-4 !h-4" />}
+                                    />
+                                ))
+                            }
+
                         </div>
                     </div>
                 </div>
@@ -209,7 +199,7 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
                     <div className={`text-xl sm:text-3xl font-main ${giver.chain === 'sol' ? 'text-black' : 'text-blue-500'}`}>
                         ${giver.totalSentUSD.toLocaleString()}
                     </div>
-                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                    <div className={`text-xs font-main text-slate-400 uppercase tracking-wider mt-0.5 ${isTopGiver ? '!text-black' : ''}`}>
                         sent
                     </div>
                 </div>
@@ -218,13 +208,35 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
     );
 }
 
-function SocialLink({ href, icon, color }: { href: string; icon: React.ReactNode; color: string }) {
+
+function normalizeUrl(url: string) {
+    if (!url) return "#";
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+
+    return `https://${url}`;
+}
+
+
+function SocialLink({ href, icon }: { href: string; icon: React.ReactNode }) {
+    let colors: Record<string, string> = {
+        instagram: 'hover:text-pink-500',
+        x: 'hover:text-black',
+        youtube: 'hover:text-red-500',
+        discord: 'hover:text-blue-500',
+        telegram: 'hover:text-blue-500',
+    }
+
+    let platform = detectPlatform(href);
+
     return (
         <a
-            href={href}
+            href={normalizeUrl(href)}
             target="_blank"
             rel="noopener noreferrer"
-            className={`text-slate-400 transition-colors ${color}`}
+            className={`text-slate-400 transition-colors ${colors[platform]} text-[14px]`}
         >
             {icon}
         </a>
