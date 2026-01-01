@@ -138,10 +138,7 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 try {
                     const res = await api.post<ApiResponse<Gift>>('/gifts/verify', giftData);
                     let { data } = extractData(res);
-                    // set((state) => ({
-                    //     sentGifts: [...state.sentGifts, data],
-                    //     giftTxLoadingStates: 4
-                    // }));
+                    set({ giftTxLoadingStates: 0 });
                     return data;
                 } catch (err: any) {
                     set({ giftTxLoadingStates: 0, error: err.message });

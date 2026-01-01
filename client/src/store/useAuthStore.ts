@@ -313,7 +313,9 @@ useAuthStore.subscribe(
         if (errorValue) {
 
             // Example: show toast
-            toast.error(errorValue)
+            if (!errorValue.includes('Request failed')) {
+                toast.error(errorValue)
+            }
 
             // Example: auto logout
             useAuthStore.setState({
