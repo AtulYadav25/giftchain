@@ -359,6 +359,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                 await triggerSolanaTransaction(createdGifts);
             }
 
+
         } catch (err: any) {
             toast.error('Unexpected error');
         }
@@ -435,6 +436,9 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
         fetchSentGifts(user?.address!, 1, 8);
         toast.success('Gift sent successfully');
+        setStep(1);
+        setMessage("");
+        setRecipients([]);
         onClose();
     };
 
@@ -811,14 +815,28 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
                                                             <InputGroup className="bg-white w-full">
                                                                 <InputGroupInput
-                                                                    type="number"
+                                                                    type="text"
                                                                     value={recipient.amount}
-                                                                    onChange={(e) =>
-                                                                        updateRecipient(recipient.id, "amount", e.target.value)
-                                                                    }
-                                                                    placeholder="0.00"
+                                                                    placeholder="10.00"
                                                                     className="no-spinner h-12 text-lg font-bold pr-2 bg-transparent min-w-0"
+                                                                    onChange={(e) => {
+                                                                        const value = e.target.value;
+
+                                                                        // Allow empty input
+                                                                        if (value === "") {
+                                                                            updateRecipient(recipient.id, "amount", value);
+                                                                            return;
+                                                                        }
+
+                                                                        // Regex: min 1, optional decimal, max 2 decimal places
+                                                                        const regex = /^(?:[1-9]\d*)(?:\.\d{0,2})?$/;
+
+                                                                        if (regex.test(value)) {
+                                                                            updateRecipient(recipient.id, "amount", value);
+                                                                        }
+                                                                    }}
                                                                 />
+
 
                                                                 {/* Currency symbol */}
                                                                 <InputGroupAddon className="shrink-0">
@@ -966,7 +984,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                                                         <Info size={14} className="text-slate-400 cursor-help hover:text-slate-600 transition-colors" />
                                                     </TooltipTrigger>
                                                     <TooltipContent side="top" className="max-w-[220px] text-center p-3 font-medium bg-slate-900 text-white border-0 shadow-xl">
-                                                        <p className="font-lexend">This little Builder Love keeps GiftChain alive and growing! 🥺</p>
+                                                        <p className="font-lexend">This little Builder Love keeps GiftChain alive and growing!</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                                 <span className="text-xs text-slate-400 bg-slate-100 px-1 rounded ml-1">1%</span>
