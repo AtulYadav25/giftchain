@@ -8,7 +8,7 @@ import { useChain } from '@/multichainkit/context/ChainContext';
 
 export function useInitApp() {
 
-    const { chain, address, activeAdapter } = useChain();
+    const { chain, address, activeAdapter, disconnectWallet } = useChain();
 
     if (!chain) return null;
 
@@ -57,6 +57,7 @@ export function useInitApp() {
                                 await verify(data);
                             }
                         } catch (e: any) {
+                            disconnectWallet();
                         }
 
                     }
