@@ -114,14 +114,6 @@ export default function Navbar() {
                                     My Profile
                                 </DropdownMenuItem>
 
-                                <DropdownMenuItem
-                                    className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-blue-700 py-2.5 px-3 mb-1"
-                                    onClick={() => navigate('/profile')}
-                                >
-                                    <Gift size={16} className="mr-2" />
-                                    My Gifts
-                                </DropdownMenuItem>
-
                                 <DropdownMenuSeparator className="bg-blue-50" />
 
                                 <DropdownMenuItem

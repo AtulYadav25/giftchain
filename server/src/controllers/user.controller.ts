@@ -9,7 +9,7 @@ export const getPublicUserDetails = async (req: FastifyRequest<{ Params: { usern
     try {
         const { username } = req.params;
         // Search safe public fields
-        const user = await User.findOne({ usernameLower: username.toLowerCase() }).select('username avatar bio banner settings socials address createdAt totalSentUSD sentCount receivedCount');
+        const user = await User.findOne({ usernameLower: username.toLowerCase() }).select('username avatar bio banner chain alternateAddresses settings socials address createdAt totalSentUSD sentCount receivedCount');
 
         if (!user) {
             return errorResponse(reply, "User not found", 404)
@@ -72,6 +72,8 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
     let settings: any | undefined;
     let socials: { platform: string, link: string }[] | undefined;
 
+    let alternateAddresses: { chain: string, address: string }[] | undefined;
+
     try {
         for await (const part of req.parts()) {
             if (part.type === 'file' && part.fieldname === 'avatar') {
@@ -94,6 +96,10 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
 
             else if (part.type === 'field' && part.fieldname === 'settings') {
                 settings = safeJsonParse(part.value);
+            }
+
+            else if (part.type === 'field' && part.fieldname === 'alternateAddresses') {
+                alternateAddresses = safeJsonParse<{ chain: string, address: string }[]>(part.value);
             }
 
             else if (part.type === 'field' && part.fieldname === 'socials') {
@@ -281,6 +287,13 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
         user.settings = {
             show_gift_sent: settings.show_gift_sent
         };
+    }
+
+    if (alternateAddresses) {
+        if (!Array.isArray(alternateAddresses) || alternateAddresses.length > 1) {
+            return errorResponse(reply, "Invalid alternate addresses format", 400);
+        }
+        user.alternateAddresses = alternateAddresses;
     }
 
     /* ---------------- Socials ---------------- */

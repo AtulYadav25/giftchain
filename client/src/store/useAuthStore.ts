@@ -28,7 +28,7 @@ interface AuthActions {
     checkUsernameAvailability: (username: string) => Promise<boolean>;
     checkSession: () => Promise<void>;
     disconnectWallet: () => Promise<void>;
-    updateProfile: (data: { username?: string; avatar?: File, banner?: File, bio?: string[], settings?: { show_gift_sent: boolean }, socials?: { platform: string; link: string }[] }) => Promise<void>;
+    updateProfile: (data: UpdateProfileData) => Promise<void>;
     fetchPublicProfile: (username: string) => Promise<void>;
     fetchTopGivers: () => Promise<void>;
 }
@@ -46,6 +46,7 @@ type UpdateProfileData = {
     bio?: string[];
     settings?: { show_gift_sent: boolean };
     socials?: { platform: string; link: string }[];
+    alternateAddresses?: { chain: 'sol' | 'sui', address: string }[];
 };
 
 
@@ -215,6 +216,11 @@ const useAuthStore = create<AuthState & { publicProfile: User | null; publicProf
 
                         if (data.socials) {
                             formData.append('socials', JSON.stringify(data.socials));
+                            hasAnyField = true;
+                        }
+
+                        if (data.alternateAddresses) {
+                            formData.append('alternateAddresses', JSON.stringify(data.alternateAddresses));
                             hasAnyField = true;
                         }
 

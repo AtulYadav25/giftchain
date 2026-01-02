@@ -17,9 +17,12 @@ import { useParams } from 'react-router-dom';
 import type { Gift as GiftType } from '@/types/gift.types';
 import GiftRevealModal from '../components/GiftRevealModal';
 import { useGiftActions, useGiftLoading, useReceivedGifts, useReceivedMeta, useSentGifts, useSentMeta } from '@/store/useGiftStore';
-import { useAuthActions, usePublicProfile, usePublicProfileLoading } from '@/store/useAuthStore';
+import { useAuthActions, usePublicProfile, usePublicProfileLoading, useUser } from '@/store/useAuthStore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SocialIconDetector from '../components/SocialIconDetector';
+import SOLANA_IMG from '@/assets/solana.png';
+import SUI_IMG from '@/assets/sui.png';
+import { FaInfo } from 'react-icons/fa';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -38,9 +41,57 @@ const PublicProfile = () => {
     // Actions
     const { fetchSentGifts, fetchReceivedGifts } = useGiftActions();
 
+    const currentUser = useUser();
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
     const [selectedGift, setSelectedGift] = useState<GiftType | null>(null);
     const [modalVariant, setModalVariant] = useState<'sent' | 'received'>('received');
+
+    // Cross Chain Logic
+    const [showCrossChainModal, setShowCrossChainModal] = useState(false);
+    const [crossChainAddress, setCrossChainAddress] = useState<string | null>(null);
+    const [recipientAddress, setRecipientAddress] = useState<string | null>(null);
+    const [showCrossChainErrorModal, setShowCrossChainErrorModal] = useState(false);
+
+    //Shit Function (Problem here is that in frontend the solana is treated as word 'solana' but in backend its 'sol' this mismatch is creating issues)
+    //TODO : Replace All 'solana' with 'sol' in frontend
+    const convertChainToBackendFormat = (chain: string) => {
+        return chain === 'solana' ? 'sol' : chain;
+    };
+
+    const handleSendGiftClick = () => {
+        if (!currentUser || !profileUser) return;
+
+        // Reset
+        setCrossChainAddress(null);
+        setRecipientAddress(profileUser.address);
+
+        let currentUserChain = convertChainToBackendFormat(currentUser.chain!);
+        let profileUserChain = convertChainToBackendFormat(profileUser.chain!);
+
+        // If same chain or same user, just open
+        if (currentUserChain === profileUserChain) {
+            setIsGiftModalOpen(true);
+            return;
+        }
+
+        // Check for alternate address
+        const alt = profileUser.alternateAddresses?.find(a => a.chain === currentUserChain);
+
+        if (alt) {
+            setCrossChainAddress(alt.address);
+            setShowCrossChainModal(true);
+        } else {
+            setShowCrossChainErrorModal(true);
+        }
+    };
+
+    const proceedWithAlternateAddress = () => {
+        if (crossChainAddress) {
+            setRecipientAddress(crossChainAddress);
+            setShowCrossChainModal(false);
+            setIsGiftModalOpen(true);
+        }
+    };
 
     // Fetch User
     useEffect(() => {
@@ -183,6 +234,18 @@ const PublicProfile = () => {
                                 </h1>
                                 <div className="mt-2 flex items-center gap-2">
                                     {profileUser.address && formatAddress(profileUser.address)}
+                                    {profileUser.chain === 'sol' && (
+                                        <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-black text-white text-[14px] font-main tracking-wider rounded border border-slate-900 shadow-sm">
+                                            <img src={SOLANA_IMG} className="w-4 h-4 object-contain" alt="SOL" />
+                                            SOLANA
+                                        </div>
+                                    )}
+                                    {profileUser.chain === 'sui' && (
+                                        <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-blue-500 text-white text-[14px] font-main tracking-widest rounded border border-blue-700 ">
+                                            <img src={SUI_IMG} className="w-4 h-4 object-contain" alt="SUI" />
+                                            SUI
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -217,7 +280,7 @@ const PublicProfile = () => {
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsGiftModalOpen(true)}
+                            onClick={handleSendGiftClick}
                             className="w-full md:w-auto px-8 py-3 bg-[#F472B6] text-slate-900 rounded-2xl font-black text-xl border-[3px] border-slate-900 shadow-[5px_5px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[5px] transition-all flex items-center justify-center gap-3"
                         >
                             <Heart className="fill-pink-700" size={24} />
@@ -225,6 +288,78 @@ const PublicProfile = () => {
                         </motion.button>
                     </div>
                 </header>
+
+                {/* Cross Chain Confirm Modal */}
+                {showCrossChainModal && (
+                    <div className="fixed h-full inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCrossChainModal(false)} />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative bg-white p-8 rounded-[2rem] border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-md w-full text-center space-y-6"
+                        >
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto border-2 border-slate-900">
+                                <FaInfo size={32} className="text-blue-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 mb-2">Different Chain Detected</h3>
+                                <p className="text-slate-600 font-medium leading-relaxed">
+                                    This user is on <span className="font-bold uppercase">{profileUser.chain === 'sol' ? 'Solana' : 'Sui'}</span>, but has provided a <span className="font-bold uppercase">{currentUser?.chain === 'sol' ? 'Solana' : 'Sui'}</span> address to accept gifts!
+                                </p>
+                                <p className="text-sm text-slate-400 mt-2">
+                                    Would you like to use their alternative address?
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowCrossChainModal(false)}
+                                    className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={proceedWithAlternateAddress}
+                                    className="flex-1 py-3 bg-[#F472B6] border-2 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none rounded-xl font-black text-slate-900 transition-all"
+                                >
+                                    Proceed
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* Cross Chain Error Modal */}
+                {showCrossChainErrorModal && (
+                    <div className="fixed h-full inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCrossChainErrorModal(false)} />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative bg-white p-8 rounded-[2rem] border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-md w-full text-center space-y-6"
+                        >
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto border-2 border-slate-900">
+                                <FaInfo size={32} className="text-red-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 mb-2">Different Networks</h3>
+                                <p className="text-slate-600 font-medium leading-relaxed">
+                                    You are on <span className="font-bold uppercase">{currentUser?.chain === 'sol' ? 'Solana' : 'Sui'}</span>, but this user is on <span className="font-bold uppercase">{profileUser.chain === 'sol' ? 'Solana' : 'Sui'}</span>.
+                                </p>
+                                <p className="text-slate-600 font-medium leading-relaxed mt-2">
+                                    They haven't set up an address to receive gifts from your network yet.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setShowCrossChainErrorModal(false)}
+                                className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl font-bold text-slate-900 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
 
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <StatsCard
@@ -327,7 +462,7 @@ const PublicProfile = () => {
                 <SendGiftModal
                     isOpen={isGiftModalOpen}
                     onClose={() => setIsGiftModalOpen(false)}
-                    initialRecipient={{ address: profileUser.address, username: profileUser.username }}
+                    initialRecipient={{ address: recipientAddress || profileUser.address, username: profileUser.username }}
                 />
             )}
             {selectedGift && (

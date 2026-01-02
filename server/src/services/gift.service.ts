@@ -9,10 +9,10 @@ import { truncateToTwoDecimals } from '../utils/jwt';
 
 const client = getClient('testnet');
 
-export const createGift = async (senderId: string, data: any, chain: string) => {
+export const createGift = async (senderId: string, data: any, chain: string, senderWallet: string) => {
     const gift = await Gift.create({
         senderId,
-        senderWallet: data.senderWallet,
+        senderWallet,
         receiverWallet: data.receiverWallet,
 
         amountUSD: truncateToTwoDecimals(data.amountUSD), // In USD eg: 100 USD

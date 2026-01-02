@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, Save, Loader2, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
-import { useAuthActions, useAuthLoading } from '@/store';
+import { X, Camera, Save, Loader2, Image as ImageIcon, Plus, Trash2, Info } from 'lucide-react';
+import { useAuthActions, useAuthLoading, useUser } from '@/store';
 import type { User } from '@/types/auth.types';
 import toast from 'react-hot-toast';
 import SocialIconDetector, { detectPlatform } from './SocialIconDetector';
+import SOLANA_IMG from '@/assets/solana.png';
+import SUI_IMG from '@/assets/sui.png';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -16,6 +18,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
     const { updateProfile } = useAuthActions();
     const isLoading = useAuthLoading();
 
+
     const [bannerFile, setBannerFile] = useState<File | null>(null);
     const [bannerPreview, setBannerPreview] = useState<string | null>(user.banner || null);
 
@@ -26,7 +29,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
         user.settings?.show_gift_sent ?? true
     );
 
+    const [showAddressInfo, setShowAddressInfo] = useState(false);
+
+    // Determine the alternate chain based on user's current chain
+    const altChain = user.chain === 'sol' ? 'sui' : 'sol';
+    const existingAlt = user.alternateAddresses?.find(a => a.chain === altChain)?.address || '';
+
+    const [alternateAddress, setAlternateAddress] = useState(existingAlt);
+
     const [socialLinks, setSocialLinks] = useState<{ id: string; link: string }[]>([]);
+
+
 
     // Reset state when opening/user changes
     useEffect(() => {
@@ -35,6 +48,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
             setBannerFile(null);
             setBioText(user.bio?.join('\n\n') || '');
             setShowGiftSent(user.settings?.show_gift_sent ?? true);
+
+            // Set Alternate Address
+            const alt = user.alternateAddresses?.find(a => (user.chain === 'sol' ? a.chain === 'sui' : a.chain === 'sol'))?.address || '';
+            setAlternateAddress(alt);
 
             if (user.socials && user.socials.length > 0) {
                 setSocialLinks(user.socials.map(s => ({ id: crypto.randomUUID(), link: s.link })));
@@ -109,11 +126,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
                 // Remove duplicates
                 .filter((v, i, a) => a.findIndex(t => t.link === v.link) === i);
 
+            // Process Alternate Address
+            let alternateAddresses = [];
+            if (alternateAddress.trim().length > 0) {
+                alternateAddresses.push({
+                    chain: altChain,
+                    address: alternateAddress.trim()
+                });
+            }
+
             await updateProfile({
                 banner: bannerFile || undefined,
                 bio: bioArray,
                 settings: { show_gift_sent: showGiftSent },
-                socials: processedSocials
+                socials: processedSocials,
+                alternateAddresses: alternateAddresses as any
             });
 
             onClose();
@@ -155,7 +182,37 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
                             </button>
                         </div>
 
-                        <div className="overflow-y-auto p-6 space-y-8">
+                        <AnimatePresence>
+                            {showAddressInfo && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute inset-0 z-50 bg-white p-6 flex flex-col items-center justify-center text-center space-y-6"
+                                >
+                                    <div className="w-16 h-16 bg-[#FEF3C7] rounded-full flex items-center justify-center mb-2">
+                                        <Info size={32} className="text-[#D97706]" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-900">Verify Your Address</h3>
+                                    <p className="text-slate-600 font-medium leading-relaxed max-w-sm">
+                                        Please double-check that your {user.chain === 'sol' ? 'Sui' : 'Solana'} address is correct.
+                                        Entering an incorrect address may result in the <span className="text-red-500 font-bold">permanent loss of funds</span>.
+                                    </p>
+                                    <p className="text-sm text-slate-400">
+                                        Giftchain cannot reverse transactions or recover funds sent to the wrong address.
+                                    </p>
+                                    <button
+                                        onClick={() => setShowAddressInfo(false)}
+                                        className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
+                                    >
+                                        I Understand, Go Back
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div className="overflow-y-auto p-6 space-y-8 relative">
+
 
                             {/* Banner Section */}
                             <div className="space-y-3">
@@ -209,9 +266,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
                                 />
 
                                 <div className="flex justify-between items-center">
-                                    <p className="text-xs text-slate-400 font-medium">
-                                        We'll format separate paragraphs automatically.
-                                    </p>
+
 
                                     <p
                                         className={`text-xs font-semibold ${bioText.length >= MAX_BIO_LENGTH
@@ -221,6 +276,45 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
                                     >
                                         {MAX_BIO_LENGTH - bioText.length} characters left
                                     </p>
+                                </div>
+                            </div>
+
+                            {/* Alternate Address Section */}
+                            <div className="space-y-3">
+                                <label className="block text-sm font-bold text-slate-500 uppercase tracking-wider">
+                                    Cross-Chain Address
+                                </label>
+                                <div className="p-4 rounded-xl border-2 border-slate-100 bg-slate-50 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-sm font-bold text-slate-700">Receive gifts on {user.chain === 'sol' ? 'Sui' : 'Solana'}</div>
+                                        <button
+                                            onClick={() => setShowAddressInfo(true)}
+                                            className="text-slate-400 hover:text-[#F472B6] transition-colors"
+                                        >
+                                            <Info size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 p-1 pl-3 pr-1 rounded-xl bg-white border-2 border-slate-200 focus-within:border-slate-900 transition-all shadow-sm">
+                                        <div className={`flex items-center gap-2 pr-2 border-r-2 border-slate-100  p-2 rounded-xl`}>
+                                            <img
+                                                src={user.chain === 'sui' ? SOLANA_IMG : SUI_IMG}
+                                                alt="Chain Logo"
+                                                className={`w-6 p-1 rounded-xl h-6 object-contain ${user.chain === 'sui' ? 'bg-black' : 'bg-blue-500'}`}
+                                            />
+                                            <span className="text-xs text-black uppercase">
+                                                {user.chain === 'sui' ? 'SOL' : 'SUI'}
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={alternateAddress}
+                                            onChange={(e) => setAlternateAddress(e.target.value)}
+                                            placeholder={`Your ${user.chain === 'sol' ? 'Sui' : 'Solana'} Wallet Address`}
+                                            disabled={isLoading}
+                                            className="flex-1 bg-transparent py-2.5 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none font-mono"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

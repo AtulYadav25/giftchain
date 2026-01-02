@@ -4,6 +4,7 @@ export interface User {
     avatar?: string;
     banner?: string;
     address: string;
+    chain?: 'sol' | 'sui';
     nonce?: number;
     bio?: string[];
     totalSentUSD: number;
@@ -14,6 +15,7 @@ export interface User {
     createdAt: string;
     updatedAt: string;
     socials?: { platform: string; link: string }[];
+    alternateAddresses?: { chain: 'sol' | 'sui', address: string }[];
 }
 
 

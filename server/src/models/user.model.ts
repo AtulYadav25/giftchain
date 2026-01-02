@@ -26,6 +26,8 @@ export interface IUser extends Document {
         show_gift_sent: Boolean;
     };
 
+    alternateAddresses: { chain: string, address: string }[];
+
     createdAt: Date;
     updatedAt: Date;
     usernameLower: string;
@@ -105,6 +107,16 @@ const UserSchema: Schema = new Schema(
                 default: true
             }
         },
+
+        alternateAddresses: [
+            {
+                chain: {
+                    type: String,
+                    enum: ['sol', 'sui']
+                },
+                address: String
+            }
+        ],
         usernameLower: {
             type: String,
             unique: true,

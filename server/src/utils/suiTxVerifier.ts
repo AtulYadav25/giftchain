@@ -36,7 +36,7 @@ class SuiTransactionVerifier {
                 throw new Error('Invalid transaction digest format');
             }
 
-            await delay(3000)
+            await delay(2000)
 
             // Fetch transaction details
             const txResponse = await this.client.getTransactionBlock({

@@ -165,8 +165,8 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
                         </Avatar>
 
                         {isTopGiver && (
-                            <div className="absolute -top-2 -right-2 bg-yellow-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border border-white">
-                                👑
+                            <div className="absolute -bottom-2 right-[50%] translate-x-1/2 bg-pink-400 text-white text-[10px] px-1.5 py-0.5 rounded-full shadow-sm border border-white">
+                                GIVER
                             </div>
                         )}
                     </div>
