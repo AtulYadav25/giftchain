@@ -36,7 +36,7 @@ export default function HallOfGivers() {
                 />
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 mt-24">
+            <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 mt-0 pt-24">
 
                 {/* --- Header --- */}
                 <header className="text-center mb-12 space-y-4">
@@ -112,9 +112,6 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
 
     const chain = giver.chain; // "sol" | "sui"
 
-    const getSocial = (platform: string) => {
-        return giver.socials?.find((s: any) => s.platform === platform)?.link;
-    }
 
     return (
         <motion.div

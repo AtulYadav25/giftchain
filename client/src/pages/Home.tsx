@@ -5,6 +5,8 @@ import mascot from '@/assets/hero/mascot_hero.webp';
 import slovi from '@/assets/hero/slovi.png';
 import { ArrowRight, Gift, Sparkles, Smartphone, Link as LinkIcon, Edit, Wallet, PenLine, Send } from 'lucide-react';
 import CircularGallery from '@/components/CircularGallery';
+import TotalFundsCounter from '@/components/TotalFundsCounter';
+import Faq from '@/components/Faq';
 import { allWrappers } from '@/assets/wrappers/wrapperIndex';
 import toast from 'react-hot-toast';
 
@@ -13,6 +15,7 @@ import howItWorks1 from '@/assets/how_it_works/howItWorks1.png';
 import howItWorks2 from '@/assets/how_it_works/howItWorks2.png';
 import howItWorks3 from '@/assets/how_it_works/howItWorks3.png';
 import howItWorks4 from '@/assets/how_it_works/howItWorks4.png';
+import { useUser } from '@/store';
 
 // Prepare Wrapper Images for Gallery
 const galleryItems = allWrappers.map(w => ({ text: w.name, image: w.wrapperImg }));
@@ -21,16 +24,21 @@ export default function Home() {
     const containerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
+    const user = useUser();
+
     return (
         <div ref={containerRef} className="w-full min-h-screen bg-[#E3F4FF] overflow-x-hidden">
             {/* 1. HERO SECTION */}
-            <HeroSection navigate={navigate} />
+            <HeroSection navigate={navigate} address={user?.address} />
 
             {/* 2. TICKER MARQUEE */}
             <MarqueeSection />
 
             {/* 2.5 CUSTODY DISCLAIMER (Playful) */}
             <CustodySection />
+
+            {/* NEW: VISUAL FUNDS COUNTER */}
+            <TotalFundsCounter />
 
             {/* 3. HOW IT WORKS (Scroll Reveal) */}
             <HowItWorksSection />
@@ -41,18 +49,22 @@ export default function Home() {
             {/* 5. ABOUT / MASCOT */}
             <AboutSection />
 
-            {/* 6. CALL TO ACTION / FOOTER */}
-            <FooterSection navigate={navigate} />
+            {/* 6. FAQ */}
+            <Faq />
+
+            {/* 7. CALL TO ACTION / FOOTER */}
+            <FooterSection navigate={navigate} address={user?.address} />
         </div>
     );
 }
 
 // --- SUB-COMPONENTS ---
 
-function HeroSection({ navigate }: { navigate: any }) {
+function HeroSection({ navigate, address }: { navigate: any, address: string | undefined }) {
     const { scrollY } = useScroll();
     const y1 = useTransform(scrollY, [0, 500], [0, 200]);
     const y2 = useTransform(scrollY, [0, 500], [0, -150]);
+
 
     return (
         <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 px-4 overflow-hidden bg-gradient-to-b from-[#2e9aff] to-[#60b6ff]">
@@ -96,7 +108,10 @@ function HeroSection({ navigate }: { navigate: any }) {
                     className="z-12 flex flex-col md:flex-row gap-4 justify-center items-center pt-4"
                 >
                     <button
-                        onClick={() => navigate('/profile')}
+                        onClick={() => {
+                            if (!address) return toast("Please Connect Your Wallet");
+                            navigate('/profile')
+                        }}
                         className="px-8 py-4 cursor-pointer z-[20] bg-white text-blue-600 rounded-full  font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2 group"
                     >
                         Send a Gift Now <ArrowRight className="group-hover:translate-x-1 transition-transform" />
@@ -461,7 +476,7 @@ function CustodySection() {
     );
 }
 
-function FooterSection({ navigate }: { navigate: any }) {
+function FooterSection({ navigate, address }: { navigate: any, address: string | undefined }) {
     return (
         <footer className="bg-blue-900 text-white pt-24 pb-12 mt-[-50px] relative z-0">
             <div className="max-w-4xl mx-auto px-6 text-center space-y-12">
@@ -473,7 +488,10 @@ function FooterSection({ navigate }: { navigate: any }) {
                 </div>
 
                 <button
-                    onClick={() => navigate('/profile')}
+                    onClick={() => {
+                        if (!address) return toast("Please Connect Your Wallet");
+                        navigate('/profile')
+                    }}
                     className="px-10 py-5 bg-yellow-400 text-yellow-900 text-xl font-bold rounded-full shadow-[0_0_40px_rgba(250,204,21,0.5)] hover:bg-yellow-300 hover:scale-105 transition-all"
                 >
                     Start Gifting Now

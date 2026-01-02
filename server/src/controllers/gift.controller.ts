@@ -9,6 +9,7 @@ import { Gift } from '../models/gift.model';
 import jwt from 'jsonwebtoken';
 import { truncateToTwoDecimals } from '../utils/jwt';
 import { config } from '../config/env';
+import { Stats } from '../models/stats.model';
 
 
 export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, reply: FastifyReply) => {
@@ -195,6 +196,80 @@ export const resolveRecipients = async (
 
         successResponse(reply, users, "Recipients resolved successfully", 200);
     } catch (error) {
+        errorResponse(reply, error.message, 500);
+    }
+};
+
+
+const STATS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Later (when traffic grows):
+// ➡️ Move to cron-based refresh
+// ➡️ Or Redis + cron
+export const getTotalGiftSent = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        let stats = await Stats.findOne({ cacheId: 'global' });
+
+        if (!stats) {
+            //Create one stats
+            stats = await Stats.create({ cacheId: 'global', totalAmountUSD: 0, totalGiftsSent: 0 });
+        }
+
+        const isStale =
+            !stats ||
+            Date.now() - new Date(stats.updatedAt).getTime() > STATS_TTL_MS;
+
+        if (!isStale) {
+            return successResponse(
+                reply,
+                stats,
+                'Stats fetched from cache',
+                200
+            );
+        }
+
+        // 🔁 Cache is stale → recompute
+        const result = await Gift.aggregate([
+            { $match: { verified: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalAmountUSD: { $sum: '$amountUSD' },
+                    totalGiftsSent: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const agg = result[0];
+
+        const data = {
+            totalAmountUSD: agg?.totalAmountUSD ?? 0,
+            totalGiftsSent: agg?.totalGiftsSent ?? 0,
+        };
+
+
+        const updatedStats = await Stats.findOneAndUpdate(
+            { cacheId: 'global' },
+            {
+                $set: {
+                    totalAmountUSD: data.totalAmountUSD,
+                    totalGiftsSent: data.totalGiftsSent,
+                    updatedAt: new Date()
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+
+        return successResponse(
+            reply,
+            {
+                totalAmountUSD: updatedStats.totalAmountUSD,
+                totalGiftsSent: updatedStats.totalGiftsSent
+            },
+            'Stats recomputed',
+            200
+        );
+    } catch (error: any) {
         errorResponse(reply, error.message, 500);
     }
 };

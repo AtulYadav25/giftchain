@@ -16,7 +16,7 @@ import SendGiftModal from '../components/SendGiftModal';
 import { useParams } from 'react-router-dom';
 import type { Gift as GiftType } from '@/types/gift.types';
 import GiftRevealModal from '../components/GiftRevealModal';
-import { useGiftActions, useGiftLoading, useReceivedGifts, useReceivedMeta, useSentGifts, useSentMeta } from '@/store/useGiftStore';
+import { useGiftActions, useGiftLoading, useReceivedGifts, useSentGifts } from '@/store/useGiftStore';
 import { useAuthActions, usePublicProfile, usePublicProfileLoading, useUser } from '@/store/useAuthStore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SocialIconDetector from '../components/SocialIconDetector';
@@ -59,7 +59,7 @@ const PublicProfile = () => {
     };
 
     const handleSendGiftClick = () => {
-        if (!currentUser || !profileUser) return;
+        if (!currentUser || !profileUser) return toast.error("Please Connect Your Wallet");
 
         // Reset
         setCrossChainAddress(null);

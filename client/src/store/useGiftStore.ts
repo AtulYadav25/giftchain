@@ -23,6 +23,10 @@ interface GiftState {
         tokenPrice: number;
         tokenHash: string;
     };
+    globalGiftStats: {
+        totalAmountUSD: number;
+        totalGiftsSent: number;
+    };
     giftTxLoadingStates: number;
     isLoading: boolean;
     error: string | null;
@@ -64,8 +68,8 @@ interface GiftActions {
     getSUIPrice: () => Promise<void>;
     getSOLPrice: () => Promise<void>;
     resolveRecipients: (usernames: string[]) => Promise<[{ username: string, address: string }]>;
-    claimGiftIntent: (giftId: string) => Promise<{ txBytes: Base64URLString }>;
     claimGiftSubmit: (giftId: string) => Promise<{ txDigest: string }>;
+    getGlobalGiftStats: () => Promise<{ totalAmountUSD: number, totalGiftsSent: number }>;
 }
 
 const mergeById = <T extends { _id: string }>(
@@ -96,6 +100,10 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
         sentMeta: null,
         currentGift: null,
         isLoading: false,
+        globalGiftStats: {
+            totalAmountUSD: 0,
+            totalGiftsSent: 0,
+        },
         giftTxLoadingStates: 0,
         tokenStats: {
             tokenPrice: null,
@@ -280,20 +288,6 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 }
             },
 
-            claimGiftIntent: async (giftId: string) => {
-                set({ isLoading: true, error: null });
-                try {
-                    const res = await api.post<ApiResponse<{ txBytes: Base64URLString }>>(`/gifts/claim-intent/${giftId}`);
-                    let { data } = extractData(res);
-
-                    // Don't set loading to false here, as we continue to signing
-                    return data;
-                } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
-                    throw err;
-                }
-            },
-
             claimGiftSubmit: async (giftId: string) => {
                 // Loading should already be true from intent/signing
                 try {
@@ -328,6 +322,26 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 } catch (err: any) {
                     toast.error(err.message)
                     set({ isLoading: false, error: err.message });
+                    throw err;
+                }
+            },
+
+            getGlobalGiftStats: async () => {
+                try {
+                    const res = await api.get<ApiResponse<{ totalAmountUSD: number, totalGiftsSent: number }>>(`/gifts/stats`);
+                    let { data } = extractData(res);
+
+                    set({
+                        globalGiftStats: {
+                            totalAmountUSD: data.totalAmountUSD,
+                            totalGiftsSent: data.totalGiftsSent,
+                        },
+                    });
+
+                    return data;
+                } catch (err: any) {
+                    toast.error(err.message)
+                    set({ error: err.message });
                     throw err;
                 }
             }

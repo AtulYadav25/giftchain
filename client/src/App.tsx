@@ -14,7 +14,8 @@ import HallOfGivers from './pages/HallOfGivers';
 import PublicProfile from './pages/PublicProfile';
 import { useInitApp } from './hooks/useInitApp';
 import UsernameSetupModal from './components/UsernameSetupModal';
-import { useUser } from './store';
+import { useGiftActions, useUser } from './store';
+import { useEffect } from 'react';
 
 //MultiChain Kit Imports
 
@@ -23,8 +24,13 @@ const App = () => {
   //Initialize App with User Creds - Checks Session
   useInitApp();
 
+  const { getGlobalGiftStats } = useGiftActions();
+
   const user = useUser();
 
+  useEffect(() => {
+    getGlobalGiftStats();
+  }, []);
 
   return (
 
