@@ -240,6 +240,10 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
     const handleProcessPayment = async () => {
 
+        let solana_treasury_address = process.env.VITE_SOLANA_TREASURY;
+        let sui_treasury_address = process.env.VITE_SUI_TREASURY;
+
+
         // 1️⃣ Validation
         // Collect usernames that need resolving
         const usernamesToResolve = recipients
@@ -283,6 +287,11 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                 // NOTE: This will trip if user only enters a username, but instruction says DO NOT CHANGE VALIDATION/LOGIC
                 // The user logic implies they want the input to "treat it as username" in state.
                 toast.error(`Recipient #${index + 1}: address is required`);
+                return;
+            }
+
+            if (recipient.address === solana_treasury_address || recipient.address === sui_treasury_address) {
+                toast.error(`Recipient #${index + 1}: address is not valid`);
                 return;
             }
 
@@ -912,8 +921,9 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                                                             onChange={(e) =>
                                                                 updateRecipientAddressOrUsername(recipient.id, e.target.value)
                                                             }
+                                                            disabled={!!initialRecipient?.address || !!initialRecipient?.username}
                                                             placeholder="Enter username or wallet address"
-                                                            className="h-12 font-mono text-sm bg-slate-50 border-slate-200 focus:border-slate-500 focus:ring-0"
+                                                            className="h-12 font-mono text-sm bg-slate-50 border-slate-200 focus:border-slate-500 focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                     </div>
                                                 </div>
@@ -922,12 +932,14 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                                         ))}
                                     </div>
 
-                                    <button
-                                        onClick={addRecipient}
-                                        className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:bg-white hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 bg-slate-50"
-                                    >
-                                        <Plus size={20} strokeWidth={3} /> Add Another Recipient
-                                    </button>
+                                    {!initialRecipient && (
+                                        <button
+                                            onClick={addRecipient}
+                                            className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:bg-white hover:border-slate-900 hover:text-slate-900 transition-all flex items-center justify-center gap-2 bg-slate-50"
+                                        >
+                                            <Plus size={20} strokeWidth={3} /> Add Another Recipient
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
