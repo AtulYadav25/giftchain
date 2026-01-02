@@ -8,16 +8,23 @@ import { Signature } from '@solana/kit';
 import { Gift } from '../models/gift.model';
 import jwt from 'jsonwebtoken';
 import { truncateToTwoDecimals } from '../utils/jwt';
+import { config } from '../config/env';
 
 
 export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, reply: FastifyReply) => {
     try {
+
+        //Check if the receiver wallet is the fee collector wallet
+        if (req.body.receiverWallet === config.SOL_FEE_COLLECTOR_ADDRESS || req.body.receiverWallet === config.SUI_FEE_COLLECTOR_ADDRESS) {
+            return errorResponse(reply, "Invalid receiver wallet", 400);
+        }
 
         const totalUnverifiedGifts = await Gift.countDocuments({ senderWallet: req.user!.address, verified: false });
 
         if (totalUnverifiedGifts >= 5) {
             return errorResponse(reply, "You have reached the limit of unverified gifts", 400);
         }
+
 
         //Verify with jwt for the tokenStats
         const tokenStats: any = await jwt.verify(req.body.tokenStats.tokenHash, process.env.JWT_SECRET!);
@@ -29,7 +36,7 @@ export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, repl
             return errorResponse(reply, "Not Authenticated Transaction!", 400);
         }
 
-        const gift = await giftService.createGift(req.user!.userId, req.body, req.user.chain);
+        const gift = await giftService.createGift(req.user!.userId, req.body, req.user.chain, req.user.address);
 
 
         //Delete Gifts that are older then 10 Minutes and their tx is not verified
