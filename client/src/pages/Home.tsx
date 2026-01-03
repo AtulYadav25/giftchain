@@ -500,8 +500,8 @@ function FooterSection({ navigate, address }: { navigate: any, address: string |
                 <div className="border-t border-blue-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-blue-300">
                     <p>© 2024 GiftChain. All rights reserved.</p>
                     <div className="flex gap-6 mt-4 md:mt-0">
-                        <a href="#" className="hover:text-white transition">Privacy</a>
-                        <a href="#" className="hover:text-white transition">Terms</a>
+                        <a href="/privacy-policy" className="hover:text-white transition">Privacy</a>
+                        <a href="/terms" className="hover:text-white transition">Terms</a>
                         <a href="#" className="hover:text-white transition">Twitter</a>
                     </div>
                 </div>
