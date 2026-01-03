@@ -12,6 +12,8 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import HallOfGivers from './pages/HallOfGivers';
 import PublicProfile from './pages/PublicProfile';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
 import { useInitApp } from './hooks/useInitApp';
 import UsernameSetupModal from './components/UsernameSetupModal';
 import { useGiftActions, useUser } from './store';
@@ -43,6 +45,8 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/hall-of-givers" element={<HallOfGivers />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/:username" element={<PublicProfile />} />
           </Routes>
         </main>
