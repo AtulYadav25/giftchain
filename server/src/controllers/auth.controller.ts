@@ -2,6 +2,8 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as authService from '../services/auth.service';
 import { successResponse, errorResponse } from '../utils/responseHandler';
 import { User } from '../models/user.model';
+import { Address, getPublicKeyFromAddress } from '@solana/kit';
+import { isValidSuiAddress } from '@mysten/sui/utils';
 
 export const requestMessage = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -9,6 +11,19 @@ export const requestMessage = async (req: FastifyRequest, reply: FastifyReply) =
 
         if (!address) {
             return errorResponse(reply, "Wallet address is required", 400);
+        }
+
+        //Validate Address by respective chain
+        if (chain === 'sol') {
+            const publicKey = await getPublicKeyFromAddress(address as Address);
+            if (!publicKey) {
+                return errorResponse(reply, "Invalid Solana address", 400);
+            }
+        } else if (chain === 'sui') {
+            const publicKey = await isValidSuiAddress(address);
+            if (!publicKey) {
+                return errorResponse(reply, "Invalid Sui address", 400);
+            }
         }
 
         const result = await authService.requestMessage(address, chain);
@@ -44,14 +59,14 @@ export const checkUsernameAvailability = async (req: FastifyRequest, reply: Fast
         const { username } = req.body as { username: string };
 
         if (username === 'admin' || username === 'profile') {
-            return errorResponse(reply, "Username not available", 400)
+            return errorResponse(reply, "Username not available", 409)
         }
 
         // Set JWT token as HTTP-only cookie
         const user = await User.findOne({ usernameLower: username.toLowerCase() });
 
         if (user) {
-            return errorResponse(reply, "Username already taken", 400)
+            return errorResponse(reply, "Username already taken", 409)
         }
 
         successResponse(reply, { available: true }, 'Username available', 200);

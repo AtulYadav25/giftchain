@@ -31,6 +31,11 @@ export interface IUser extends Document {
     createdAt: Date;
     updatedAt: Date;
     usernameLower: string;
+    legal: {
+        terms: { accepted: true, version: "v1.0", acceptedAt: Date },
+        privacy: { accepted: true, version: "v1.0", acceptedAt: Date },
+    };
+
     lastAvatarUpdate?: Date;
 }
 
@@ -121,6 +126,37 @@ const UserSchema: Schema = new Schema(
             type: String,
             unique: true,
             default: null
+        },
+
+        legal: {
+            terms: {
+                accepted: {
+                    type: Boolean,
+                    default: false
+                },
+                version: {
+                    type: String,
+                    default: "v1.0"
+                },
+                acceptedAt: {
+                    type: Date,
+                    default: null
+                }
+            },
+            privacy: {
+                accepted: {
+                    type: Boolean,
+                    default: false
+                },
+                version: {
+                    type: String,
+                    default: "v1.0"
+                },
+                acceptedAt: {
+                    type: Date,
+                    default: null
+                }
+            },
         },
 
         lastAvatarUpdate: {

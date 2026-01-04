@@ -141,6 +141,11 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
             return errorResponse(reply, "Invalid username", 400);
         }
 
+        user.legal.terms.accepted = true;
+        user.legal.privacy.accepted = true;
+        user.legal.terms.acceptedAt = new Date();
+        user.legal.privacy.acceptedAt = new Date();
+
         user.username = newUsername.trim();
         user.usernameLower = normalized;
     }

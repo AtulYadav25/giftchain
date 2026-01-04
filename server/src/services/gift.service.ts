@@ -5,7 +5,7 @@ import { Transaction } from '@mysten/sui/transactions';
 import { getClient } from '../utils/sui';
 import { createHash } from 'crypto';
 import { extractImagePublicId } from '../utils/imageHelper';
-import { truncateToTwoDecimals } from '../utils/jwt';
+import { truncateSmart } from '../utils/jwt';
 
 const client = getClient('testnet');
 
@@ -15,7 +15,7 @@ export const createGift = async (senderId: string, data: any, chain: string, sen
         senderWallet,
         receiverWallet: data.receiverWallet,
 
-        amountUSD: truncateToTwoDecimals(data.amountUSD), // In USD eg: 100 USD
+        amountUSD: data.amountUSD, // In USD eg: 100 USD
         totalTokenAmount: Number(data.totalTokenAmount), // In SUI(MIST) eg: 1.154 SUI but stored 11545558885
         tokenSymbol: data.tokenSymbol, // 'sui' | 'sol'
         feeUSD: data.feeUSD, // In USD eg: 1 USD
@@ -124,8 +124,8 @@ export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string) => {
 
     // Fetch only what we need
     const gifts = await Gift.find(
-        { _id: { $in: giftIds } },
-        { totalTokenAmount: 1, amountUSD: 1 }
+        { _id: { $in: giftIds }, verified: { $ne: true } },
+        { totalTokenAmount: 1, amountUSD: 1, receiverWallet: 1 }
     ).lean();
 
     // 1️⃣ Ensure all gifts exist
@@ -138,7 +138,7 @@ export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string) => {
         const expectedAmount = amountMap.get(gift._id.toString());
         if (expectedAmount == null) return false;
 
-        return gift.totalTokenAmount === expectedAmount;
+        return BigInt(gift.totalTokenAmount) === BigInt(expectedAmount);
     });
 
     if (!isVerified) {
@@ -408,25 +408,36 @@ export const claimGift = async (
 
 };
 
-export const deleteUnverifiedGifts = async (userId: string) => {
-    const now = new Date();
-    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-    await Gift.deleteMany({ createdAt: { $lt: tenMinutesAgo }, verified: false, senderId: userId });
+export const deleteUnverifiedGift = async (giftId: string, userAddress: string) => {
+    const gift = await Gift.findById(giftId);
+
+    if (!gift || gift.verified || gift.senderWallet !== userAddress) {
+        console.log(userAddress, gift.senderWallet, gift.verified)
+        throw new Error('Gift Not Valid')
+    };
+
+    await gift.deleteOne();
 };
 
-export const resolveRecipients = async (usernames: string[], chain: string) => {
-    // 1️⃣ Fetch all matching users
-    const users = await User.find({
+export const resolveRecipients = async (
+    usernames: string[],
+    chain?: string
+) => {
+    // 1️⃣ Fetch matching users
+    const query: any = {
         username: { $in: usernames },
-        chain,
-    }).select("username");
+    };
 
-    // 2️⃣ Map for fast lookup
+    if (chain) query.chain = chain;
+
+    const users = await User.find(query).select("username address");
+
+    // 2️⃣ Build lookup map
     const userMap = new Map(
-        users.map(user => [user.username, user])
+        users.map(user => [user.username, user.address])
     );
 
-    // 3️⃣ Detect missing usernames WITH POSITION
+    // 3️⃣ Detect invalid usernames
     const invalidUsernames: { username: string; index: number }[] = [];
 
     usernames.forEach((username, index) => {
@@ -435,17 +446,13 @@ export const resolveRecipients = async (usernames: string[], chain: string) => {
         }
     });
 
-    // 4️⃣ Throw error if any invalid
-    if (invalidUsernames.length > 0) {
-        const message = invalidUsernames
-            .map(
-                u => `Invalid username "${u.username}" at position ${u.index + 1}`
-            )
-            .join(", ");
-
-        throw new Error(message);
-    }
-
-    // 5️⃣ Return users IN SAME ORDER as input
-    return usernames.map(username => userMap.get(username)!);
+    // 4️⃣ Return both (DO NOT throw)
+    return {
+        resolved: users.map(u => ({
+            username: u.username,
+            address: u.address,
+        })),
+        invalidUsernames,
+    };
 };
+

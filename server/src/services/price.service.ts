@@ -7,6 +7,13 @@ const SUI_CACHE_KEY = 'sui_price_usd';
 const SOL_CACHE_KEY = 'sol_price_usd';
 const CACHE_TTL = 240; // 4 minutes
 
+export function truncateTo5Decimals(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+
+    return Math.trunc(value * 100000) / 100000;
+}
+
+
 interface CMCSUIResponse {
     data: {
         SUI: {
@@ -62,7 +69,7 @@ export const getSuiPrice = async (): Promise<number> => {
         throw new Error('Invalid response structure from CoinMarketCap');
     }
 
-    const price = data.data.SUI.quote.USD.price;
+    const price = truncateTo5Decimals(data.data.SUI.quote.USD.price);
 
     // 3. Store in Redis with TTL
     try {
@@ -104,7 +111,7 @@ export const getSolPrice = async (): Promise<number> => {
         throw new Error('Invalid response structure from CoinMarketCap');
     }
 
-    const price = data.data.SOL.quote.USD.price;
+    const price = truncateTo5Decimals(data.data.SOL.quote.USD.price);
 
     // 3. Store in Redis with TTL
     try {
