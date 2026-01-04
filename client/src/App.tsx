@@ -16,8 +16,9 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Terms from './pages/Terms';
 import { useInitApp } from './hooks/useInitApp';
 import UsernameSetupModal from './components/UsernameSetupModal';
-import { useGiftActions, useUser } from './store';
-import { useEffect } from 'react';
+import { useAuthActions, useGiftActions, useUser } from './store';
+import { useEffect, useRef } from 'react';
+import { useChain } from './multichainkit/context/ChainContext';
 
 //MultiChain Kit Imports
 
@@ -27,12 +28,36 @@ const App = () => {
   useInitApp();
 
   const { getGlobalGiftStats } = useGiftActions();
+  const { chain, address, disconnectWallet } = useChain();
+  // const { disconnectWallet: disconnectAuth } = useAuthActions();
 
   const user = useUser();
 
   useEffect(() => {
     getGlobalGiftStats();
   }, []);
+
+
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current && address !== null) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const handleDisconnect = async () => {
+      await disconnectWallet();
+    }
+
+    if (!isFirstRender.current) {
+      handleDisconnect();
+      isFirstRender.current = true;
+    }
+
+  }, [address]);
+
 
   return (
 
