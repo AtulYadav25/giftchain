@@ -128,9 +128,18 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
     const { sendGift, verifyGift, resolveRecipients } = useGiftActions();
 
     // SUI Price
-    const { getSUIPrice, fetchSentGifts, getSOLPrice } = useGiftActions();
+    const { getSUIPrice, fetchMySentGifts, getSOLPrice } = useGiftActions();
     const user = useUser();
     const { tokenStats } = useGiftStore((s) => s);
+
+    const { setGiftTxLoadingStates } = useGiftActions();
+    const resetSendGiftModal = () => {
+        setStep(1);
+        setMessage("");
+        setRecipients([]);
+        setGiftTxLoadingStates(0);
+    };
+
 
     const exchangeRates = useMemo(() => ({
         SUI: chain === 'sui' ? tokenStats.tokenPrice : 0,
@@ -240,8 +249,8 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
     const handleProcessPayment = async () => {
 
-        let solana_treasury_address = process.env.VITE_SOLANA_TREASURY;
-        let sui_treasury_address = process.env.VITE_SUI_TREASURY;
+        let solana_treasury_address = import.meta.env.VITE_SOLANA_TREASURY;
+        let sui_treasury_address = import.meta.env.VITE_SUI_TREASURY;
 
 
         // 1️⃣ Validation
@@ -251,15 +260,21 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             .map(r => r.username);
 
         // Resolve only if needed
-        let resolvedMap = new Map<string, string>();
+        const resolvedMap = new Map<string, string>();
 
         if (usernamesToResolve.length > 0) {
-            const resolved = await resolveRecipients(usernamesToResolve);
-            // resolved = [{ username, address }]
+            const data =
+                await resolveRecipients(usernamesToResolve);
 
-            resolved.forEach(u => {
+            data.resolved.forEach(u => {
                 resolvedMap.set(u.username, u.address);
             });
+
+            data.invalidUsernames.forEach(u => {
+                toast.error(`Invalid username: ${u.username}`);
+            });
+
+            if (data.invalidUsernames.length > 0) return;
         }
 
         const finalRecipients = recipients.map(r => {
@@ -290,6 +305,11 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                 return;
             }
 
+            if (recipient.address === user?.address) {
+                toast.error(`Recipient #${index + 1}: You cannot send Gift to own address`);
+                return;
+            }
+
             if (recipient.address === solana_treasury_address || recipient.address === sui_treasury_address) {
                 toast.error(`Recipient #${index + 1}: address is not valid`);
                 return;
@@ -317,8 +337,8 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         }
 
         // Ensure unique addresses
-        const uniqueAddresses = new Set(recipients.map(r => r.address));
-        if (uniqueAddresses.size !== recipients.length) {
+        const uniqueAddresses = new Set(finalRecipients.map(r => r.address));
+        if (uniqueAddresses.size !== finalRecipients.length) {
             toast.error('All recipients must be unique');
             return;
         }
@@ -330,7 +350,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             ------------------------------------------------- */
 
             const createdGifts = await Promise.all(
-                recipients.map(recipient => {
+                finalRecipients.map(recipient => {
                     const recipientFee =
                         inputMode === 'USD'
                             ? Number(recipient.amount) * PLATFORM_FEE_PERCENT + PLATFORM_FEE_BASE
@@ -363,9 +383,9 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
 
             if (chain === 'sui') {
-                await triggerSUITransaction(createdGifts);
+                await triggerSUITransaction(createdGifts, finalRecipients);
             } else if (chain === 'solana') {
-                await triggerSolanaTransaction(createdGifts);
+                await triggerSolanaTransaction(createdGifts, finalRecipients);
             }
 
 
@@ -374,7 +394,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         }
     };
 
-    const triggerSolanaTransaction = async (createdGifts: any[]) => {
+    const triggerSolanaTransaction = async (createdGifts: any[], recipients: any[]) => {
         const tx = new ChainContextTransaction(activeAdapter);
 
         let totalPlatformFeeSol = 0;
@@ -430,7 +450,14 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
            3️⃣ Sign & execute once
         --------------------------------------------- */
 
-        const signature = await tx.signAndExecute();
+        let signature;
+        try {
+            signature = await tx.signAndExecute();
+        } catch (err: any) {
+            toast.error('Failed to sign and execute transaction');
+            resetSendGiftModal()
+            return;
+        }
 
         /* ---------------------------------------------
            4️⃣ Verify with backend
@@ -443,16 +470,14 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             verifyType: 'wrapGift',
         });
 
-        fetchSentGifts(user?.address!, 1, 8);
+        fetchMySentGifts(1, 8);
         toast.success('Gift sent successfully');
-        setStep(1);
-        setMessage("");
-        setRecipients([]);
+        resetSendGiftModal();
         onClose();
     };
 
 
-    const triggerSUITransaction = (createdGifts: any) => {
+    const triggerSUITransaction = (createdGifts: any, finalRecipients: any) => {
 
         const PACKAGE_ID = import.meta.env.VITE_PACKAGE_ID;
         const VITE_GIFT_CONFIG = import.meta.env.VITE_GIFT_CONFIG;
@@ -470,7 +495,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         // Calculate total required SUI
         let totalSuiRequired = 0;
 
-        for (const r of recipients) {
+        for (const r of finalRecipients) {
             const giftUsd =
                 inputMode === 'USD'
                     ? Number(r.amount)
@@ -495,7 +520,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
            3️⃣ Loop recipients & use giftId from backend
         ------------------------------------------------- */
 
-        recipients.forEach((recipient, index) => {
+        finalRecipients.forEach((recipient: any, index: number) => {
             const giftUsd =
                 inputMode === 'USD'
                     ? Number(recipient.amount)
@@ -541,8 +566,9 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                         address: account!.address,
                         verifyType: 'wrapGift'
                     });
-                    fetchSentGifts(user?.address!, 1, 8)
+                    fetchMySentGifts(1, 8)
                     toast.success('Gift sent successfully');
+                    resetSendGiftModal();
                     onClose();
                 },
                 onError: () => {
@@ -838,7 +864,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                                                                         }
 
                                                                         // Regex: min 1, optional decimal, max 2 decimal places
-                                                                        const regex = /^(?:[1-9]\d*)(?:\.\d{0,2})?$/;
+                                                                        const regex = /^(?:0|[1-9]\d*)(?:\.\d{0,2})?$/;
 
                                                                         if (regex.test(value)) {
                                                                             updateRecipient(recipient.id, "amount", value);
@@ -1046,7 +1072,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                             className={`px-5 py-3 text-md w-auto rounded-2xl font-black font-lexend text-slate-900 flex items-center gap-2 transition-all active:translate-y-[4px] active:shadow-none ${step === 4
                                 ? 'bg-[#4ADE80] hover:bg-[#22c55e] w-auto md:w-auto justify-center border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] text-md'
                                 : 'bg-[#F472B6] hover:bg-[#ec4899] border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)]'
-                                } ${((!selectedWrapper && step === 1) || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0))) ? 'opacity-50 cursor-not-allowed shadow-none border-slate-300 bg-slate-100 text-slate-400' : ''}`}
+                                } ${((!selectedWrapper && step === 1) || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0 || (inputMode === 'TOKEN' ? (Number(r.amount) * exchangeRates[currency]) < 1 : Number(r.amount) < 1)))) ? 'opacity-50 cursor-not-allowed shadow-none border-slate-300 bg-slate-100 text-slate-400' : ''}`}
                         >
 
 
