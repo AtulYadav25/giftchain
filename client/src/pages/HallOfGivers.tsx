@@ -9,6 +9,7 @@ import { useAuthActions } from '@/store';
 import useAuthStore from '@/store/useAuthStore';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import SocialIconDetector, { detectPlatform } from '@/components/SocialIconDetector';
+import truncateSmart from '@/lib/truncateSmart';
 
 export default function HallOfGivers() {
 
@@ -85,7 +86,7 @@ export default function HallOfGivers() {
                         className='flex flex-col gap-6'
                     >
                         {topGivers.map((giver, index) => (
-                            <GiverCard key={giver._id} giver={giver} index={index} />
+                            !giver.username.includes("gc@") ? <GiverCard key={giver._id} giver={giver} index={index} /> : null
                         ))}
                     </InfiniteScroll>
                 </div>
@@ -157,7 +158,7 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
                         >
                             <AvatarImage src={giver.avatar} />
                             <AvatarFallback className="font-main text-white bg-gray-500">
-                                {giver.username[0]}
+                                {giver.username[0].toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
 
@@ -194,7 +195,7 @@ function GiverCard({ giver, index }: { giver: any; index: number }) {
                 {/* Right Side */}
                 <div className="text-right">
                     <div className={`text-xl sm:text-3xl font-main ${giver.chain === 'sol' ? 'text-black' : 'text-blue-500'}`}>
-                        ${giver.totalSentUSD.toLocaleString()}
+                        ${truncateSmart(giver.totalSentUSD).toLocaleString()}
                     </div>
                     <div className={`text-xs font-main text-slate-400 uppercase tracking-wider mt-0.5 ${isTopGiver ? '!text-black' : ''}`}>
                         sent

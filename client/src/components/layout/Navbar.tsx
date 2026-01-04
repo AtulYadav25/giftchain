@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User, Gift, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuthActions } from "@/store";
+import { useAuthActions, useGiftActions } from "@/store";
 import toast from "react-hot-toast";
 import { useChain } from "@/multichainkit/context/ChainContext";
 import { ChainSwitcher, ChainConnectButton } from "@/multichainkit/components/NavbarChainControl";
@@ -25,7 +25,8 @@ export default function Navbar() {
     // Multi-chain hooks
     const { address, disconnectWallet, chain } = useChain();
     const user = useUser();
-    const { disconnectWallet: disconnectAuth } = useAuthActions();
+    // const { disconnectWallet: disconnectAuth } = useAuthActions();
+    const { emptyGiftStats } = useGiftActions();
 
     const isConnected = !!address;
     const isHome = location.pathname === '/';
@@ -39,8 +40,9 @@ export default function Navbar() {
 
     const handleDisconnect = async () => {
         try {
-            await disconnectAuth();
+            // await disconnectAuth();
             disconnectWallet();
+            emptyGiftStats();
         } catch (err: any) {
             toast.error(err.message || "Failed to disconnect wallet");
         }
@@ -96,7 +98,7 @@ export default function Navbar() {
                                     </div>
                                     <Avatar className="h-9 w-9 border-2 border-white/30">
                                         <AvatarImage src={user?.avatar} />
-                                        <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.username.slice(0, 2)}</AvatarFallback>
+                                        <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.username.slice(0, 2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <ChevronDown size={14} className="text-white/70" />
                                 </motion.div>

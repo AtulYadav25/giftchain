@@ -87,16 +87,16 @@ export const ChainContextProvider = ({ children }: { children: React.ReactNode }
         }
     };
 
-    const disconnectWallet = () => {
+    const disconnectWallet = async () => {
         // Disconnects everything found just to be safe & clean
         disconnectSolana().catch(console.error);
         disconnectSui();
+        await disconnectAuthWallet();
     };
 
     const switchChain = async (newChain: ChainType) => {
         if (!newChain) return;
 
-        await disconnectAuthWallet();
         // Disconnect ALL wallets from ALL chains
         disconnectWallet();
 

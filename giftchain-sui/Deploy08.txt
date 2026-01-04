@@ -164,3 +164,33 @@ Package ID = 0x9a48d7f2448a93379238e3f8861a94c44629349318a458660e2a24f7cf6d0e43
 Config = 0x9eca979ce0b18193c72bbb9569a40007deee1ef517bf6c37b13a664538172227
 
 Admin CAP = 0x4c9766a53993d3b3eaed4ae8dbcee9883b46133faf16028562a36a6cfb851838
+
+
+
+
+
+ let signature;
+        try {
+            signature = await tx.signAndExecute();
+        } catch (err: any) {
+            toast.error('Failed to sign and execute transaction');
+            resetSendGiftModal()
+            return;
+        }
+
+
+const regex = /^(?:0|[1-9]\d*)(?:\.\d{0,2})?$/;
+
+
+${((!selectedWrapper && step === 1) || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0 || (inputMode === 'TOKEN' ? (Number(r.amount) * exchangeRates[currency]) < 1 : Number(r.amount) < 1)))) ? 'opacity-50 cursor-not-allowed shadow-none border-slate-300 bg-slate-100 text-slate-400' : ''}`}
+
+
+
+
+    const { setGiftTxLoadingStates } = useGiftActions();
+    const resetSendGiftModal = () => {
+        setStep(1);
+        setMessage("");
+        setRecipients([]);
+        setGiftTxLoadingStates(0);
+    };

@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 import CountUp from './CountUp'; // Adjust path if needed
 import { Sparkles, Heart } from 'lucide-react';
 import useGiftStore from '@/store/useGiftStore';
+import truncateSmart from '@/lib/truncateSmart';
 
 export default function TotalFundsCounter() {
 
     const { globalGiftStats } = useGiftStore()
 
     // Hardcoded values for demonstration
-    const totalFunds = globalGiftStats.totalAmountUSD; // $12,450,500
+    const totalFunds = Number(truncateSmart(globalGiftStats.totalAmountUSD)); // $12,450,500
     const totalGifts = globalGiftStats.totalGiftsSent;
 
     return (

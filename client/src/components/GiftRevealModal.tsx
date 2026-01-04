@@ -67,7 +67,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
     const [expandedView, setExpandedView] = useState<'none' | 'wrapper' | 'message'>('none');
 
     const handleClaim = async () => {
-        if (isProcessing || isClaimed || address === gift.senderWallet) return;
+        if (isProcessing || isClaimed || address === gift.senderWallet || address !== gift.receiverWallet) return;
 
         setIsProcessing(true);
         const toastId = toast.loading("Initiating claim...");
@@ -406,7 +406,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
 
                                 {/* Action Button Section - Excluded from download */}
                                 <div className="w-full pt-4 exclude-from-capture">
-                                    {!isClaimed && variant === 'received' ? (
+                                    {((!isClaimed && variant === 'received') && (address === gift.receiverWallet)) ? (
                                         <motion.button
                                             whileHover={!isProcessing ? { scale: 1.02 } : {}}
                                             whileTap={!isProcessing ? { scale: 0.98 } : {}}
