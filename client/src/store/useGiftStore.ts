@@ -4,6 +4,9 @@ import { api, extractData, type ApiResponse } from '../lib/api';
 import type { Gift } from '../types/gift.types';
 import toast from 'react-hot-toast';
 
+//TODO : The specific loadings declared here are aren't used in the components, 
+// I have two choice either remove the loadings from here or replace with the components loading
+
 export interface PaginationMeta {
     total: number | null;
     page: number;
@@ -18,6 +21,10 @@ interface GiftState {
     receivedGifts: Gift[];
     receivedMeta: PaginationMeta | null;
     sentMeta: PaginationMeta | null;
+    publicUserSentGifts: Gift[];
+    publicUserReceivedGifts: Gift[];
+    publicUserReceivedMeta: PaginationMeta | null;
+    publicUserSentMeta: PaginationMeta | null;
     currentGift: Gift | null;
     tokenStats: {
         tokenPrice: number;
@@ -27,8 +34,18 @@ interface GiftState {
         totalAmountUSD: number;
         totalGiftsSent: number;
     };
+    // Loading States
     giftTxLoadingStates: number;
-    isLoading: boolean;
+    isSentGiftsLoading: boolean;
+    isReceivedGiftsLoading: boolean;
+    isFetchingGift: boolean;
+    isClaimingGift: boolean;
+    isResolvingRecipients: boolean;
+    isTokenPriceLoading: boolean;
+    isGlobalStatsLoading: boolean;
+    isDeletingGift: boolean;
+    isOpeningGift: boolean;
+
     error: string | null;
 }
 
@@ -58,18 +75,22 @@ export interface VerifyGiftParams {
 }
 
 interface GiftActions {
+    setGiftTxLoadingStates: (state: number) => void;
     sendGift: (giftData: SendGiftParams) => Promise<Gift>;
     verifyGift: (giftData: VerifyGiftParams) => Promise<any>;
+    deleteUnVerifiedGift: (giftId: string) => Promise<void>;
     fetchSentGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
     fetchMySentGifts: (page?: number, limit?: number) => Promise<void>;
     fetchReceivedGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
+    fetchMyReceivedGifts: (address: string, page?: number, limit?: number) => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
     getSOLPrice: () => Promise<void>;
-    resolveRecipients: (usernames: string[]) => Promise<[{ username: string, address: string }]>;
+    resolveRecipients: (usernames: string[]) => Promise<{ resolved: [{ username: string, address: string }], invalidUsernames: [{ username: string, address: string }] }>;
     claimGiftSubmit: (giftId: string) => Promise<{ txDigest: string }>;
     getGlobalGiftStats: () => Promise<{ totalAmountUSD: number, totalGiftsSent: number }>;
+    emptyGiftStats: () => void;
 }
 
 const mergeById = <T extends { _id: string }>(
@@ -89,6 +110,8 @@ const mergeById = <T extends { _id: string }>(
     return Array.from(map.values());
 };
 
+
+
 //TODO : Same API Endpoint can be do both the work of fetchSentGifts and fetchMySentGifts, Update 
 // API Endpoint to check if user is authenticated, if yes then proceed with fetchMySentGifts else
 // fetchSentGifts
@@ -96,10 +119,13 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
     devtools((set) => ({
         sentGifts: [],
         receivedGifts: [],
+        publicUserSentGifts: [],
+        publicUserReceivedGifts: [],
+        publicUserReceivedMeta: null,
+        publicUserSentMeta: null,
         receivedMeta: null,
         sentMeta: null,
         currentGift: null,
-        isLoading: false,
         globalGiftStats: {
             totalAmountUSD: 0,
             totalGiftsSent: 0,
@@ -109,9 +135,27 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             tokenPrice: null,
             tokenHash: null
         },
+
+        // Initial Loading States
+        isSentGiftsLoading: false,
+        isReceivedGiftsLoading: false,
+        isFetchingGift: false,
+        isClaimingGift: false,
+        isResolvingRecipients: false,
+        isTokenPriceLoading: false,
+        isGlobalStatsLoading: false,
+        isDeletingGift: false,
+        isOpeningGift: false,
+
         error: null,
 
         actions: {
+            setGiftTxLoadingStates: (state: number) =>
+                set((prev) => ({
+                    ...prev,
+                    giftTxLoadingStates: state,
+                })),
+
             sendGift: async (giftData: SendGiftParams) => {
                 set({ giftTxLoadingStates: 1, error: null });
                 try {
@@ -129,14 +173,16 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             },
 
             deleteUnVerifiedGift: async (giftId: string) => {
+                set({ isDeletingGift: true, error: null });
                 try {
                     await api.get<ApiResponse<any>>(`/gifts/delete-unverified/${giftId}`);
 
                     toast.success("Gift Deleted!");
+                    set({ isDeletingGift: false });
 
                     return;
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
+                    set({ isDeletingGift: false, error: err.message });
                     throw err;
                 }
             },
@@ -156,31 +202,48 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
 
 
 
-            fetchSentGifts: async (userName: string, page = 1, limit = 10) => {
-                set({ isLoading: true, error: null });
+            fetchSentGifts: async (address: string, page = 1, limit = 10) => {
+                set({ isSentGiftsLoading: true, error: null });
 
                 try {
                     const res = await api.get<ApiResponse<Gift[]>>(
-                        `/gifts/sent/${userName}?page=${page}&limit=${limit}`
+                        `/gifts/sent/${address}?page=${page}&limit=${limit}`
                     );
 
                     const { data: responseBody } = res;
 
+                    //TODO : Maybe here i dont need to validate if its user address and i can directly proceed setting the data to publicUserSent
+
                     set((state) => ({
-                        sentGifts:
+                        publicUserSentGifts:
                             page === 1
-                                ? responseBody.data // FULL REFRESH (latest gifts)
-                                : mergeById(state.sentGifts, responseBody.data),
-                        sentMeta: responseBody.meta as any,
-                        isLoading: false
+                                ? responseBody.data
+                                : mergeById(state.publicUserSentGifts, responseBody.data),
+
+                        publicUserSentMeta:
+                            page === 1
+                                ? responseBody.meta
+                                : state.publicUserSentMeta,
+
+                        isSentGiftsLoading: false,
                     }));
+
+
+
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
+                    set({
+                        isSentGiftsLoading: false,
+                        error:
+                            err?.response?.data?.message ||
+                            err?.message ||
+                            'Failed to fetch sent gifts'
+                    });
                 }
             },
 
+
             fetchMySentGifts: async (page = 1, limit = 10) => {
-                set({ isLoading: true, error: null });
+                set({ isSentGiftsLoading: true, error: null });
 
                 try {
                     const res = await api.get<ApiResponse<Gift[]>>(
@@ -195,16 +258,43 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                                 ? responseBody.data // FULL REFRESH (latest gifts)
                                 : mergeById(state.sentGifts, responseBody.data),
                         sentMeta: responseBody.meta as any,
-                        isLoading: false
+                        isSentGiftsLoading: false,
+
                     }));
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
+                    set({ isSentGiftsLoading: false, error: err.message });
                 }
             },
 
 
             fetchReceivedGifts: async (address: string, page = 1, limit = 10) => {
-                set({ isLoading: true, error: null });
+                set({ isReceivedGiftsLoading: true, error: null });
+
+                try {
+                    const res = await api.get<ApiResponse<Gift[]>>(
+                        `/gifts/received/${address}?page=${page}&limit=${limit}`
+                    );
+
+                    const { data: responseBody } = res;
+
+
+                    set((state) => ({
+                        publicUserReceivedGifts:
+                            page === 1
+                                ? responseBody.data
+                                : mergeById(state.publicUserReceivedGifts, responseBody.data),
+                        publicUserReceivedMeta: responseBody.meta as any,
+                        isReceivedGiftsLoading: false,
+                    }));
+
+
+                } catch (err: any) {
+                    set({ isReceivedGiftsLoading: false, error: err.message });
+                }
+            },
+
+            fetchMyReceivedGifts: async (address: string, page = 1, limit = 10) => {
+                set({ isReceivedGiftsLoading: true, error: null });
 
                 try {
                     const res = await api.get<ApiResponse<Gift[]>>(
@@ -219,41 +309,43 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                                 ? responseBody.data
                                 : mergeById(state.receivedGifts, responseBody.data),
                         receivedMeta: responseBody.meta as any,
-                        isLoading: false
+                        isReceivedGiftsLoading: false,
                     }));
+
+
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
+                    set({ isReceivedGiftsLoading: false, error: err.message });
                 }
             },
 
 
             fetchGiftById: async (id: string) => {
-                set({ isLoading: true, error: null });
+                set({ isFetchingGift: true, error: null });
                 try {
                     const { data } = await api.get<Gift>(`/gift/${id}`);
-                    set({ currentGift: data, isLoading: false });
+                    set({ currentGift: data, isFetchingGift: false });
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
+                    set({ isFetchingGift: false, error: err.message });
                 }
             },
 
             openGift: async (id: string) => {
-                set({ isLoading: true, error: null });
+                set({ isOpeningGift: true, error: null });
                 try {
                     const { data } = await api.post<Gift>(`/gift/open/${id}`);
                     set((state) => ({
                         currentGift: data,
                         receivedGifts: state.receivedGifts.map(g => g._id === id ? data : g),
-                        isLoading: false
+                        isOpeningGift: false
                     }));
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
-                    throw err;
+                    set({ isOpeningGift: false, error: err.message });
+                    // throw err;
                 }
             },
 
             getSUIPrice: async () => {
-                set({ isLoading: true, error: null });
+                set({ isTokenPriceLoading: true, error: null });
                 try {
                     const res = await api.get<ApiResponse<{ priceUSD: number, tokenHash: string }>>(`/prices/sui`);
                     let { data } = extractData(res);
@@ -262,16 +354,16 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                             tokenPrice: data.priceUSD,
                             tokenHash: data.tokenHash
                         },
-                        isLoading: false
+                        isTokenPriceLoading: false
                     });
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
-                    throw err;
+                    set({ isTokenPriceLoading: false, error: err.message });
+                    // throw err;
                 }
             },
 
             getSOLPrice: async () => {
-                set({ isLoading: true, error: null });
+                set({ isTokenPriceLoading: true, error: null });
                 try {
                     const res = await api.get<ApiResponse<{ priceUSD: number, tokenHash: string }>>(`/prices/sol`);
                     let { data } = extractData(res);
@@ -280,16 +372,16 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                             tokenPrice: data.priceUSD,
                             tokenHash: data.tokenHash
                         },
-                        isLoading: false
+                        isTokenPriceLoading: false
                     });
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
-                    throw err;
+                    set({ isTokenPriceLoading: false, error: err.message });
+                    // throw err;
                 }
             },
 
             claimGiftSubmit: async (giftId: string) => {
-                // Loading should already be true from intent/signing
+                set({ isClaimingGift: true, error: null });
                 try {
                     const res = await api.get<ApiResponse<{ txDigest: string }>>(`/gifts/claim-gift/${giftId}`);
                     let { data } = extractData(res);
@@ -298,21 +390,23 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     set((state) => ({
                         receivedGifts: state.receivedGifts.map(g => g._id === giftId ? { ...g, status: 'opened' } : g),
                         currentGift: state.currentGift?._id === giftId ? { ...state.currentGift, status: 'opened', claimTransactionId: data.txDigest } : state.currentGift,
-                        isLoading: false
+                        isClaimingGift: false
                     }));
 
                     return data;
                 } catch (err: any) {
-                    set({ isLoading: false, error: err.message });
-                    throw err;
+                    set({ isClaimingGift: false, error: err.message });
+                    // throw err;
                 }
             },
 
             resolveRecipients: async (usernames: string[]) => {
-                set({ isLoading: true, error: null });
+                set({ isResolvingRecipients: true, error: null });
                 try {
                     const res = await api.post<ApiResponse<{}>>(`/gifts/recipients/resolve`, { usernames });
                     let { data, success } = extractData(res);
+
+                    set({ isResolvingRecipients: false });
 
                     if (success === true) {
                         return data;
@@ -321,12 +415,13 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     }
                 } catch (err: any) {
                     toast.error(err.message)
-                    set({ isLoading: false, error: err.message });
-                    throw err;
+                    set({ isResolvingRecipients: false, error: err.message });
+                    // throw err;
                 }
             },
 
             getGlobalGiftStats: async () => {
+                set({ isGlobalStatsLoading: true, error: null });
                 try {
                     const res = await api.get<ApiResponse<{ totalAmountUSD: number, totalGiftsSent: number }>>(`/gifts/stats`);
                     let { data } = extractData(res);
@@ -336,15 +431,31 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                             totalAmountUSD: data.totalAmountUSD,
                             totalGiftsSent: data.totalGiftsSent,
                         },
+                        isGlobalStatsLoading: false
                     });
 
                     return data;
                 } catch (err: any) {
-                    toast.error(err.message)
-                    set({ error: err.message });
-                    throw err;
+                    set({ isGlobalStatsLoading: false, error: err.message });
+                    // throw err;
                 }
-            }
+            },
+
+            emptyGiftStats: () => {
+                set({
+                    sentGifts: [],
+                    receivedGifts: [],
+                    publicUserSentGifts: [],
+                    publicUserReceivedGifts: [],
+                    publicUserReceivedMeta: null,
+                    publicUserSentMeta: null,
+                    receivedMeta: null,
+                    sentMeta: null,
+                    currentGift: null,
+                    giftTxLoadingStates: 0,
+                });
+            },
+
         }
     }))
 );
@@ -354,8 +465,37 @@ export const useSentGifts = () => useGiftStore((s) => s.sentGifts);
 export const useReceivedGifts = () => useGiftStore((s) => s.receivedGifts);
 export const useReceivedMeta = () => useGiftStore((s) => s.receivedMeta);
 export const useSentMeta = () => useGiftStore((s) => s.sentMeta);
+
+export const usePublicUserSentGifts = () => useGiftStore((s) => s.publicUserSentGifts);
+export const usePublicUserReceivedGifts = () => useGiftStore((s) => s.publicUserReceivedGifts);
+export const usePublicUserReceivedMeta = () => useGiftStore((s) => s.publicUserReceivedMeta);
+export const usePublicUserSentMeta = () => useGiftStore((s) => s.publicUserSentMeta);
+
+
 export const useCurrentGift = () => useGiftStore((s) => s.currentGift);
-export const useGiftLoading = () => useGiftStore((s) => s.isLoading);
+export const useGiftTxLoadingStates = () => useGiftStore((s) => s.giftTxLoadingStates);
 export const useGiftError = () => useGiftStore((s) => s.error);
 export const useGiftActions = () => useGiftStore((s) => s.actions);
+
+// Specific Loading Selectors
+export const useSentGiftsLoading = () => useGiftStore((s) => s.isSentGiftsLoading);
+export const useReceivedGiftsLoading = () => useGiftStore((s) => s.isReceivedGiftsLoading);
+export const useFetchingGiftLoading = () => useGiftStore((s) => s.isFetchingGift);
+export const useClaimingGiftLoading = () => useGiftStore((s) => s.isClaimingGift);
+export const useResolvingRecipientsLoading = () => useGiftStore((s) => s.isResolvingRecipients);
+export const useTokenPriceLoading = () => useGiftStore((s) => s.isTokenPriceLoading);
+export const useGlobalStatsLoading = () => useGiftStore((s) => s.isGlobalStatsLoading);
+export const useDeletingGift = () => useGiftStore((s) => s.isDeletingGift);
+
+// Legacy/Composite Loading Selector
+export const useGiftLoading = () => useGiftStore((s) =>
+    s.isSentGiftsLoading ||
+    s.isReceivedGiftsLoading ||
+    s.isFetchingGift ||
+    s.isClaimingGift ||
+    s.isResolvingRecipients ||
+    s.isTokenPriceLoading ||
+    s.isDeletingGift ||
+    s.isOpeningGift
+);
 
