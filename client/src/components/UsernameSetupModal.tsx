@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Check, X } from 'lucide-react';
 import { useAuthActions } from '@/store/useAuthStore';
@@ -13,6 +14,7 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
     const [isChecking, setIsChecking] = useState(false);
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
     const [isValid, setIsValid] = useState(false);
+    const [isTermsAccepted, setIsTermsAccepted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { updateProfile, checkUsernameAvailability } = useAuthActions();
@@ -43,10 +45,16 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
                 return;
             }
 
-            const isAvailable = await checkUsernameAvailability(username);
-            setIsAvailable(isAvailable);
-            setIsValid(isAvailable);
-            setIsChecking(false);
+            try {
+                const isAvailable = await checkUsernameAvailability(username);
+                setIsAvailable(isAvailable);
+                setIsValid(isAvailable);
+                setIsChecking(false);
+            } catch (error) {
+                setIsAvailable(false);
+                setIsValid(false);
+                setIsChecking(false);
+            }
 
         }, 600);
 
@@ -59,7 +67,7 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
         setIsSubmitting(true);
         try {
 
-            updateProfile({ username });
+            updateProfile({ username, termsAccepted: true, privacyAccepted: true });
             toast.success(`Welcome, ${username}!`);
         } catch (error) {
             toast.error("Failed to set username");
@@ -122,10 +130,23 @@ export default function UsernameSetupModal({ isOpen }: UsernameSetupModalProps) 
                         </p>
                     )}
 
+                    <div className="flex items-center gap-3 text-left pl-1 pt-2">
+                        <input
+                            type="checkbox"
+                            checked={isTermsAccepted}
+                            onChange={(e) => setIsTermsAccepted(e.target.checked)}
+                            className="w-5 h-5 rounded-md border-2 border-slate-300 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer transition-colors checked:bg-blue-500 checked:border-blue-500"
+                            id="terms-check"
+                        />
+                        <label htmlFor="terms-check" className="text-sm text-slate-500 font-main cursor-pointer select-none leading-tight">
+                            I agree to Giftchain <Link to="/terms" target="_blank" className="text-blue-500 hover:text-blue-700 underline font-bold transition-colors">Terms &</Link> <Link to="/privacy-policy" target="_blank" className="text-blue-500 hover:text-blue-700 underline font-bold transition-colors">Privacy</Link>
+                        </label>
+                    </div>
+
                     <button
                         onClick={handleSubmit}
-                        disabled={!isValid || !isAvailable || isSubmitting}
-                        className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${!isValid || !isAvailable || isSubmitting
+                        disabled={!isValid || !isAvailable || isSubmitting || !isTermsAccepted}
+                        className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${!isValid || !isAvailable || isSubmitting || !isTermsAccepted
                             ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                             : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98]'
                             }`}

@@ -46,6 +46,8 @@ type UpdateProfileData = {
     bio?: string[];
     settings?: { show_gift_sent: boolean };
     socials?: { platform: string; link: string }[];
+    termsAccepted?: boolean;
+    privacyAccepted?: boolean;
     alternateAddresses?: { chain: 'sol' | 'sui', address: string }[];
 };
 
@@ -191,6 +193,16 @@ const useAuthStore = create<AuthState & { publicProfile: User | null; publicProf
                             hasAnyField = true;
                         }
 
+                        if (data.termsAccepted) {
+                            formData.append('termsAccepted', data.termsAccepted.toString());
+                            hasAnyField = true;
+                        }
+
+                        if (data.privacyAccepted) {
+                            formData.append('privacyAccepted', data.privacyAccepted.toString());
+                            hasAnyField = true;
+                        }
+
                         if (data.avatar instanceof File) {
                             formData.append('avatar', data.avatar);
                             hasAnyField = true;
@@ -313,13 +325,14 @@ const useAuthStore = create<AuthState & { publicProfile: User | null; publicProf
 );
 
 // Subscribe to changes in the "error" field
+let ignoreErrors = ['Username already taken', 'Request failed', 'expired token'];
 useAuthStore.subscribe(
     (state) => state.error,
     (errorValue: any) => {
         if (errorValue) {
 
             // Example: show toast
-            if (!errorValue.includes('Request failed')) {
+            if (!ignoreErrors.includes(errorValue)) {
                 toast.error(errorValue)
             }
 
