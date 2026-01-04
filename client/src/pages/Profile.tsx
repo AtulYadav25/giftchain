@@ -14,7 +14,9 @@ import {
     Heart,
     Settings,
     Camera,
-    Save
+    Save,
+    RefreshCw,
+    Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SendGiftModal from '../components/SendGiftModal';
@@ -26,6 +28,7 @@ import VerifyGiftModal from '../components/VerifyGiftModal';
 import type { Gift as GiftType } from '@/types/gift.types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SocialIconDetector from '../components/SocialIconDetector';
+import truncateSmart from '@/lib/truncateSmart';
 
 import {
     useSentGifts,
@@ -33,8 +36,12 @@ import {
     useSentMeta,
     useReceivedMeta,
     useGiftActions,
-    useGiftLoading
+    useGiftLoading,
+    useDeletingGift,
+    useSentGiftsLoading,
+    useReceivedGiftsLoading,
 } from '@/store/useGiftStore';
+import { useWrappers, useWrapperActions } from '@/store/useWrapperStore';
 import { useNavigate } from 'react-router-dom';
 
 const ITEMS_PER_PAGE = 8;
@@ -106,14 +113,19 @@ const Profile = () => {
     const receivedGifts = useReceivedGifts();
     const sentMeta = useSentMeta();
     const receivedMeta = useReceivedMeta();
-    const isGiftLoading = useGiftLoading();
+    const wrappers = useWrappers();
+    const isSentGiftLoading = useSentGiftsLoading();
+    const isReceivedGiftLoading = useReceivedGiftsLoading();
+    const isDeleting = useDeletingGift();
 
     // Actions
-    const { fetchMySentGifts, fetchReceivedGifts } = useGiftActions();
+    const { fetchMySentGifts, fetchMyReceivedGifts, deleteUnVerifiedGift } = useGiftActions();
+    const { fetchWrappers } = useWrapperActions();
 
     // Modal State
     const [selectedGift, setSelectedGift] = useState<GiftType | null>(null);
     const [modalVariant, setModalVariant] = useState<'sent' | 'received'>('sent');
+    const [giftToDelete, setGiftToDelete] = useState<string | null>(null);
 
     const handleOpenGift = (gift: GiftType, variant: 'sent' | 'received') => {
         setSelectedGift(gift);
@@ -127,17 +139,55 @@ const Profile = () => {
     const [sentPage, setSentPage] = useState(1);
     const [receivedPage, setReceivedPage] = useState(1);
 
-    // Fetch Sent Gifts
-    React.useEffect(() => {
-        if (!user?.address) return;
-        fetchMySentGifts(sentPage, ITEMS_PER_PAGE);
-    }, [sentPage, fetchMySentGifts, user?.address]);
+    // 4. Optimized Fetching Logic
 
-    // Fetch Received Gifts
+    // Fetch Sent Gifts (Only if data missing or page changed)
     React.useEffect(() => {
         if (!user?.address) return;
-        fetchReceivedGifts(user?.address || '', receivedPage, ITEMS_PER_PAGE);
-    }, [receivedPage, fetchReceivedGifts, user?.address]);
+
+        // If we have data for the current page, skip fetch
+        if (sentGifts.length > 0 && sentMeta?.page === sentPage) {
+            return;
+        }
+
+        fetchMySentGifts(sentPage, ITEMS_PER_PAGE);
+    }, [sentPage, fetchMySentGifts, user?.address, sentGifts.length, sentMeta?.page]);
+
+    // Fetch Received Gifts (Only if data missing or page changed)
+    React.useEffect(() => {
+        if (!user?.address) return;
+
+        // If we have data for the current page, skip fetch
+        if (receivedGifts.length > 0 && receivedMeta?.page === receivedPage) {
+            return;
+        }
+
+        fetchMyReceivedGifts(user?.address || '', receivedPage, ITEMS_PER_PAGE);
+    }, [receivedPage, fetchMyReceivedGifts, user?.address, receivedGifts.length, receivedMeta?.page]);
+
+    // Fetch Wrappers (Only once if empty)
+    useEffect(() => {
+        if (wrappers.length === 0) {
+            fetchWrappers();
+        }
+    }, [wrappers.length, fetchWrappers]);
+
+    // Manual Refresh Handlers
+    const [isRefreshingSent, setIsRefreshingSent] = useState(false);
+    const [isRefreshingReceived, setIsRefreshingReceived] = useState(false);
+
+    const handleRefreshSent = async () => {
+        setIsRefreshingSent(true);
+        await fetchMySentGifts(sentPage, ITEMS_PER_PAGE);
+        setIsRefreshingSent(false);
+    };
+
+    const handleRefreshReceived = async () => {
+        if (!user?.address) return;
+        setIsRefreshingReceived(true);
+        await fetchMyReceivedGifts(user.address, receivedPage, ITEMS_PER_PAGE);
+        setIsRefreshingReceived(false);
+    };
 
     // Total Pages (from meta)
     const totalSentPages = Math.ceil((user?.sentCount || 0) / ITEMS_PER_PAGE) || 1;
@@ -156,6 +206,18 @@ const Profile = () => {
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast.success("Address copied!");
+    };
+
+    const handleDeleteUnverified = (e: React.MouseEvent, giftId: string) => {
+        e.stopPropagation();
+        setGiftToDelete(giftId);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!giftToDelete) return;
+        await deleteUnVerifiedGift(giftToDelete);
+        setGiftToDelete(null);
+        handleRefreshSent(); // Refresh list after delete
     };
 
     if (isSessionLoading) {
@@ -190,7 +252,7 @@ const Profile = () => {
                                     className="object-cover bg-white"
                                 />
                                 <AvatarFallback className="text-4xl font-black bg-slate-200">
-                                    {user?.username?.slice(0, 2)}
+                                    {user?.username?.slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
 
@@ -358,7 +420,13 @@ const Profile = () => {
                 <section className="flex flex-col gap-12 font-sans">
 
                     {/* SENT GIFTS TABLE */}
-                    <TableCard title="Gifts Sent" color="bg-[#60A5FA]" icon={<ArrowUpRight size={20} className="text-slate-900" />}>
+                    <TableCard
+                        title="Gifts Sent"
+                        color="bg-[#60A5FA]"
+                        icon={<ArrowUpRight size={20} className="text-slate-900" />}
+                        onRefresh={handleRefreshSent}
+                        isRefreshing={isRefreshingSent}
+                    >
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm font-lexend text-slate-700">
                                 <thead className="text-slate-500 border-b-2 border-slate-100">
@@ -370,7 +438,7 @@ const Profile = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
-                                    {isGiftLoading && sentGifts.length === 0 ? (
+                                    {isSentGiftLoading && sentGifts.length === 0 ? (
                                         <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
                                     ) : sentGifts.map((gift) => (
                                         <tr key={gift._id} onClick={() => handleOpenGift(gift, 'sent')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
@@ -380,12 +448,24 @@ const Profile = () => {
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
-                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
                                             <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
-                                            <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
+                                            <td className="py-4 flex items-center gap-3">
+                                                <StatusBadge status={gift.status || 'sent'} />
+                                                {gift.status === 'unverified' && (
+                                                    <button
+                                                        onClick={(e) => handleDeleteUnverified(e, gift._id)}
+                                                        disabled={isDeleting}
+                                                        className="p-1.5 bg-red-100 text-red-500 rounded-lg hover:bg-red-200 hover:scale-110 transition-all border border-red-200 shadow-sm"
+                                                        title="Delete Unverified Gift"
+                                                    >
+                                                        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                                    </button>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))}
-                                    {!isGiftLoading && sentGifts.length === 0 && (
+                                    {!isSentGiftLoading && sentGifts.length === 0 && (
                                         <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts sent yet.</td></tr>
                                     )}
                                 </tbody>
@@ -397,7 +477,13 @@ const Profile = () => {
                     </TableCard>
 
                     {/* RECEIVED GIFTS TABLE */}
-                    <TableCard title="Gifts Received" color="bg-[#4ADE80]" icon={<ArrowDownLeft size={20} className="text-slate-900" />}>
+                    <TableCard
+                        title="Gifts Received"
+                        color="bg-[#4ADE80]"
+                        icon={<ArrowDownLeft size={20} className="text-slate-900" />}
+                        onRefresh={handleRefreshReceived}
+                        isRefreshing={isRefreshingReceived}
+                    >
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm font-lexend text-slate-700">
                                 <thead className="text-slate-500 border-b-2 border-slate-100">
@@ -409,7 +495,7 @@ const Profile = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
-                                    {isGiftLoading && receivedGifts.length === 0 ? (
+                                    {isReceivedGiftLoading && receivedGifts.length === 0 ? (
                                         <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
                                     ) : receivedGifts.map((gift, i) => (
                                         <tr key={i} onClick={() => handleOpenGift(gift, 'received')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
@@ -419,12 +505,12 @@ const Profile = () => {
                                                     <Copy size={14} />
                                                 </button>
                                             </td>
-                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
+                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
                                             <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
                                             <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
                                         </tr>
                                     ))}
-                                    {!isGiftLoading && receivedGifts.length === 0 && (
+                                    {!isReceivedGiftLoading && receivedGifts.length === 0 && (
                                         <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts received yet.</td></tr>
                                     )}
                                 </tbody>
@@ -454,9 +540,19 @@ const Profile = () => {
                         count={activeBreakdown === 'sent' ? sentMeta?.total || 0 : receivedMeta?.total || 0}
                     />
                 )}
+                {giftToDelete && (
+                    <DeleteConfirmationModal
+                        isOpen={!!giftToDelete}
+                        onClose={() => setGiftToDelete(null)}
+                        onConfirm={handleConfirmDelete}
+                        isDeleting={isDeleting}
+                    />
+                )}
             </AnimatePresence>
 
-            <SendGiftModal isOpen={isGiftModalOpen} onClose={() => setIsGiftModalOpen(false)} />
+            {isGiftModalOpen && (
+                <SendGiftModal isOpen={isGiftModalOpen} onClose={() => setIsGiftModalOpen(false)} />
+            )}
 
             {user && (
                 <EditProfileModal
@@ -513,23 +609,35 @@ const StatsCard = ({ icon, label, value, color, onShowBreakdown }: { icon: React
     </div>
 );
 
-const TableCard = ({ title, icon, color, children }: { title: string, icon: React.ReactNode, color: string, children: React.ReactNode }) => (
+const TableCard = ({ title, icon, color, children, onRefresh, isRefreshing }: { title: string, icon: React.ReactNode, color: string, children: React.ReactNode, onRefresh?: () => void, isRefreshing?: boolean }) => (
     <div className="bg-white rounded-[2.5rem]  p-8 border-[4px] border-slate-900 shadow-[10px_10px_0_0_rgba(15,23,42,1)] w-full relative overflow-hidden">
         {/* Decorative corner stripe */}
         <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-20 -mr-10 -mt-10 rounded-full blur-3xl pointer-events-none`}></div>
         {/* Title Header */}
-        <div className="flex items-center gap-4 mb-8 relative z-10">
-            <div className={`p-3 ${color} rounded-xl border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)]`}>
-                {icon}
+        <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex items-center gap-4">
+                <div className={`p-3 ${color} rounded-xl border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)]`}>
+                    {icon}
+                </div>
+                <h3 className="text-2xl md:text-3xl font-['Lilita_One'] text-slate-900 tracking-wide">{title}</h3>
             </div>
-            <h3 className="text-2xl md:text-3xl font-['Lilita_One'] text-slate-900 tracking-wide">{title}</h3>
+
+            {onRefresh && (
+                <button
+                    onClick={onRefresh}
+                    disabled={isRefreshing}
+                    className="p-2.5 bg-white hover:bg-slate-50 border-[3px] border-slate-900 rounded-xl shadow-[3px_3px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed text-slate-900"
+                >
+                    <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} strokeWidth={2.5} />
+                </button>
+            )}
         </div>
         {children}
     </div>
 );
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const isOpened = status === "Opened";
+    const isOpened = status === "opened";
     return (
         <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide inline-flex items-center gap-1 border-2 border-slate-900 shadow-[2px_2px_0_0_rgba(15,23,42,1)] ${isOpened
             ? "bg-[#4ADE80] text-slate-900"
@@ -616,3 +724,51 @@ const BreakdownModal = ({ type, onClose, count }: { type: 'sent' | 'received', o
 );
 
 export default Profile;
+
+const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, isDeleting }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, isDeleting: boolean }) => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        />
+        <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="relative bg-white w-full max-w-sm rounded-[2rem] shadow-[8px_8px_0_0_rgba(15,23,42,1)] border-[4px] border-slate-900 overflow-hidden"
+        >
+            <div className="p-6 text-center space-y-6">
+                <div className="mx-auto w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
+                    <Trash2 size={32} strokeWidth={2.5} />
+                </div>
+
+                <div className="space-y-2">
+                    <h3 className="text-2xl font-['Lilita_One'] text-slate-900">Delete Gift?</h3>
+                    <p className="text-slate-500 font-medium font-lexend">
+                        Are you sure you want to delete this unverified gift? This action cannot be undone.
+                    </p>
+                </div>
+
+                <div className="flex gap-4">
+                    <button
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="flex-1 py-3 font-bold border-[3px] border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className="flex-1 py-3 font-bold bg-red-500 text-white border-[3px] border-slate-900 rounded-xl shadow-[4px_4px_0_0_rgba(15,23,42,1)] hover:translate-y-[-2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2"
+                    >
+                        {isDeleting ? <Loader2 size={18} className="animate-spin" /> : "Delete"}
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+    </div>
+);

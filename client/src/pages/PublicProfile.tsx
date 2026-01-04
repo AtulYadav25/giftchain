@@ -16,13 +16,14 @@ import SendGiftModal from '../components/SendGiftModal';
 import { useParams } from 'react-router-dom';
 import type { Gift as GiftType } from '@/types/gift.types';
 import GiftRevealModal from '../components/GiftRevealModal';
-import { useGiftActions, useGiftLoading, useReceivedGifts, useSentGifts } from '@/store/useGiftStore';
+import { useGiftActions, useGiftLoading, usePublicUserReceivedGifts, usePublicUserSentGifts } from '@/store/useGiftStore';
 import { useAuthActions, usePublicProfile, usePublicProfileLoading, useUser } from '@/store/useAuthStore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SocialIconDetector from '../components/SocialIconDetector';
 import SOLANA_IMG from '@/assets/solana.png';
 import SUI_IMG from '@/assets/sui.png';
 import { FaInfo } from 'react-icons/fa';
+import truncateSmart from '@/lib/truncateSmart';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -34,8 +35,8 @@ const PublicProfile = () => {
     const loadingUser = usePublicProfileLoading();
     const { fetchPublicProfile } = useAuthActions();
 
-    const sentGifts = useSentGifts();
-    const receivedGifts = useReceivedGifts();
+    const sentGifts = usePublicUserSentGifts();
+    const receivedGifts = usePublicUserReceivedGifts();
     const isGiftLoading = useGiftLoading();
 
     // Actions
@@ -213,7 +214,7 @@ const PublicProfile = () => {
                                     className="object-cover bg-white"
                                 />
                                 <AvatarFallback className="text-4xl font-black bg-slate-200">
-                                    {profileUser.username.slice(0, 2)}
+                                    {profileUser.username.slice(0, 2).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                         </div>
@@ -230,7 +231,7 @@ const PublicProfile = () => {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h1 className="text-4xl md:text-5xl text-slate-900 drop-shadow-sm leading-tight">
-                                    @{profileUser.username.toUpperCase()}
+                                    @{profileUser.username}
                                 </h1>
                                 <div className="mt-2 flex items-center gap-2">
                                     {profileUser.address && formatAddress(profileUser.address)}
@@ -402,7 +403,7 @@ const PublicProfile = () => {
                                                 <td className="py-4 pl-4">
                                                     {formatAddress(gift.receiverWallet || '')}
                                                 </td>
-                                                <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                                <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
                                                 <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
                                                 <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
                                             </tr>
@@ -439,7 +440,7 @@ const PublicProfile = () => {
                                             <td className="py-4 pl-4">
                                                 {formatAddress(gift.senderWallet || '')}
                                             </td>
-                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${gift.amountUSD}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
+                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
                                             <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
                                             <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
                                         </tr>
@@ -496,7 +497,7 @@ const TableCard = ({ title, icon, color, children }: { title: string, icon: Reac
 );
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const isOpened = status === "Opened";
+    const isOpened = status === "opened";
     return (
         <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide inline-flex items-center gap-1 border-2 border-slate-900 shadow-[2px_2px_0_0_rgba(15,23,42,1)] ${isOpened
             ? "bg-[#4ADE80] text-slate-900"
