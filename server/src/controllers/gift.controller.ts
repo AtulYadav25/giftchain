@@ -7,7 +7,6 @@ import SolTransactionVerifier from '../utils/solanaTxVerifier';
 import { Signature } from '@solana/kit';
 import { Gift } from '../models/gift.model';
 import jwt from 'jsonwebtoken';
-import { truncateToTwoDecimals } from '../utils/jwt';
 import { config } from '../config/env';
 import { Stats } from '../models/stats.model';
 
@@ -16,7 +15,7 @@ export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, repl
     try {
 
         //Check if the receiver wallet is the fee collector wallet
-        if (req.body.receiverWallet === config.SOL_FEE_COLLECTOR_ADDRESS || req.body.receiverWallet === config.SUI_FEE_COLLECTOR_ADDRESS) {
+        if (req.body.receiverWallet === config.SOL_FEE_COLLECTOR_ADDRESS || req.body.receiverWallet === config.SUI_FEE_COLLECTOR_ADDRESS || req.body.receiverWallet === req.user.address) {
             return errorResponse(reply, "Invalid receiver wallet", 400);
         }
 
@@ -33,7 +32,7 @@ export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, repl
             return errorResponse(reply, "Invalid tokenStats", 400);
         }
 
-        if (tokenStats.chain === req.user.chain && Number(req.body.totalTokenAmount) !== (truncateToTwoDecimals(req.body.amountUSD) / tokenStats.priceUSD)) {
+        if (tokenStats.chain !== req.user.chain || Number(req.body.totalTokenAmount) !== Math.floor((Number(req.body.amountUSD) / tokenStats.priceUSD) * 1_000_000_000)) {
             return errorResponse(reply, "Not Authenticated Transaction!", 400);
         }
 
@@ -185,6 +184,21 @@ export const claimGift = async (req: FastifyRequest<{ Params: { id: string } }>,
     }
 };
 
+export const deleteUnverifiedGifts = async (
+    req: FastifyRequest<{ Params: { giftId: string } }>,
+    reply: FastifyReply
+) => {
+    try {
+        const { giftId } = req.params;
+
+        await giftService.deleteUnverifiedGift(giftId, req.user.address);
+
+        successResponse(reply, {}, "Gift deleted successfully", 200);
+    } catch (error) {
+        errorResponse(reply, error.message, 500);
+    }
+};
+
 export const resolveRecipients = async (
     req: FastifyRequest<{ Body: ResolveRecipientsBody }>,
     reply: FastifyReply
@@ -270,6 +284,8 @@ export const getTotalGiftSent = async (req: FastifyRequest, reply: FastifyReply)
             200
         );
     } catch (error: any) {
+        console.log(error)
+        console.log(error.message)
         errorResponse(reply, error.message, 500);
     }
 };

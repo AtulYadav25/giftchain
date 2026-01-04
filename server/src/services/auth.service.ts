@@ -10,6 +10,7 @@ import {
     getPublicKeyFromAddress,
     SignatureBytes
 } from "@solana/kit";
+import { Gift } from '../models/gift.model';
 
 
 
@@ -22,8 +23,15 @@ export const requestMessage = async (address: string, chain: string) => {
 
     let unique_id = `gc@${nanoid()}`;
     if (!user) {
+
+        //Find Users Received Gift if exist
+        let receivedGifts = await Gift.find({ receiverWallet: address, verified: true });
+
+        //Calculate total funds received
+        let totalFundsReceived = receivedGifts.reduce((total, gift) => total + gift.amountUSD, 0);
+
         // Create new user with nonce
-        user = await User.create({ address, nonce, chain, username: unique_id, usernameLower: unique_id.toLowerCase() });
+        user = await User.create({ address, nonce, chain, username: unique_id, usernameLower: unique_id.toLowerCase(), totalReceivedUSD: totalFundsReceived, receivedCount: receivedGifts.length });
 
     } else {
         // Update nonce for existing user

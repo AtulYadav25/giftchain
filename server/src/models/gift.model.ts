@@ -10,7 +10,7 @@ export interface IGift extends Document {
 
     amountUSD: number;
     feeUSD: number;
-    totalTokenAmount: number; //In Token Value MIST or LAMPORTS e.g: 1.1 SUI as 11110000 MIST or 4.5 SOL 45000000 LAMPORTS
+    totalTokenAmount: number; //In Token Value MIST or LAMPORTS e.g: 1.1 SUI as 11110000 MIST or 4.5 SOL 45000000 LAMPORTS (Does not includes fees)
     tokenSymbol: 'sui' | 'sol';
     tokenStats: {
         tokenPrice: number; //Price is in USD (Fetched From CMC API)
