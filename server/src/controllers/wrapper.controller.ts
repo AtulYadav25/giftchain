@@ -73,7 +73,6 @@ export const upload = async (req: FastifyRequest, reply: FastifyReply) => {
 
         return successResponse(reply, wrapper, "Wrapper Uploaded", 201);
     } catch (error) {
-        console.error(error);
         return errorResponse(reply, "Something went wrong", 500);
     }
 };

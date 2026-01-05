@@ -17,7 +17,6 @@ export const getPublicUserDetails = async (req: FastifyRequest<{ Params: { usern
 
         successResponse(reply, { user }, "User details fetched successfully", 200)
     } catch (error) {
-        console.error('Error fetching public user details:', error);
         errorResponse(reply, "Internal server error", 500)
     }
 };
@@ -38,7 +37,6 @@ export const getTopGivers = async (req: FastifyRequest<{ Params: { username: str
 
         paginationResponse(reply, users, 100, page, limit, 200)
     } catch (error) {
-        console.error('Error fetching public user details:', error);
         errorResponse(reply, "Internal server error", 500)
     }
 };

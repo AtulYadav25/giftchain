@@ -11,7 +11,6 @@ export const getSUI = async (req: FastifyRequest, reply: FastifyReply) => {
 
         successResponse(reply, { priceUSD: price, tokenHash }, "Price fetched successfully", 200);
     } catch (error) {
-        console.error('Price fetch error:', error);
         errorResponse(reply, 'Failed to retrieve SUI price', 500);
     }
 };
@@ -24,7 +23,6 @@ export const getSOL = async (req: FastifyRequest, reply: FastifyReply) => {
 
         successResponse(reply, { priceUSD: price, tokenHash }, "Price fetched successfully", 200);
     } catch (error) {
-        console.error('Price fetch error:', error);
         errorResponse(reply, 'Failed to retrieve SUI price', 500);
     }
 };

@@ -284,8 +284,6 @@ export const getTotalGiftSent = async (req: FastifyRequest, reply: FastifyReply)
             200
         );
     } catch (error: any) {
-        console.log(error)
-        console.log(error.message)
         errorResponse(reply, error.message, 500);
     }
 };

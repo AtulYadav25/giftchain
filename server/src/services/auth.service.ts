@@ -90,7 +90,6 @@ export const verify = async (data: any) => {
     }
 
 
-    console.log(user.chain)
     // ⏳ Token Expiry = 25 days
     const token = signAccessToken({ address, nonce, userId, chain: user.chain });
 

@@ -412,7 +412,6 @@ export const deleteUnverifiedGift = async (giftId: string, userAddress: string) 
     const gift = await Gift.findById(giftId);
 
     if (!gift || gift.verified || gift.senderWallet !== userAddress) {
-        console.log(userAddress, gift.senderWallet, gift.verified)
         throw new Error('Gift Not Valid')
     };
 
