@@ -35,6 +35,7 @@
     "lucide-react": "^0.555.0",
     "motion": "^12.23.26",
     "ogl": "^1.0.11",
+    "qr-code-styling": "^1.9.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.6.0",

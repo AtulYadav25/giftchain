@@ -9,9 +9,8 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User, Gift, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAuthActions, useGiftActions } from "@/store";
 import toast from "react-hot-toast";
 import { useChain } from "@/multichainkit/context/ChainContext";
 import { ChainSwitcher, ChainConnectButton } from "@/multichainkit/components/NavbarChainControl";
@@ -25,8 +24,6 @@ export default function Navbar() {
     // Multi-chain hooks
     const { address, disconnectWallet, chain } = useChain();
     const user = useUser();
-    // const { disconnectWallet: disconnectAuth } = useAuthActions();
-    const { emptyGiftStats } = useGiftActions();
 
     const isConnected = !!address;
     const isHome = location.pathname === '/';
@@ -40,9 +37,7 @@ export default function Navbar() {
 
     const handleDisconnect = async () => {
         try {
-            // await disconnectAuth();
-            disconnectWallet();
-            emptyGiftStats();
+            await disconnectWallet();
         } catch (err: any) {
             toast.error(err.message || "Failed to disconnect wallet");
         }

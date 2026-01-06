@@ -37,7 +37,6 @@ export default function VerifyGiftModal({ isOpen, onClose, gift }: VerifyGiftMod
             fetchSentGifts(user.address, 1, 8);
             onClose();
         } catch (error: any) {
-            console.error(error);
             toast.error(error.message || "Failed to verify gift");
         } finally {
             setIsVerifying(false);

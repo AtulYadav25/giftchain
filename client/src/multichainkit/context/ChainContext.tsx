@@ -1,10 +1,5 @@
-
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { useSuiClient, useCurrentAccount, useSignAndExecuteTransaction, useDisconnectWallet, useSignPersonalMessage } from '@mysten/dapp-kit';
-import { getSolanaBalance } from '../chains/solana/solanaBalance';
-import { getSuiBalance } from '../chains/sui/suiBalance';
-import { useAuthActions } from '@/store/useAuthStore'
+import { useAuthActions, useGiftActions } from '@/store';
+import React, { createContext, useContext, useState } from 'react';
 
 export type ChainType = 'solana' | 'sui' | null;
 
@@ -22,7 +17,7 @@ export interface ChainAdapter {
     account?: any;
 }
 
-interface ChainContextType {
+export interface ChainContextType {
     chain: ChainType;
     setChain: (chain: ChainType) => void;
     switchChain: (chain: ChainType) => void;
@@ -34,7 +29,7 @@ interface ChainContextType {
     address: string | null;
 }
 
-const ChainContext = createContext<ChainContextType>({
+export const ChainContext = createContext<ChainContextType>({
     chain: 'solana',
     setChain: () => { },
     switchChain: () => { },
@@ -48,113 +43,60 @@ const ChainContext = createContext<ChainContextType>({
 
 export const useChain = () => useContext(ChainContext);
 
+
+// Lazy load providers
+const SolanaProviderWrapper = React.lazy(() => import('../chains/solana/SolanaProviderWrapper').then(module => ({ default: module.SolanaProviderWrapper })));
+const SuiProviderWrapper = React.lazy(() => import('../chains/sui/SuiProviderWrapper').then(module => ({ default: module.SuiProviderWrapper })));
+
+// Lazy load adapters
+const SolanaChainAdapter = React.lazy(() => import('../chains/solana/SolanaChainAdapter').then(module => ({ default: module.SolanaChainAdapter })));
+const SuiChainAdapter = React.lazy(() => import('../chains/sui/SuiChainAdapter').then(module => ({ default: module.SuiChainAdapter })));
+
 export const ChainContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [chain, setChain] = useState<ChainType>(() => {
         const saved = localStorage.getItem('giftchain_network');
         return (saved === 'solana' || saved === 'sui') ? saved : 'solana';
     });
 
-    const { disconnectWallet: disconnectAuthWallet } = useAuthActions();
-
-    // Solana
-    const { connection } = useConnection();
-    const {
-        wallet: solanaWallet,
-        connect: connectSolana,
-        disconnect: disconnectSolana,
-        publicKey: solanaPublicKey,
-        sendTransaction: sendSolanaTransaction,
-        signMessage: signSolanaMessage
-    } = useWallet();
-
-    // Sui
-    const suiClient = useSuiClient();
-    const { mutateAsync: signAndExecuteSui } = useSignAndExecuteTransaction();
-    const { mutateAsync: signPersonalMessageSui } = useSignPersonalMessage();
-    const { mutate: disconnectSui } = useDisconnectWallet();
-    const currentSuiAccount = useCurrentAccount();
-
-    const connectWallet = () => {
-        if (chain === 'solana') {
-            if (solanaWallet && !solanaWallet.adapter.connected) {
-                // This typically requires the WalletMultiButton if the user hasn't selected a wallet yet
-                // But if they have, this might work. 
-                connectSolana().catch(console.error);
-            }
-        } else if (chain === 'sui') {
-            // Sui connect is usually handled by the UI ConnectButton which triggers the modal
-
-        }
-    };
-
-    const disconnectWallet = async () => {
-        // Disconnects everything found just to be safe & clean
-        disconnectSolana().catch(console.error);
-        disconnectSui();
-        await disconnectAuthWallet();
-    };
+    const { disconnectWallet } = useAuthActions();
+    const { emptyGiftStats } = useGiftActions();
 
     const switchChain = async (newChain: ChainType) => {
-        if (!newChain) return;
+        if (!newChain || newChain === chain) return;
 
-        // Disconnect ALL wallets from ALL chains
-        disconnectWallet();
+        // Note: Disconnecting the previous wallet is handled by the fact that the provider unmounts.
+        // However, if we need to explicitly clear state, we effectively do so by switching context.
+        // The new provider will start fresh.
+        // If we want to ensure disconnect happens, we rely on the specific adapter's unmount behavior or disconnect before switch.
+        // Since we can't access the other context here, we just switch.
 
-        // Update state and storage
+        await disconnectWallet(); //API Calling Disconnect
+        emptyGiftStats();
         setChain(newChain);
         localStorage.setItem('giftchain_network', newChain);
     };
 
-    const getBalance = async (address: string): Promise<string> => {
-        if (!address) return "0";
-        if (chain === 'solana') {
-            return getSolanaBalance(connection, address);
-        } else if (chain === 'sui') {
-            return getSuiBalance(suiClient, address);
-        }
-        return "0";
-    };
-
-    const activeAdapter = useMemo<ChainAdapter | null>(() => {
-        if (chain === 'solana') {
-            return {
-                type: 'solana',
-                connection,
-                publicKey: solanaPublicKey,
-                sendTransaction: sendSolanaTransaction,
-                signMessage: signSolanaMessage
-            };
-        } else if (chain === 'sui') {
-            return {
-                type: 'sui',
-                client: suiClient,
-                account: currentSuiAccount,
-                signAndExecute: signAndExecuteSui,
-                signPersonalMessage: signPersonalMessageSui
-            };
-        }
-        return null;
-    }, [chain, connection, solanaPublicKey, sendSolanaTransaction, signSolanaMessage, suiClient, currentSuiAccount, signAndExecuteSui, signPersonalMessageSui]);
-
-    const address = useMemo(() => {
-        if (chain === 'solana') return solanaPublicKey?.toBase58() || null;
-        if (chain === 'sui') return currentSuiAccount?.address || null;
-        return null;
-    }, [chain, solanaPublicKey, currentSuiAccount]);
-
     return (
-        <ChainContext.Provider value={{
-            chain,
-            setChain,
-            switchChain,
-            connectWallet,
-            disconnectWallet,
-            getBalance,
-            activeAdapter,
-            address
-        }}>
-            {children}
-        </ChainContext.Provider>
+        // TODO : Add Custom Loading Screen
+        <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background text-foreground">Loading Giftchain...</div>}>
+            {chain === 'solana' && (
+                <SolanaProviderWrapper>
+                    <SolanaChainAdapter chain={chain} setChain={setChain} switchChain={switchChain}>
+                        {children}
+                    </SolanaChainAdapter>
+                </SolanaProviderWrapper>
+            )}
+
+            {chain === 'sui' && (
+                <SuiProviderWrapper>
+                    <SuiChainAdapter chain={chain} setChain={setChain} switchChain={switchChain}>
+                        {children}
+                    </SuiChainAdapter>
+                </SuiProviderWrapper>
+            )}
+
+            {!chain && children}
+        </React.Suspense>
     );
 };
 

@@ -155,24 +155,8 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <style>{`
-                    .custom-scrollbar::-webkit-scrollbar {
-                        width: 12px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-track {
-                        background: #F1F5F9; 
-                        border-radius: 6px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb {
-                        background-color: #CBD5E1; 
-                        border-radius: 6px;
-                        border: 3px solid #F1F5F9;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                        background-color: #94A3B8;
-                    }
-                `}</style>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 hide-scrollbar-page">
+
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -187,7 +171,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="relative w-full max-w-4xl max-h-[90vh] flex flex-col items-center justify-center p-4"
+                        className="relative w-full max-w-4xl hide-scrollbar-page max-h-[90vh] flex flex-col items-center justify-center p-4"
                     >
                         <button
                             onClick={() => setExpandedView('none')}
@@ -207,7 +191,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className=" hide-scrollbar-page w-full max-w-2xl bg-[#FFF1F2] p-10 rounded-[2.5rem] border-[4px] border-slate-900 text-center relative shadow-[12px_12px_0_0_rgba(251,113,133,1)] max-h-[70vh] overflow-y-auto custom-scrollbar"
+                                className="  w-full max-w-2xl bg-[#FFF1F2] p-10 rounded-[2.5rem] border-[4px] border-slate-900 text-center relative shadow-[12px_12px_0_0_rgba(251,113,133,1)] max-h-[70vh] overflow-y-auto hide-scrollbar-page"
                             >
                                 <div className="sticky top-0 mb-8 inline-block">
                                     <span className="bg-[#FB7185] text-white px-6 py-2 rounded-xl text-lg font-black uppercase tracking-widest border-[3px] border-slate-900 transform -rotate-3 shadow-[4px_4px_0_0_rgba(15,23,42,1)] inline-block">
@@ -234,7 +218,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 100 }}
                         transition={{ type: "spring", bounce: 0.5 }}
-                        className="relative w-full max-w-sm md:max-w-md max-h-[90vh] overflow-y-auto rounded-[2rem] custom-scrollbar"
+                        className="relative w-full max-w-sm md:max-w-md max-h-[90vh] overflow-y-auto rounded-[2rem] hide-scrollbar-page"
                     >
                         {/* The Card to Capture */}
                         <div

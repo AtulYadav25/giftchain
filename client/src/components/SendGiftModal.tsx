@@ -29,7 +29,6 @@ import { isValidSuiAddress } from '@mysten/sui/utils';
 import toast from 'react-hot-toast';
 import { Transaction } from '@mysten/sui/transactions';
 import { Transaction as ChainContextTransaction } from '@/multichainkit/core/Transaction'
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { useChain } from '@/multichainkit/context/ChainContext'
 import { PublicKey } from '@solana/web3.js';
 
@@ -121,8 +120,6 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
     const [inputMode, setInputMode] = useState<'USD' | 'TOKEN'>('USD');
     const [isLoadingConversion, setIsLoadingConversion] = useState(false);
 
-    //Sender Account
-    const account = useCurrentAccount();
 
     //Gift Store Actions
     const { sendGift, verifyGift, resolveRecipients } = useGiftActions();
@@ -245,7 +242,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
     };
 
     // Process Gift 
-    const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+    const signAndExecuteTransaction = activeAdapter?.signAndExecute;
 
     const handleProcessPayment = async () => {
 
@@ -271,7 +268,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             });
 
             data.invalidUsernames.forEach(u => {
-                toast.error(`Invalid username: ${u.username}`);
+                toast.error(`User not found: ${u.username}`);
             });
 
             if (data.invalidUsernames.length > 0) return;
@@ -285,7 +282,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             const resolvedAddress = resolvedMap.get(r.username);
 
             if (!resolvedAddress) {
-                toast.error(`Invalid username: ${r.username}`);
+                toast.error(`User not found: ${r.username}`);
                 return r;
             }
 
@@ -390,7 +387,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
 
         } catch (err: any) {
-            toast.error('Unexpected error');
+            toast.error(err.message);
         }
     };
 
@@ -455,7 +452,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             signature = await tx.signAndExecute();
         } catch (err: any) {
             toast.error('Failed to sign and execute transaction');
-            resetSendGiftModal()
+            setGiftTxLoadingStates(0);
             return;
         }
 
@@ -549,7 +546,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         // Return leftover dust
         tx.transferObjects(
             [paymentCoin],
-            tx.pure.address(account!.address)
+            tx.pure.address(address!)
         );
 
         /* -------------------------------------------------
@@ -559,11 +556,11 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         signAndExecuteTransaction(
             { transaction: tx },
             {
-                onSuccess: async (result) => {
+                onSuccess: async (result: any) => {
                     await verifyGift({
                         giftId: createdGifts[0]._id,
                         txDigest: result.digest,
-                        address: account!.address,
+                        address: address!,
                         verifyType: 'wrapGift'
                     });
                     fetchMySentGifts(1, 8)
@@ -573,6 +570,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                 },
                 onError: () => {
                     toast.error('Failed to send gift');
+                    setGiftTxLoadingStates(0);
                 },
             }
         );
