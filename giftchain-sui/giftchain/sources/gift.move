@@ -1,8 +1,3 @@
-/*
-/// GiftChain is a non-custodial gifting protocol on the Sui blockchain.
-/// Users can wrap SUI coins into a Gift object, which can only be claimed by the intended receiver.
-/// A platform fee (initially 1%) is collected on wrapping.
-*/
 module giftchain::gift;
 
 use std::string::String;
