@@ -36,7 +36,6 @@ import {
     useSentMeta,
     useReceivedMeta,
     useGiftActions,
-    useGiftLoading,
     useDeletingGift,
     useSentGiftsLoading,
     useReceivedGiftsLoading,
@@ -162,7 +161,7 @@ const Profile = () => {
             return;
         }
 
-        fetchMyReceivedGifts(user?.address || '', receivedPage, ITEMS_PER_PAGE);
+        fetchMyReceivedGifts(receivedPage, ITEMS_PER_PAGE);
     }, [receivedPage, fetchMyReceivedGifts, user?.address, receivedGifts.length, receivedMeta?.page]);
 
     // Fetch Wrappers (Only once if empty)
@@ -185,7 +184,7 @@ const Profile = () => {
     const handleRefreshReceived = async () => {
         if (!user?.address) return;
         setIsRefreshingReceived(true);
-        await fetchMyReceivedGifts(user.address, receivedPage, ITEMS_PER_PAGE);
+        await fetchMyReceivedGifts(receivedPage, ITEMS_PER_PAGE);
         setIsRefreshingReceived(false);
     };
 

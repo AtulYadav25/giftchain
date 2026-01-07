@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
@@ -8,12 +9,14 @@ import {
     X,
     Download,
     ExternalLink,
-    Copy,
+
     Gift as GiftIcon,
     ArrowUpRight,
     ArrowDownLeft,
-    Loader2
+    Loader2,
+    Lock
 } from 'lucide-react';
+import QRCodeStyling from 'qr-code-styling';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type Gift } from '@/types/gift.types';
 import toast from 'react-hot-toast';
@@ -36,7 +39,40 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
     const { address } = useChain();
 
     const modalRef = useRef<HTMLDivElement>(null);
+    const qrRef = useRef<HTMLDivElement>(null);
     const { claimGiftSubmit } = useGiftActions();
+
+    // QR Code Configuration
+    const qrCode = useMemo(() => new QRCodeStyling({
+        width: 130,
+        height: 130,
+        type: 'svg',
+        data: `${window.location.origin}/gift/${gift._id}`,
+        image: '',
+        dotsOptions: {
+            color: '#0f172a',
+            type: 'rounded'
+        },
+        backgroundOptions: {
+            color: '#ffffff',
+        },
+        imageOptions: {
+            crossOrigin: 'anonymous',
+            margin: 20
+        },
+        cornersSquareOptions: {
+            type: 'extra-rounded'
+        },
+        cornersDotOptions: {
+            type: 'dot'
+        }
+    }), [gift._id]);
+
+    useEffect(() => {
+        if (isOpen && qrRef.current) {
+            qrCode.append(qrRef.current);
+        }
+    }, [isOpen, qrCode]);
 
     useEffect(() => {
         setIsClaimed(gift.status === 'opened');
@@ -120,10 +156,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
         }
     };
 
-    const copyAddress = (addr: string) => {
-        navigator.clipboard.writeText(addr);
-        toast.success("Address copied!");
-    };
+
 
     const getCounterpartyInfo = () => {
         if (variant === 'received') {
@@ -150,6 +183,8 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
     };
 
     const counterparty = getCounterpartyInfo();
+
+    const isMessageVisible = gift.isMessagePrivate ? (address === gift.senderWallet || address === gift.receiverWallet) : true;
 
     if (!isOpen) return null;
 
@@ -330,62 +365,100 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                                     </motion.div>
                                 </div>
 
-                                {/* Message Bubble */}
+                                {/* Message Bubble (Privacy Protected) */}
                                 {gift.message && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 0.4 }}
-                                        onClick={() => {
-                                            const message = gift.message ?? '';
-                                            const isLong = message.length > 200;
-                                            isLong && setExpandedView('message')
-                                        }}
-                                        className={`w-full bg-[#FFF1F2] p-6 rounded-[1.5rem] border-4 border-slate-900 text-center relative mt-6 shadow-[6px_6px_0_0_rgba(251,113,133,1)] ${gift.message.length > 200 ? 'cursor-pointer hover:scale-[1.02] transition-transform active:scale-[0.98]' : ''}`}
-                                    >
-                                        <div className="absolute -top-5 left-8 bg-[#FB7185] text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border-[3px] border-slate-900 transform -rotate-3 shadow-[2px_2px_0_0_rgba(15,23,42,1)]">
-                                            Personal Note
-                                        </div>
-                                        <p className="text-slate-900 font-lexend font-bold text-lg leading-relaxed mt-1">
-                                            "{gift.message.length > 200 ? `${gift.message.slice(0, 200)}...` : `${gift.message}`}"
-                                        </p>
-                                        {gift.message.length > 200 && (
-                                            <div className="text-[#FB7185] text-xs font-black uppercase tracking-widest mt-2 flex items-center justify-center gap-1">
-                                                Click to read more <ArrowUpRight size={12} strokeWidth={4} />
+                                    <>
+                                        {isMessageVisible ? (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ delay: 0.4 }}
+                                                onClick={() => {
+                                                    const message = gift.message ?? '';
+                                                    const isLong = message.length > 200;
+                                                    isLong && setExpandedView('message')
+                                                }}
+                                                className={`w-full bg-[#FFF1F2] p-6 rounded-[1.5rem] border-4 border-slate-900 text-center relative mt-6 shadow-[6px_6px_0_0_rgba(251,113,133,1)] ${gift.message.length > 200 ? 'cursor-pointer hover:scale-[1.02] transition-transform active:scale-[0.98]' : ''}`}
+                                            >
+                                                <div className="absolute -top-5 left-8 bg-[#FB7185] text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border-[3px] border-slate-900 transform -rotate-3 shadow-[2px_2px_0_0_rgba(15,23,42,1)]">
+                                                    Personal Note
+                                                </div>
+                                                <p className="text-slate-900 font-lexend font-bold text-lg leading-relaxed mt-1">
+                                                    "{gift.message.length > 200 ? `${gift.message.slice(0, 200)}...` : `${gift.message}`}"
+                                                </p>
+                                                {gift.message.length > 200 && (
+                                                    <div className="text-[#FB7185] text-xs font-black uppercase tracking-widest mt-2 flex items-center justify-center gap-1">
+                                                        Click to read more <ArrowUpRight size={12} strokeWidth={4} />
+                                                    </div>
+                                                )}
+                                            </motion.div>
+                                        ) : (
+                                            <div className="w-full bg-slate-100 p-4 rounded-[1.5rem] border-2 border-slate-300 text-center relative mt-6 flex flex-col items-center justify-center gap-2">
+                                                <Lock size={20} className="text-slate-400" />
+                                                <p className="text-slate-500 font-bold text-sm">
+                                                    🔒 This message is private
+                                                </p>
                                             </div>
                                         )}
-                                    </motion.div>
+                                    </>
                                 )}
 
-                                {/* User Card */}
-                                <div
-                                    onClick={() => { if (counterparty.username === 'Unknown Recipient') { return } else { window.location.href = `/${counterparty.username}` } }}
-                                    className="w-full bg-white rounded-2xl p-4 border-[3px] border-slate-200 hover:border-slate-900 flex items-center gap-4 cursor-pointer hover:shadow-[4px_4px_0_0_rgba(15,23,42,1)] transition-all group mt-2"
-                                >
-                                    <Avatar className="w-14 h-14 border-2 border-slate-900">
-                                        <AvatarImage src={counterparty.avatar} className="object-cover" />
-                                        <AvatarFallback className="bg-[#A78BFA] text-white font-bold text-xl border-2 border-slate-900">
-                                            {counterparty.username[0]?.toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 overflow-hidden text-left">
-                                        <div className="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-0.5">{counterparty.label}</div>
-                                        <div className="font-black text-slate-800 text-lg truncate group-hover:text-[#7C3AED] transition-colors">
-                                            @{counterparty.username}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono bg-slate-100 inline-block px-2 py-1 rounded-md border border-slate-200">
-                                            {counterparty.wallet.slice(0, 6)}...{counterparty.wallet.slice(-4)}
-                                            <div
-                                                onClick={(e) => { e.stopPropagation(); copyAddress(counterparty.wallet); }}
-                                                className="hover:text-slate-900 p-0.5 rounded cursor-pointer exclude-from-capture"
-                                            >
-                                                <Copy size={12} />
+                                {/* Combined Footer Card - Compact for Export */}
+                                <div className="w-full mt-6 flex flex-col sm:flex-row items-stretch border-[3px] border-slate-900 rounded-2xl overflow-hidden shadow-[4px_4px_0_0_rgba(15,23,42,1)] bg-white">
+                                    {/* Left: User Info */}
+                                    {/* Left: User Info */}
+                                    {counterparty.username === 'Unknown Recipient' ? (
+                                        <div className="flex-1 p-4 flex items-center gap-3 border-b-2 sm:border-b-0 sm:border-r-2 border-slate-100 sm:border-slate-900 border-dashed cursor-default group relative">
+                                            <Avatar className="w-14 h-14 border-2 border-slate-900">
+                                                <AvatarImage src={counterparty.avatar} className="object-cover" />
+                                                <AvatarFallback className="bg-[#A78BFA] text-white font-bold text-lg border-2 border-slate-900">
+                                                    {counterparty.username[0]?.toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 overflow-hidden text-left">
+                                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">{counterparty.label}</div>
+                                                <div className="font-black text-slate-800 text-base truncate">
+                                                    @{counterparty.username}
+                                                </div>
+                                                {/* Wallet Address */}
+                                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono">
+                                                    {counterparty.wallet.slice(0, 6)}...{counterparty.wallet.slice(-4)}
+                                                </div>
                                             </div>
                                         </div>
+                                    ) : (
+                                        <Link
+                                            to={`/${counterparty.username}`}
+                                            className="flex-1 p-4 flex items-center gap-3 border-b-2 sm:border-b-0 sm:border-r-2 border-slate-100 sm:border-slate-900 border-dashed cursor-pointer hover:bg-slate-50 transition-colors group relative"
+                                        >
+                                            <Avatar className="w-14 h-14 border-2 border-slate-900">
+                                                <AvatarImage src={counterparty.avatar} className="object-cover" />
+                                                <AvatarFallback className="bg-[#A78BFA] text-white font-bold text-lg border-2 border-slate-900">
+                                                    {counterparty.username[0]?.toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 overflow-hidden text-left">
+                                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-0.5">{counterparty.label}</div>
+                                                <div className="font-black text-slate-800 text-base truncate group-hover:text-[#7C3AED] transition-colors">
+                                                    @{counterparty.username}
+                                                </div>
+                                                {/* Wallet Address */}
+                                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono">
+                                                    {counterparty.wallet.slice(0, 6)}...{counterparty.wallet.slice(-4)}
+                                                </div>
+                                            </div>
+                                            <div className="absolute top-2 right-2 text-slate-200 group-hover:text-slate-400 transition-colors exclude-from-capture">
+                                                <ExternalLink size={14} />
+                                            </div>
+                                        </Link>
+                                    )}
+
+                                    {/* Right: QR Code */}
+                                    <div className="p-2 bg-slate-50 flex flex-col items-center justify-center gap-1 min-w-[140px] relative border-l-0 sm:border-l-2 border-dashed border-slate-200">
+                                        <Link to={`/gift/${gift._id}`} className="hover:opacity-80 transition-opacity flex justify-center">
+                                            <div ref={qrRef} className="bg-white p-1 rounded-lg border border-slate-200/50 shadow-sm" />
+                                        </Link>
                                     </div>
-                                    {counterparty.username !== 'Unknown Recipient' && <div className="text-slate-300 group-hover:text-slate-900 transition-colors pr-1 exclude-from-capture">
-                                        <ExternalLink size={20} />
-                                    </div>}
                                 </div>
 
                                 {/* Action Button Section - Excluded from download */}

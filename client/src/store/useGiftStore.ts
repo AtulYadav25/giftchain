@@ -65,6 +65,7 @@ export interface SendGiftParams {
         tokenHash: string;
     };
     isAnonymous: boolean;
+    isMessagePrivate: boolean;
 }
 
 export interface VerifyGiftParams {
@@ -82,7 +83,7 @@ interface GiftActions {
     fetchSentGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
     fetchMySentGifts: (page?: number, limit?: number) => Promise<void>;
     fetchReceivedGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
-    fetchMyReceivedGifts: (address: string, page?: number, limit?: number) => Promise<void>;
+    fetchMyReceivedGifts: (page?: number, limit?: number) => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
@@ -293,12 +294,12 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 }
             },
 
-            fetchMyReceivedGifts: async (address: string, page = 1, limit = 10) => {
+            fetchMyReceivedGifts: async (page = 1, limit = 10) => {
                 set({ isReceivedGiftsLoading: true, error: null });
 
                 try {
                     const res = await api.get<ApiResponse<Gift[]>>(
-                        `/gifts/received/${address}?page=${page}&limit=${limit}`
+                        `/gifts/me/received?page=${page}&limit=${limit}`
                     );
 
                     const { data: responseBody } = res;
@@ -322,7 +323,8 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             fetchGiftById: async (id: string) => {
                 set({ isFetchingGift: true, error: null });
                 try {
-                    const { data } = await api.get<Gift>(`/gift/${id}`);
+                    const res = await api.get<ApiResponse<Gift>>(`/gifts/${id}`);
+                    let { data } = extractData(res);
                     set({ currentGift: data, isFetchingGift: false });
                 } catch (err: any) {
                     set({ isFetchingGift: false, error: err.message });

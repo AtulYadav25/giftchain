@@ -13,6 +13,8 @@ import {
     Trash2,
     Loader2,
     Info,
+    Lock,
+    LockOpen,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -114,6 +116,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
     };
 
     const [message, setMessage] = useState('');
+    const [isMessagePrivate, setIsMessagePrivate] = useState(true);
     const [selectedTag, setSelectedTag] = useState<keyof typeof MESSAGE_TEMPLATES>('Love');
 
     const [currency, setCurrency] = useState<'SUI' | 'SOL'>(chain === 'sui' ? 'SUI' : 'SOL');
@@ -356,6 +359,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                     const giftParams: SendGiftParams = {
                         senderWallet: address!, //Address From Chain Context
                         receiverWallet: recipient.address,
+                        isMessagePrivate,
                         amountUSD:
                             inputMode === 'USD'
                                 ? Number(recipient.amount)
@@ -749,13 +753,30 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                             <div className="space-y-6 font-lexend">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Your Message</label>
-                                    <textarea
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        maxLength={600}
-                                        placeholder="Write something sweet..."
-                                        className="w-full h-40 p-5 rounded-2xl bg-white border-[3px] border-slate-200 focus:border-slate-900 focus:ring-0 resize-none transition-all placeholder:text-slate-300 text-slate-700 text-lg shadow-sm"
-                                    />
+                                    <div className="relative">
+                                        <textarea
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            maxLength={600}
+                                            placeholder="Write something sweet..."
+                                            className="w-full h-40 p-5 rounded-2xl bg-white border-[3px] border-slate-200 focus:border-slate-900 focus:ring-0 resize-none transition-all placeholder:text-slate-300 text-slate-700 text-lg shadow-sm"
+                                        />
+                                        <div className="absolute top-4 right-4 z-10">
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => setIsMessagePrivate(!isMessagePrivate)}
+                                                        className={`p-2 rounded-xl transition-all ${isMessagePrivate ? 'bg-slate-100 text-slate-900' : 'bg-transparent text-slate-400 hover:bg-slate-50'}`}
+                                                    >
+                                                        {isMessagePrivate ? <Lock size={20} /> : <LockOpen size={20} />}
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className='font-lexend'>{isMessagePrivate ? 'Private Message' : 'Public Message'}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
+                                    </div>
                                     <div className="text-right text-xs text-slate-400 mt-2 font-bold">{message.length}/600</div>
                                 </div>
 
@@ -821,7 +842,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                                     </div>
 
                                     <div className="space-y-4">
-                                        {recipients.map((recipient, index) => (
+                                        {recipients.map((recipient) => (
                                             <motion.div
                                                 key={recipient.id}
                                                 initial={{ opacity: 0, y: 10 }}

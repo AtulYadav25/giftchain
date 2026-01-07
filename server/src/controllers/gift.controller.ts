@@ -49,6 +49,9 @@ export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, repl
 };
 
 
+const MODULE_NAME = process.env.MODULE_NAME
+
+
 export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, reply: FastifyReply) => {
     try {
 
@@ -68,6 +71,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
                 await giftService.verifySOLGifts({
                     giftIds: txResult.giftIds,
                     sender: req.body.address.trim(),
+                    digest: req.body.txDigest
                 });
 
                 successResponse(reply, txResult, "Gift verified successfully", 201);
@@ -84,7 +88,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
             // Filter GiftWrapped events and extract gift_db_id
             const giftObjs: any[] = txResult.events
                 .filter((event: any) =>
-                    event.type?.includes("::gift::GiftSent")
+                    event.type?.includes(`::${MODULE_NAME}::GiftSent`)
                 )
                 .map((event: any) => event.parsedJson)
                 .filter(Boolean); // removes undefined/null
@@ -92,7 +96,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
 
             //Get Gift IDs from the Event and update the Mongodb Documents of Gifts to verified true;
             if (txResult.verified) {
-                await giftService.verifySUIGifts(giftObjs, req.body.address.trim());
+                await giftService.verifySUIGifts(giftObjs, req.body.address.trim(), txResult.digest);
             } else {
                 errorResponse(reply, "Transaction is not verified", 400);
             }
@@ -124,13 +128,33 @@ export const getSent = async (req: FastifyRequest<{ Params: { address: string } 
     }
 };
 
-export const getMyGifts = async (req: FastifyRequest, reply: FastifyReply) => {
+export const getMySentGifts = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
         const query = req.query as { page?: string; limit?: string };
         const page = Number(query.page) || 1;
         const limit = Number(query.limit) || 10;
 
         const { data } = await giftService.getSentGifts(
+            req.user.address,
+            page,
+            limit,
+            true
+        );
+
+        return paginationResponse(reply, data, 100, page, limit, 200);
+
+    } catch (error: any) {
+        return errorResponse(reply, "Something went wrong", 500);
+    }
+};
+
+export const getMyReceivedGifts = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const query = req.query as { page?: string; limit?: string };
+        const page = Number(query.page) || 1;
+        const limit = Number(query.limit) || 10;
+
+        const { data } = await giftService.getReceivedGifts(
             req.user.address,
             page,
             limit,

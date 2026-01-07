@@ -20,13 +20,15 @@ export interface IGift extends Document {
     wrapper: string;
     message?: string;
 
+    isMessagePrivate: boolean;
+
     mediaType: 'image' | 'video';
 
     status: 'unverified' | 'sent' | 'opened';
     verified: Boolean;
     openedAt?: Date;
 
-    senderTxDigest?: string;
+    senderTxHash?: string;
 
     chain: 'sui' | 'sol';
     isAnonymous?: boolean;
@@ -98,6 +100,11 @@ const GiftSchema: Schema = new Schema(
             default: ''
         },
 
+        isMessagePrivate: {
+            type: Boolean,
+            default: false
+        },
+
 
         status: {
             type: String,
@@ -114,7 +121,7 @@ const GiftSchema: Schema = new Schema(
             type: Date
         },
 
-        senderTxDigest: {
+        senderTxHash: {
             type: String,
             default: null
         },

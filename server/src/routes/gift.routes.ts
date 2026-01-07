@@ -15,7 +15,8 @@ export const giftRoutes = async (app: FastifyInstance) => {
     app.register(async (protectedApp) => {
         protectedApp.addHook('preHandler', authenticate);
 
-        protectedApp.get('/me/sent', giftController.getMyGifts);
+        protectedApp.get('/me/sent', giftController.getMySentGifts);
+        protectedApp.get('/me/received', giftController.getMyReceivedGifts);
         protectedApp.post('/send', { schema: { body: sendGiftSchema } }, giftController.sendGift);
         protectedApp.post('/verify', { schema: { body: verifyGiftSchema } }, giftController.verifyGift);
         protectedApp.get('/claim-gift/:id', giftController.claimGift);

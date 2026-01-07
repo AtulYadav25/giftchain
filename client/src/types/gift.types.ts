@@ -1,11 +1,12 @@
 export interface Gift {
     _id: string;
-    senderId?: string | { _id: string; username: string; avatar?: string };
-    receiverId?: string | { _id: string; username: string; avatar?: string };
+    senderId?: { _id: string; username: string; avatar?: string };
+    receiverId?: { _id: string; username: string; avatar?: string };
     senderWallet: string;
     receiverWallet: string;
     amountUSD: number;
     totalTokenAmount: BigInt;
+    isMessagePrivate: boolean;
     tokenSymbol: 'sui' | 'sol';
     wrapper: string; // ID or populated
     message?: string;

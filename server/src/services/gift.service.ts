@@ -21,6 +21,8 @@ export const createGift = async (senderId: string, data: any, chain: string, sen
         feeUSD: data.feeUSD, // In USD eg: 1 USD
         tokenStats: data.tokenStats,
 
+        isMessagePrivate: data.isMessagePrivate || false,
+
         wrapper: extractImagePublicId(data.wrapper),
         message: data.message,
         mediaType: data.mediaType,
@@ -45,9 +47,11 @@ type GiftObj = {
 export const verifySOLGifts = async ({
     giftIds,
     sender,
+    digest
 }: {
     giftIds: string[];
     sender: string;
+    digest: string;
 }) => {
     const gifts = await Gift.find(
         {
@@ -69,6 +73,7 @@ export const verifySOLGifts = async ({
             $set: {
                 verified: true,
                 status: 'sent',
+                senderTxHash: digest
             },
         }
     );
@@ -114,7 +119,7 @@ export const verifySOLGifts = async ({
 };
 
 
-export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string) => {
+export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string, digest: string) => {
     const giftIds = giftObjs.map(g => g.gift_db_id.toString());
 
     // Lookup maps (MIST everywhere)
@@ -153,7 +158,8 @@ export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string) => {
                 update: {
                     $set: {
                         status: 'sent',
-                        verified: true
+                        verified: true,
+                        senderTxHash: digest
                     },
                 },
             },
@@ -209,24 +215,17 @@ export const getSentGifts = async (
     const skip = (page - 1) * limit;
 
     const data = await Gift.aggregate([
-        // 1️⃣ Match sender wallet
         {
             $match: {
                 senderWallet: address,
                 ...(!isAuthenticated ? { verified: true } : {})
             }
         },
-
-        // 2️⃣ Sort
         {
             $sort: { createdAt: -1 }
         },
-
-        // 3️⃣ Pagination
         { $skip: skip },
         { $limit: limit },
-
-        // 4️⃣ Lookup user by wallet
         {
             $lookup: {
                 from: 'users',
@@ -235,16 +234,12 @@ export const getSentGifts = async (
                 as: 'user'
             }
         },
-
-        // 5️⃣ Flatten user array
         {
             $unwind: {
                 path: '$user',
                 preserveNullAndEmptyArrays: true
             }
         },
-
-        // 6️⃣ Final projection (FLAT structure)
         {
             $project: {
                 _id: 1,
@@ -257,19 +252,33 @@ export const getSentGifts = async (
                 totalTokenAmount: 1,
                 tokenSymbol: 1,
 
+                isMessagePrivate: 1,
+
                 tokenStats: {
                     tokenPrice: 1,
                     tokenHash: 1
                 },
 
                 wrapper: 1,
-                message: 1,
+
+                // 🔥 CONDITIONAL MESSAGE LOGIC
+                message: {
+                    $cond: [
+                        {
+                            $or: [
+                                { $eq: ['$isMessagePrivate', false] },
+                                isAuthenticated
+                            ]
+                        },
+                        '$message',
+                        null
+                    ]
+                },
 
                 status: 1,
                 verified: 1,
                 openedAt: 1,
 
-                // 🔥 flattened user fields
                 username: '$user.username',
                 avatar: '$user.avatar',
 
@@ -283,28 +292,26 @@ export const getSentGifts = async (
 
 
 
-export const getReceivedGifts = async (address: string, page = 1, limit = 10) => {
+export const getReceivedGifts = async (
+    address: string,
+    page = 1,
+    limit = 10,
+    authenticated = false
+) => {
     const skip = (page - 1) * limit;
 
     const data = await Gift.aggregate([
-        // 1️⃣ Match sender wallet
         {
             $match: {
                 receiverWallet: address,
                 verified: true
             }
         },
-
-        // 2️⃣ Sort
         {
             $sort: { createdAt: -1 }
         },
-
-        // 3️⃣ Pagination
         { $skip: skip },
         { $limit: limit },
-
-        // 4️⃣ Lookup user by wallet
         {
             $lookup: {
                 from: 'users',
@@ -313,16 +320,12 @@ export const getReceivedGifts = async (address: string, page = 1, limit = 10) =>
                 as: 'user'
             }
         },
-
-        // 5️⃣ Flatten user array
         {
             $unwind: {
                 path: '$user',
                 preserveNullAndEmptyArrays: true
             }
         },
-
-        // 6️⃣ Final projection (FLAT structure)
         {
             $project: {
                 _id: 1,
@@ -335,19 +338,33 @@ export const getReceivedGifts = async (address: string, page = 1, limit = 10) =>
                 totalTokenAmount: 1,
                 tokenSymbol: 1,
 
+                isMessagePrivate: 1,
+
                 tokenStats: {
                     tokenPrice: 1,
                     tokenHash: 1
                 },
 
                 wrapper: 1,
-                message: 1,
+
+                // 🔥 CONDITIONAL MESSAGE LOGIC
+                message: {
+                    $cond: [
+                        {
+                            $or: [
+                                { $eq: ['$isMessagePrivate', false] },
+                                authenticated
+                            ]
+                        },
+                        '$message',
+                        null
+                    ]
+                },
 
                 status: 1,
                 verified: 1,
                 openedAt: 1,
 
-                // 🔥 flattened user fields
                 username: '$user.username',
                 avatar: '$user.avatar',
 
@@ -358,6 +375,7 @@ export const getReceivedGifts = async (address: string, page = 1, limit = 10) =>
 
     return { data };
 };
+
 
 export const getGiftById = async (giftId: string) => {
     const gift = await Gift.findById(giftId);
