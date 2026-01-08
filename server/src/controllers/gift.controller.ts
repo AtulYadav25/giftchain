@@ -22,7 +22,12 @@ export const sendGift = async (req: FastifyRequest<{ Body: SendGiftBody }>, repl
         const totalUnverifiedGifts = await Gift.countDocuments({ senderWallet: req.user!.address, verified: false });
 
         if (totalUnverifiedGifts >= 5) {
-            return errorResponse(reply, "You have reached the limit of unverified gifts", 400);
+            return errorResponse(
+                reply,
+                "You’ve reached the limit of unverified gifts. Please delete or verify existing ones to continue.",
+                400
+            );
+
         }
 
 
@@ -66,7 +71,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
             const solTxVerifier = new SolTransactionVerifier();
             const txResult: any = await solTxVerifier.verifyTransaction(req.body.txDigest as Signature, { walletAddress: req.body.address.trim() });
 
-            if (txResult.status && txResult.giftIds.includes(req.body.giftId)) {
+            if (txResult.status && txResult.giftIds.includes(req.body.giftId) && txResult.verified) {
 
                 await giftService.verifySOLGifts({
                     giftIds: txResult.giftIds,
@@ -85,17 +90,16 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
             const txVerifier = new SuiTransactionVerifier();
             const txResult: any = await txVerifier.verifyTransaction(req.body.txDigest, { walletAddress: req.body.address.trim(), giftId: req.body.giftId });
 
-            // Filter GiftWrapped events and extract gift_db_id
-            const giftObjs: any[] = txResult.events
-                .filter((event: any) =>
-                    event.type?.includes(`::${MODULE_NAME}::GiftSent`)
-                )
-                .map((event: any) => event.parsedJson)
-                .filter(Boolean); // removes undefined/null
-
-
             //Get Gift IDs from the Event and update the Mongodb Documents of Gifts to verified true;
             if (txResult.verified) {
+
+                // Filter GiftWrapped events and extract gift_db_id
+                const giftObjs: any[] = txResult.events
+                    .filter((event: any) =>
+                        event.type?.includes(`::${MODULE_NAME}::GiftSent`)
+                    )
+                    .map((event: any) => event.parsedJson)
+                    .filter(Boolean); // removes undefined/null
                 await giftService.verifySUIGifts(giftObjs, req.body.address.trim(), txResult.digest);
             } else {
                 errorResponse(reply, "Transaction is not verified", 400);
@@ -121,7 +125,7 @@ export const getSent = async (req: FastifyRequest<{ Params: { address: string } 
             limit
         );
 
-        return paginationResponse(reply, data, 100, page, limit, 200);
+        return paginationResponse(reply, data, null, page, limit, 200);
 
     } catch (error: any) {
         return errorResponse(reply, "Something went wrong", 500);
@@ -141,7 +145,7 @@ export const getMySentGifts = async (req: FastifyRequest, reply: FastifyReply) =
             true
         );
 
-        return paginationResponse(reply, data, 100, page, limit, 200);
+        return paginationResponse(reply, data, null, page, limit, 200);
 
     } catch (error: any) {
         return errorResponse(reply, "Something went wrong", 500);
@@ -161,7 +165,7 @@ export const getMyReceivedGifts = async (req: FastifyRequest, reply: FastifyRepl
             true
         );
 
-        return paginationResponse(reply, data, 100, page, limit, 200);
+        return paginationResponse(reply, data, null, page, limit, 200);
 
     } catch (error: any) {
         return errorResponse(reply, "Something went wrong", 500);
@@ -181,7 +185,7 @@ export const getReceived = async (req: FastifyRequest<{ Params: { address: strin
             limit
         );
 
-        return paginationResponse(reply, data, 100, page, limit, 200);
+        return paginationResponse(reply, data, null, page, limit, 200);
 
     } catch (error: any) {
         return errorResponse(reply, "Something went wrong", 500);
