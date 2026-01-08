@@ -1,11 +1,8 @@
 import { Gift } from '../models/gift.model';
-import mongoose from 'mongoose';
 import { User } from '../models/user.model';
-import { Transaction } from '@mysten/sui/transactions';
 import { getClient } from '../utils/sui';
 import { createHash } from 'crypto';
 import { extractImagePublicId } from '../utils/imageHelper';
-import { truncateSmart } from '../utils/jwt';
 
 const client = getClient('testnet');
 
@@ -205,7 +202,6 @@ export const verifySUIGifts = async (giftObjs: GiftObj[], sender: string, digest
 };
 
 
-
 export const getSentGifts = async (
     address: string,
     page = 1,
@@ -214,7 +210,60 @@ export const getSentGifts = async (
 ) => {
     const skip = (page - 1) * limit;
 
-    const data = await Gift.aggregate([
+    let unverified: any[] = [];
+
+    // 1️⃣ If authenticated + page = 1 → pull unverified gifts first
+    if (isAuthenticated && page === 1) {
+        unverified = await Gift.aggregate([
+            {
+                $match: {
+                    senderWallet: address,
+                    verified: false
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'receiverWallet',
+                    foreignField: 'address',
+                    as: 'user'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$user',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    senderWallet: 1,
+                    receiverWallet: 1,
+                    amountUSD: 1,
+                    feeUSD: 1,
+                    totalTokenAmount: 1,
+                    tokenSymbol: 1,
+                    isMessagePrivate: 1,
+                    tokenStats: {
+                        tokenPrice: 1,
+                        tokenHash: 1
+                    },
+                    wrapper: 1,
+                    message: 1,
+                    status: 1,
+                    verified: 1,
+                    openedAt: 1,
+                    username: '$user.username',
+                    avatar: '$user.avatar',
+                    createdAt: 1
+                }
+            }
+        ]);
+    }
+
+    // 2️⃣ Now fetch normal paginated SENT gifts
+    const paginated = await Gift.aggregate([
         {
             $match: {
                 senderWallet: address,
@@ -243,25 +292,18 @@ export const getSentGifts = async (
         {
             $project: {
                 _id: 1,
-
                 senderWallet: 1,
                 receiverWallet: 1,
-
                 amountUSD: 1,
                 feeUSD: 1,
                 totalTokenAmount: 1,
                 tokenSymbol: 1,
-
                 isMessagePrivate: 1,
-
                 tokenStats: {
                     tokenPrice: 1,
                     tokenHash: 1
                 },
-
                 wrapper: 1,
-
-                // 🔥 CONDITIONAL MESSAGE LOGIC
                 message: {
                     $cond: [
                         {
@@ -274,20 +316,23 @@ export const getSentGifts = async (
                         null
                     ]
                 },
-
                 status: 1,
                 verified: 1,
                 openedAt: 1,
-
                 username: '$user.username',
                 avatar: '$user.avatar',
-
                 createdAt: 1
             }
         }
     ]);
 
-    return { data };
+    // 3️⃣ Merge cleanly without duplicates
+    const merged = [
+        ...unverified,
+        ...paginated.filter(g => !unverified.find(u => u._id.toString() === g._id.toString()))
+    ];
+
+    return { data: merged };
 };
 
 
