@@ -37,7 +37,7 @@ export const paginationResponse = (
     limit,
     statusCode = 200
 ) => {
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = total ? Math.ceil(total / limit) : null;
 
     return reply
         .code(statusCode)

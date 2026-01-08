@@ -5,9 +5,6 @@ import './App.css'
 
 //Import Layouts
 import Navbar from '@/components/layout/Navbar';
-// import { Footer } from './components/Footer';
-// import { Home } from './pages/Home';
-// import { Home } from './pages/Home';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import HallOfGivers from './pages/HallOfGivers';
@@ -17,7 +14,7 @@ import Terms from './pages/Terms';
 import GiftDetails from './pages/GiftDetails';
 import { useInitApp } from './hooks/useInitApp';
 import UsernameSetupModal from './components/UsernameSetupModal';
-import { useAuthActions, useGiftActions, useUser } from './store';
+import { useGiftActions, useUser } from './store';
 import { useEffect, useRef } from 'react';
 import { useChain } from './multichainkit/context/ChainContext';
 
@@ -29,7 +26,7 @@ const App = () => {
   useInitApp();
 
   const { getGlobalGiftStats } = useGiftActions();
-  const { chain, address, disconnectWallet } = useChain();
+  const { address, disconnectWallet } = useChain();
   // const { disconnectWallet: disconnectAuth } = useAuthActions();
 
   const user = useUser();

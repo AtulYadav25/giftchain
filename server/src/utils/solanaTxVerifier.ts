@@ -183,6 +183,7 @@ class SolTransactionVerifier {
 
 
             return {
+                verified: true,
                 status: true,
                 message: 'Transaction verified successfully',
                 giftObjs: verifiedGifts,

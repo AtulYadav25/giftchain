@@ -162,7 +162,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
         if (variant === 'received') {
             return {
                 label: 'From',
-                username: gift?.username || 'Unknown Sender',
+                username: gift?.username || 'Someone',
                 avatar: gift?.avatar,
                 wallet: gift.senderWallet,
                 id: gift?._id,
@@ -172,7 +172,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
         } else {
             return {
                 label: 'To',
-                username: gift?.username || 'Unknown Recipient',
+                username: gift?.username || 'Someone',
                 avatar: gift?.avatar,
                 wallet: gift.receiverWallet,
                 id: gift?._id,
@@ -206,7 +206,7 @@ export default function GiftRevealModal({ isOpen, onClose, gift, variant }: Gift
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="relative w-full max-w-4xl hide-scrollbar-page max-h-[90vh] flex flex-col items-center justify-center p-4"
+                        className="relative w-full max-w-5xl hide-scrollbar-page max-h-[90vh] flex flex-col items-center justify-center p-4"
                     >
                         <button
                             onClick={() => setExpandedView('none')}

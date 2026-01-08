@@ -21,6 +21,13 @@ interface GiftState {
     receivedGifts: Gift[];
     receivedMeta: PaginationMeta | null;
     sentMeta: PaginationMeta | null;
+
+    // Caches
+    sentGiftsCache: Record<number, { data: Gift[]; meta: PaginationMeta }>;
+    receivedGiftsCache: Record<number, { data: Gift[]; meta: PaginationMeta }>;
+    publicSentGiftsCache: Record<number, { data: Gift[]; meta: PaginationMeta }>;
+    publicReceivedGiftsCache: Record<number, { data: Gift[]; meta: PaginationMeta }>;
+
     publicUserSentGifts: Gift[];
     publicUserReceivedGifts: Gift[];
     publicUserReceivedMeta: PaginationMeta | null;
@@ -80,10 +87,10 @@ interface GiftActions {
     sendGift: (giftData: SendGiftParams) => Promise<Gift>;
     verifyGift: (giftData: VerifyGiftParams) => Promise<any>;
     deleteUnVerifiedGift: (giftId: string) => Promise<void>;
-    fetchSentGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
-    fetchMySentGifts: (page?: number, limit?: number) => Promise<void>;
-    fetchReceivedGifts: (userName: string, page?: number, limit?: number) => Promise<void>;
-    fetchMyReceivedGifts: (page?: number, limit?: number) => Promise<void>;
+    fetchSentGifts: (userName: string, page?: number, limit?: number, forceRefresh?: boolean) => Promise<void>;
+    fetchMySentGifts: (page?: number, limit?: number, forceRefresh?: boolean) => Promise<void>;
+    fetchReceivedGifts: (userName: string, page?: number, limit?: number, forceRefresh?: boolean) => Promise<void>;
+    fetchMyReceivedGifts: (page?: number, limit?: number, forceRefresh?: boolean) => Promise<void>;
     fetchGiftById: (id: string) => Promise<void>;
     openGift: (id: string) => Promise<void>;
     getSUIPrice: () => Promise<void>;
@@ -92,24 +99,10 @@ interface GiftActions {
     claimGiftSubmit: (giftId: string) => Promise<{ txDigest: string }>;
     getGlobalGiftStats: () => Promise<{ totalAmountUSD: number, totalGiftsSent: number }>;
     emptyGiftStats: () => void;
+    clearPublicGiftsCache: () => void;
 }
 
-const mergeById = <T extends { _id: string }>(
-    existing: T[],
-    incoming: T[]
-): T[] => {
-    const map = new Map<string, T>();
 
-    for (const item of existing) {
-        map.set(item._id, item);
-    }
-
-    for (const item of incoming) {
-        map.set(item._id, item);
-    }
-
-    return Array.from(map.values());
-};
 
 
 
@@ -117,9 +110,13 @@ const mergeById = <T extends { _id: string }>(
 // API Endpoint to check if user is authenticated, if yes then proceed with fetchMySentGifts else
 // fetchSentGifts
 const useGiftStore = create<GiftState & { actions: GiftActions }>()(
-    devtools((set) => ({
+    devtools((set, get) => ({
         sentGifts: [],
         receivedGifts: [],
+        sentGiftsCache: {},
+        receivedGiftsCache: {},
+        publicSentGiftsCache: {},
+        publicReceivedGiftsCache: {},
         publicUserSentGifts: [],
         publicUserReceivedGifts: [],
         publicUserReceivedMeta: null,
@@ -197,13 +194,25 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     return data;
                 } catch (err: any) {
                     set({ giftTxLoadingStates: 0, error: err.message });
+                    toast.error(err.message);
                     throw err;
                 }
             },
 
 
 
-            fetchSentGifts: async (address: string, page = 1, limit = 10) => {
+            fetchSentGifts: async (address: string, page = 1, limit = 10, forceRefresh = false) => {
+                const { publicSentGiftsCache } = get();
+
+                if (!forceRefresh && publicSentGiftsCache[page]) {
+                    set({
+                        publicUserSentGifts: publicSentGiftsCache[page].data,
+                        publicUserSentMeta: publicSentGiftsCache[page].meta,
+                        isSentGiftsLoading: false
+                    });
+                    return;
+                }
+
                 set({ isSentGiftsLoading: true, error: null });
 
                 try {
@@ -212,24 +221,17 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     );
 
                     const { data: responseBody } = res;
-
-                    //TODO : Maybe here i dont need to validate if its user address and i can directly proceed setting the data to publicUserSent
+                    const meta = responseBody.meta as any;
 
                     set((state) => ({
-                        publicUserSentGifts:
-                            page === 1
-                                ? responseBody.data
-                                : mergeById(state.publicUserSentGifts, responseBody.data),
-
-                        publicUserSentMeta:
-                            page === 1
-                                ? responseBody.meta
-                                : state.publicUserSentMeta,
-
+                        publicUserSentGifts: responseBody.data,
+                        publicUserSentMeta: meta,
+                        publicSentGiftsCache: {
+                            ...state.publicSentGiftsCache,
+                            [page]: { data: responseBody.data, meta }
+                        },
                         isSentGiftsLoading: false,
                     }));
-
-
 
                 } catch (err: any) {
                     set({
@@ -243,7 +245,18 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             },
 
 
-            fetchMySentGifts: async (page = 1, limit = 10) => {
+            fetchMySentGifts: async (page = 1, limit = 10, forceRefresh = false) => {
+                const { sentGiftsCache } = get();
+
+                if (!forceRefresh && sentGiftsCache[page]) {
+                    set({
+                        sentGifts: sentGiftsCache[page].data,
+                        sentMeta: sentGiftsCache[page].meta,
+                        isSentGiftsLoading: false
+                    });
+                    return;
+                }
+
                 set({ isSentGiftsLoading: true, error: null });
 
                 try {
@@ -252,15 +265,16 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     );
 
                     const { data: responseBody } = res;
+                    const meta = responseBody.meta as any;
 
                     set((state) => ({
-                        sentGifts:
-                            page === 1
-                                ? responseBody.data // FULL REFRESH (latest gifts)
-                                : mergeById(state.sentGifts, responseBody.data),
-                        sentMeta: responseBody.meta as any,
+                        sentGifts: responseBody.data,
+                        sentMeta: meta,
+                        sentGiftsCache: {
+                            ...state.sentGiftsCache,
+                            [page]: { data: responseBody.data, meta }
+                        },
                         isSentGiftsLoading: false,
-
                     }));
                 } catch (err: any) {
                     set({ isSentGiftsLoading: false, error: err.message });
@@ -268,7 +282,18 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
             },
 
 
-            fetchReceivedGifts: async (address: string, page = 1, limit = 10) => {
+            fetchReceivedGifts: async (address: string, page = 1, limit = 10, forceRefresh = false) => {
+                const { publicReceivedGiftsCache } = get();
+
+                if (!forceRefresh && publicReceivedGiftsCache[page]) {
+                    set({
+                        publicUserReceivedGifts: publicReceivedGiftsCache[page].data,
+                        publicUserReceivedMeta: publicReceivedGiftsCache[page].meta,
+                        isReceivedGiftsLoading: false
+                    });
+                    return;
+                }
+
                 set({ isReceivedGiftsLoading: true, error: null });
 
                 try {
@@ -277,24 +302,35 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     );
 
                     const { data: responseBody } = res;
-
+                    const meta = responseBody.meta as any;
 
                     set((state) => ({
-                        publicUserReceivedGifts:
-                            page === 1
-                                ? responseBody.data
-                                : mergeById(state.publicUserReceivedGifts, responseBody.data),
-                        publicUserReceivedMeta: responseBody.meta as any,
+                        publicUserReceivedGifts: responseBody.data,
+                        publicUserReceivedMeta: meta,
+                        publicReceivedGiftsCache: {
+                            ...state.publicReceivedGiftsCache,
+                            [page]: { data: responseBody.data, meta }
+                        },
                         isReceivedGiftsLoading: false,
                     }));
-
 
                 } catch (err: any) {
                     set({ isReceivedGiftsLoading: false, error: err.message });
                 }
             },
 
-            fetchMyReceivedGifts: async (page = 1, limit = 10) => {
+            fetchMyReceivedGifts: async (page = 1, limit = 10, forceRefresh = false) => {
+                const { receivedGiftsCache } = get();
+
+                if (!forceRefresh && receivedGiftsCache[page]) {
+                    set({
+                        receivedGifts: receivedGiftsCache[page].data,
+                        receivedMeta: receivedGiftsCache[page].meta,
+                        isReceivedGiftsLoading: false
+                    });
+                    return;
+                }
+
                 set({ isReceivedGiftsLoading: true, error: null });
 
                 try {
@@ -303,16 +339,17 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                     );
 
                     const { data: responseBody } = res;
+                    const meta = responseBody.meta as any;
 
                     set((state) => ({
-                        receivedGifts:
-                            page === 1
-                                ? responseBody.data
-                                : mergeById(state.receivedGifts, responseBody.data),
-                        receivedMeta: responseBody.meta as any,
+                        receivedGifts: responseBody.data,
+                        receivedMeta: meta,
+                        receivedGiftsCache: {
+                            ...state.receivedGiftsCache,
+                            [page]: { data: responseBody.data, meta }
+                        },
                         isReceivedGiftsLoading: false,
                     }));
-
 
                 } catch (err: any) {
                     set({ isReceivedGiftsLoading: false, error: err.message });
@@ -447,6 +484,10 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 set({
                     sentGifts: [],
                     receivedGifts: [],
+                    sentGiftsCache: {},
+                    receivedGiftsCache: {},
+                    publicSentGiftsCache: {},
+                    publicReceivedGiftsCache: {},
                     publicUserSentGifts: [],
                     publicUserReceivedGifts: [],
                     publicUserReceivedMeta: null,
@@ -458,6 +499,16 @@ const useGiftStore = create<GiftState & { actions: GiftActions }>()(
                 });
             },
 
+            clearPublicGiftsCache: () => {
+                set({
+                    publicSentGiftsCache: {},
+                    publicReceivedGiftsCache: {},
+                    publicUserSentGifts: [],
+                    publicUserReceivedGifts: [],
+                    publicUserReceivedMeta: null,
+                    publicUserSentMeta: null,
+                });
+            }
         }
     }))
 );
@@ -472,6 +523,7 @@ export const usePublicUserSentGifts = () => useGiftStore((s) => s.publicUserSent
 export const usePublicUserReceivedGifts = () => useGiftStore((s) => s.publicUserReceivedGifts);
 export const usePublicUserReceivedMeta = () => useGiftStore((s) => s.publicUserReceivedMeta);
 export const usePublicUserSentMeta = () => useGiftStore((s) => s.publicUserSentMeta);
+export const useClearPublicGiftsCache = () => useGiftStore((s) => s.actions.clearPublicGiftsCache);
 
 
 export const useCurrentGift = () => useGiftStore((s) => s.currentGift);

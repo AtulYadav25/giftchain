@@ -1,9 +1,8 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import mascot from '@/assets/hero/mascot_hero.webp';
+import { Link, useNavigate } from 'react-router-dom';
 import slovi from '@/assets/hero/slovi.png';
-import { ArrowRight, Gift, Sparkles, Smartphone, Link as LinkIcon, Edit, Wallet, PenLine, Send } from 'lucide-react';
+import { ArrowRight, Gift, Sparkles, Link as LinkIcon, Wallet, PenLine, Send } from 'lucide-react';
 import CircularGallery from '@/components/CircularGallery';
 import TotalFundsCounter from '@/components/TotalFundsCounter';
 import Faq from '@/components/Faq';
@@ -500,8 +499,8 @@ function FooterSection({ navigate, address }: { navigate: any, address: string |
                 <div className="border-t border-blue-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-blue-300">
                     <p>© 2024 GiftChain. All rights reserved.</p>
                     <div className="flex gap-6 mt-4 md:mt-0">
-                        <a href="/privacy-policy" className="hover:text-white transition">Privacy</a>
-                        <a href="/terms" className="hover:text-white transition">Terms</a>
+                        <Link to="/privacy-policy" className="hover:text-white transition">Privacy</Link>
+                        <Link to="/terms" className="hover:text-white transition">Terms</Link>
                         <a href="#" className="hover:text-white transition">Twitter</a>
                     </div>
                 </div>

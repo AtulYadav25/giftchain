@@ -44,10 +44,10 @@ export interface ApiResponse<T> {
     message: string;
     data: T;
     meta?: {
-        total: number;
+        total: number | null;
         page: number;
         limit: number;
-        totalPages: number;
+        totalPages: number | null;
         hasNextPage: boolean;
         hasPrevPage: boolean;
     };

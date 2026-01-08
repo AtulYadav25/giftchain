@@ -27,6 +27,7 @@ import GiftRevealModal from '../components/GiftRevealModal';
 import VerifyGiftModal from '../components/VerifyGiftModal';
 import type { Gift as GiftType } from '@/types/gift.types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import SocialIconDetector from '../components/SocialIconDetector';
 import truncateSmart from '@/lib/truncateSmart';
 
@@ -141,28 +142,17 @@ const Profile = () => {
     // 4. Optimized Fetching Logic
 
     // Fetch Sent Gifts (Only if data missing or page changed)
+    // Fetch Sent Gifts (Store handles caching)
     React.useEffect(() => {
         if (!user?.address) return;
-
-        // If we have data for the current page, skip fetch
-        if (sentGifts.length > 0 && sentMeta?.page === sentPage) {
-            return;
-        }
-
         fetchMySentGifts(sentPage, ITEMS_PER_PAGE);
-    }, [sentPage, fetchMySentGifts, user?.address, sentGifts.length, sentMeta?.page]);
+    }, [sentPage, fetchMySentGifts, user?.address]);
 
-    // Fetch Received Gifts (Only if data missing or page changed)
+    // Fetch Received Gifts (Store handles caching)
     React.useEffect(() => {
         if (!user?.address) return;
-
-        // If we have data for the current page, skip fetch
-        if (receivedGifts.length > 0 && receivedMeta?.page === receivedPage) {
-            return;
-        }
-
         fetchMyReceivedGifts(receivedPage, ITEMS_PER_PAGE);
-    }, [receivedPage, fetchMyReceivedGifts, user?.address, receivedGifts.length, receivedMeta?.page]);
+    }, [receivedPage, fetchMyReceivedGifts, user?.address]);
 
     // Fetch Wrappers (Only once if empty)
     useEffect(() => {
@@ -177,14 +167,14 @@ const Profile = () => {
 
     const handleRefreshSent = async () => {
         setIsRefreshingSent(true);
-        await fetchMySentGifts(sentPage, ITEMS_PER_PAGE);
+        await fetchMySentGifts(sentPage, ITEMS_PER_PAGE, true);
         setIsRefreshingSent(false);
     };
 
     const handleRefreshReceived = async () => {
         if (!user?.address) return;
         setIsRefreshingReceived(true);
-        await fetchMyReceivedGifts(receivedPage, ITEMS_PER_PAGE);
+        await fetchMyReceivedGifts(receivedPage, ITEMS_PER_PAGE, true);
         setIsRefreshingReceived(false);
     };
 
@@ -437,8 +427,15 @@ const Profile = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
-                                    {isSentGiftLoading && sentGifts.length === 0 ? (
-                                        <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
+                                    {isSentGiftLoading ? (
+                                        [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                            <tr key={i} className="border-b border-slate-100">
+                                                <td className="py-4 pl-4"><Skeleton className="h-5 w-32 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-5 w-24 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-5 w-20 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
+                                            </tr>
+                                        ))
                                     ) : sentGifts.map((gift) => (
                                         <tr key={gift._id} onClick={() => handleOpenGift(gift, 'sent')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                             <td className="py-4 pl-4 flex items-center gap-2">
@@ -494,8 +491,15 @@ const Profile = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
-                                    {isReceivedGiftLoading && receivedGifts.length === 0 ? (
-                                        <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
+                                    {isReceivedGiftLoading ? (
+                                        [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                            <tr key={i} className="border-b border-slate-100">
+                                                <td className="py-4 pl-4"><Skeleton className="h-5 w-32 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-5 w-24 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-5 w-20 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
+                                            </tr>
+                                        ))
                                     ) : receivedGifts.map((gift, i) => (
                                         <tr key={i} onClick={() => handleOpenGift(gift, 'received')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                             <td className="py-4 pl-4 flex items-center gap-2">

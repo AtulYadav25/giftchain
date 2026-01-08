@@ -16,9 +16,10 @@ import SendGiftModal from '../components/SendGiftModal';
 import { useParams } from 'react-router-dom';
 import type { Gift as GiftType } from '@/types/gift.types';
 import GiftRevealModal from '../components/GiftRevealModal';
-import { useGiftActions, useGiftLoading, usePublicUserReceivedGifts, usePublicUserSentGifts } from '@/store/useGiftStore';
+import { useGiftActions, useGiftLoading, usePublicUserReceivedGifts, usePublicUserSentGifts, useClearPublicGiftsCache } from '@/store/useGiftStore';
 import { useAuthActions, usePublicProfile, usePublicProfileLoading, useUser } from '@/store/useAuthStore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import SocialIconDetector from '../components/SocialIconDetector';
 import SOLANA_IMG from '@/assets/solana.png';
 import SUI_IMG from '@/assets/sui.png';
@@ -41,6 +42,7 @@ const PublicProfile = () => {
 
     // Actions
     const { fetchSentGifts, fetchReceivedGifts } = useGiftActions();
+    const clearPublicGiftsCache = useClearPublicGiftsCache();
 
     const currentUser = useUser();
     const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
@@ -97,9 +99,10 @@ const PublicProfile = () => {
     // Fetch User
     useEffect(() => {
         if (username) {
+            clearPublicGiftsCache();
             fetchPublicProfile(username);
         }
-    }, [username, fetchPublicProfile]);
+    }, [username, fetchPublicProfile, clearPublicGiftsCache]);
 
     // Pagination
     const [sentPage, setSentPage] = useState(1);
@@ -396,8 +399,15 @@ const PublicProfile = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="text-slate-700 font-medium">
-                                        {isGiftLoading && sentGifts.length === 0 ? (
-                                            <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
+                                        {isGiftLoading ? (
+                                            [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                                <tr key={i} className="border-b border-slate-100">
+                                                    <td className="py-4 pl-4"><Skeleton className="h-5 w-32 bg-slate-200" /></td>
+                                                    <td className="py-4"><Skeleton className="h-5 w-24 bg-slate-200" /></td>
+                                                    <td className="py-4"><Skeleton className="h-5 w-20 bg-slate-200" /></td>
+                                                    <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
+                                                </tr>
+                                            ))
                                         ) : sentGifts.map((gift) => (
                                             <tr key={gift._id} onClick={() => handleOpenGift(gift, 'sent')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                                 <td className="py-4 pl-4">
@@ -433,8 +443,15 @@ const PublicProfile = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700 font-medium">
-                                    {isGiftLoading && receivedGifts.length === 0 ? (
-                                        <tr><td colSpan={4} className="text-center py-8 font-bold"><Loader2 className="animate-spin inline mr-2" /> Loading...</td></tr>
+                                    {isGiftLoading ? (
+                                        [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                            <tr key={i} className="border-b border-slate-100">
+                                                <td className="py-4 pl-4"><Skeleton className="h-5 w-32 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-5 w-24 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-5 w-20 bg-slate-200" /></td>
+                                                <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
+                                            </tr>
+                                        ))
                                     ) : receivedGifts.map((gift, i) => (
                                         <tr key={i} onClick={() => handleOpenGift(gift, 'received')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                             <td className="py-4 pl-4">
