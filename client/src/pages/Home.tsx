@@ -166,7 +166,7 @@ function HowItWorksSection() {
         {
             icon: <Wallet size={32} className="text-white" />,
             title: "Connect Wallet",
-            desc: "Link your SUI wallet securely in one click. No sign-ups, no hassle.",
+            desc: "Link your SOLANA / SUI wallet securely in one click. No sign-ups, no hassle.",
             color: "bg-blue-400",
             rotate: "-rotate-2"
         },

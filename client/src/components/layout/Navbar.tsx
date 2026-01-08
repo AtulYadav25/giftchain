@@ -54,76 +54,82 @@ export default function Navbar() {
                     : "bg-transparent py-5" // Transparent at top of home
                 }`}
         >
-            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-                {/* Logo */}
-                <Link to="/" className="group flex items-center gap-2">
-                    <span className="font-['Lilita_One'] text-2xl md:text-3xl text-white drop-shadow-sm group-hover:scale-105 transition-transform duration-300">
-                        GiftChain<span className={`text-blue-200 ${!isHome
-                            ? "text-pink-100" // Solid blue for other pages
-                            : scrolled
-                                ? "text-blue-200" // Tinted glass on scroll
-                                : "text-blue-200" // Transparent at top of home
-                            }`}>.fun</span>
-                    </span>
-                </Link>
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="flex items-center justify-between">
+                    {/* Logo */}
+                    <Link to="/" className="group flex items-center gap-2">
+                        <span className="font-['Lilita_One'] text-2xl md:text-3xl text-white drop-shadow-sm group-hover:scale-105 transition-transform duration-300">
+                            GiftChain<span className={`text-blue-200 ${!isHome
+                                ? "text-pink-100" // Solid blue for other pages
+                                : scrolled
+                                    ? "text-blue-200" // Tinted glass on scroll
+                                    : "text-blue-200" // Transparent at top of home
+                                }`}>.fun</span>
+                        </span>
+                    </Link>
 
-                {/* Right Actions */}
-                <div className="flex items-center gap-4">
+                    {/* Right Actions */}
+                    <div className="flex items-center gap-4">
 
-                    {/* Chain Switcher */}
-                    <ChainSwitcher />
+                        {/* Chain Switcher */}
+                        <div className="hidden md:block">
+                            <ChainSwitcher />
+                        </div>
 
-                    {!isConnected ? (
-                        <ChainConnectButton />
+                        {!isConnected ? (
+                            <ChainConnectButton />
 
-                    ) : (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger className="outline-none">
-                                <motion.div
-                                    whileHover={{ scale: 1.02 }}
-                                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md px-3 py-1.5 md:pl-4 md:pr-2 rounded-full border border-white/20 transition-all cursor-pointer"
-                                >
-                                    <div className="hidden md:flex flex-col items-end mr-2">
-                                        <span className="text-xs font-bold text-white/90">
-                                            {address?.slice(0, 4)}...{address?.slice(-4)}
-                                        </span>
-                                        <span className={`text-[10px] font-jua px-1.5 rounded-full ${chain === 'solana' ? 'bg-purple-500/20 text-purple-200' : 'bg-blue-500/20 text-blue-200'}`}>
-                                            {chain === 'solana' ? 'Solana Mainnet' : 'Sui Network'}
-                                        </span>
-                                    </div>
-                                    <Avatar className="h-9 w-9 border-2 border-white/30">
-                                        <AvatarImage src={user?.avatar} />
-                                        <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                    <ChevronDown size={14} className="text-white/70" />
-                                </motion.div>
-                            </DropdownMenuTrigger>
+                        ) : (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger className="outline-none">
+                                    <motion.div
+                                        whileHover={{ scale: 1.02 }}
+                                        className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md px-3 py-1.5 md:pl-4 md:pr-2 rounded-full border border-white/20 transition-all cursor-pointer"
+                                    >
+                                        <div className="hidden md:flex flex-col items-end mr-2">
+                                            <span className="text-xs font-bold text-white/90">
+                                                {address?.slice(0, 4)}...{address?.slice(-4)}
+                                            </span>
+                                            <span className={`text-[10px] font-jua px-1.5 rounded-full ${chain === 'solana' ? 'bg-purple-500/20 text-purple-200' : 'bg-blue-500/20 text-blue-200'}`}>
+                                                {chain === 'solana' ? 'Solana Mainnet' : 'Sui Network'}
+                                            </span>
+                                        </div>
+                                        <Avatar className="h-9 w-9 border-2 border-white/30">
+                                            <AvatarImage src={user?.avatar} />
+                                            <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{user?.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <ChevronDown size={14} className="text-white/70" />
+                                    </motion.div>
+                                </DropdownMenuTrigger>
 
-                            <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-blue-100 rounded-2xl shadow-xl p-2 mt-2">
-                                <DropdownMenuLabel className="text-blue-900 px-3 py-2">My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-blue-50" />
+                                <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-blue-100 rounded-2xl shadow-xl p-2 mt-2">
+                                    <DropdownMenuLabel className="text-blue-900 px-3 py-2">My Account</DropdownMenuLabel>
+                                    <DropdownMenuSeparator className="bg-blue-50" />
 
-                                <DropdownMenuItem
-                                    className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-blue-700 py-2.5 px-3 mb-1"
-                                    onClick={() => navigate('/profile')}
-                                >
-                                    <User size={16} className="mr-2" />
-                                    My Profile
-                                </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer rounded-xl focus:bg-blue-50 focus:text-blue-700 py-2.5 px-3 mb-1"
+                                        onClick={() => navigate('/profile')}
+                                    >
+                                        <User size={16} className="mr-2" />
+                                        My Profile
+                                    </DropdownMenuItem>
 
-                                <DropdownMenuSeparator className="bg-blue-50" />
+                                    <DropdownMenuSeparator className="bg-blue-50" />
 
-                                <DropdownMenuItem
-                                    onClick={handleDisconnect}
-                                    className="cursor-pointer rounded-xl focus:bg-red-50 text-red-500 focus:text-red-600 py-2.5 px-3"
-                                >
-                                    <LogOut size={16} className="mr-2" />
-                                    Disconnect
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
+                                    <DropdownMenuItem
+                                        onClick={handleDisconnect}
+                                        className="cursor-pointer rounded-xl focus:bg-red-50 text-red-500 focus:text-red-600 py-2.5 px-3"
+                                    >
+                                        <LogOut size={16} className="mr-2" />
+                                        Disconnect
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
                 </div>
+
+
             </div>
         </motion.nav>
     );

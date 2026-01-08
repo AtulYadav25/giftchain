@@ -76,7 +76,7 @@ export default function TotalFundsCounter() {
                             initial={{ opacity: 0 }}
                             whileInView={{ opacity: 1 }}
                             transition={{ delay: 0.5, duration: 0.5 }}
-                            className="mt-4 text-center gap-2 text-slate-800 font-bold uppercase font-main text-sm md:text-base bg-slate-100/50 px-4 py-1.5 rounded-full"
+                            className="mt-4 text-center gap-2 text-slate-800  uppercase font-main text-sm md:text-base bg-slate-100/50 px-4 py-1.5 rounded-full"
                         >
                             <span className='text-pink-600 font-bold'>Giftchain</span> is Trusted by the Crypto Community.
                             <br /> We're <span className='text-pink-600 font-bold'>Growing</span> organically — you’re early.

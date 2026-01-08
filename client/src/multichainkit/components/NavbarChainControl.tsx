@@ -43,7 +43,7 @@ export const ChainSwitcher = () => {
                         } backdrop-blur-md`}
                 >
                     {chain === 'solana' ? <SolanaLogo size={20} /> : <SuiLogo size={20} />}
-                    <span className={`text-sm font-bold ${chain === "solana" ? "text-purple-100" : "text-blue-100"} hidden md:block uppercase`}>
+                    <span className={`text-sm font-bold ${chain === "solana" ? "text-purple-100" : "text-blue-100"} uppercase`}>
                         {chain}
                     </span>
                     <ChevronDown size={14} className="text-white/70" />
@@ -71,42 +71,125 @@ export const ChainSwitcher = () => {
     );
 };
 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+
+// ... (Logos are defined above)
+
+const MobileConnectButton = () => {
+    const { chain, switchChain } = useChain();
+    const { setVisible } = useWalletModal();
+
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 py-2.5 bg-white text-blue-600 font-bold rounded-full shadow-lg hover:shadow-blue-500/20 transition-all flex items-center gap-2 text-sm md:text-base outline-none"
+                >
+                    <Wallet size={18} />
+                    Connect Wallet
+                </motion.button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md w-[90%] rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-center text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">Choose Network</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-2 gap-4 py-6">
+                    {/* Solana Option */}
+                    <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                            if (chain !== 'solana') switchChain('solana');
+                            else setVisible(true);
+                        }}
+                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center gap-3 transition-all ${chain === 'solana'
+                            ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200 ring-offset-1'
+                            : 'border-slate-100 hover:border-purple-200 hover:bg-purple-50/50'
+                            }`}
+                    >
+                        <SolanaLogo size={48} />
+                        <span className="font-bold text-slate-700">Solana</span>
+                        {chain === 'solana' && <span className="text-[10px] font-bold text-white bg-purple-500 px-2 py-0.5 rounded-full">Active</span>}
+                    </motion.div>
+
+                    {/* Sui Option */}
+                    {chain === 'sui' ? (
+                        <ConnectModal
+                            trigger={
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="w-full cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center gap-3 transition-all border-blue-500 bg-blue-50 ring-2 ring-blue-200 ring-offset-1"
+                                >
+                                    <SuiLogo size={48} />
+                                    <span className="font-bold text-slate-700">Sui</span>
+                                    <span className="text-[10px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full">Active</span>
+                                </motion.div>
+                            }
+                        />
+                    ) : (
+                        <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => switchChain('sui')}
+                            className="w-full cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center gap-3 transition-all border-slate-100 hover:border-blue-200 hover:bg-blue-50/50"
+                        >
+                            <SuiLogo size={48} />
+                            <span className="font-bold text-slate-700">Sui</span>
+                        </motion.div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 export const ChainConnectButton = () => {
     const { chain } = useChain();
     const { setVisible } = useWalletModal();
 
-    if (chain === 'sui') {
-        return (
-            <ConnectModal
-                trigger={
+    return (
+        <>
+            {/* Desktop: Direct Buttons */}
+            <div className="hidden md:block">
+                {chain === 'sui' ? (
+                    <ConnectModal
+                        trigger={
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-6 py-2.5 bg-white text-blue-600 font-bold rounded-full shadow-lg hover:shadow-blue-500/20 transition-all flex items-center gap-2 text-sm md:text-base"
+                            >
+                                <Wallet size={18} />
+                                Connect Wallet
+                            </motion.button>
+                        }
+                    />
+                ) : (
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        onClick={() => setVisible(true)}
                         className="px-6 py-2.5 bg-white text-blue-600 font-bold rounded-full shadow-lg hover:shadow-blue-500/20 transition-all flex items-center gap-2 text-sm md:text-base"
                     >
                         <Wallet size={18} />
                         Connect Wallet
                     </motion.button>
-                }
-            />
+                )}
+            </div>
 
-        );
-    }
-
-    if (chain === 'solana') {
-        return (
-
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setVisible(true)}
-                className="px-6 py-2.5 bg-white text-blue-600 font-bold rounded-full shadow-lg hover:shadow-blue-500/20 transition-all flex items-center gap-2 text-sm md:text-base"
-            >
-                <Wallet size={18} />
-                Connect Wallet
-            </motion.button>
-        );
-    }
-
-    return null;
+            {/* Mobile: Selection Dialog */}
+            <div className="md:hidden">
+                <MobileConnectButton />
+            </div>
+        </>
+    );
 };
