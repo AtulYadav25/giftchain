@@ -108,7 +108,7 @@ export default function GiftDetails() {
         );
     }
 
-    const isMessageVisible = address === gift.senderWallet || address === gift.receiverWallet;
+    const isMessageVisible = !gift.isMessagePrivate || (address === gift.senderWallet || address === gift.receiverWallet);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);

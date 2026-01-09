@@ -80,9 +80,12 @@ function HeroSection({ navigate, address }: { navigate: any, address: string | u
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 >
-                    <span className="inline-block py-1 px-3 rounded-full bg-white/20 text-white font-main uppercase font-bold text-sm tracking-wider mb-4 border border-white/30 backdrop-blur-md">
-                        ✨ The cutest way to send crypto
+                    <span className="inline-flex mb-4 items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white font-main uppercase font-bold text-sm tracking-wider border border-white/30 backdrop-blur-md w-fit">
+                        <Sparkles className="w-4 h-4 text-white" />
+                        The cutest way to send crypto
+                        {/* <Sparkles className="w-4 h-4 text-white" /> */}
                     </span>
+
                     <h1 className="font-['Lilita_One'] text-6xl md:text-8xl lg:text-9xl text-white drop-shadow-lg leading-[0.9]">
                         UNWRAP <br /> <span className="text-[#a4f4ff]">HAPPINESS</span>
                         <svg className="absolute w-full h-8 -bottom-6 md:-bottom-4 left-0 text-yellow-300
