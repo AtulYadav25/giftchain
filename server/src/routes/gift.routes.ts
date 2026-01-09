@@ -9,11 +9,13 @@ export const giftRoutes = async (app: FastifyInstance) => {
     app.get('/stats', giftController.getTotalGiftSent);
     app.get('/sent/:address', giftController.getSent);
     app.get('/received/:address', giftController.getReceived);
-    app.get('/:id', giftController.getOne);
+
+    // 👇 THIS NOW HAS OPTIONAL AUTH
+    app.get('/:id', { preHandler: authenticate({ optional: true }) }, giftController.getOne);
 
     // 🔒 PRIVATE
     app.register(async (protectedApp) => {
-        protectedApp.addHook('preHandler', authenticate);
+        protectedApp.addHook('preHandler', authenticate());
 
         protectedApp.get('/me/sent', giftController.getMySentGifts);
         protectedApp.get('/me/received', giftController.getMyReceivedGifts);
