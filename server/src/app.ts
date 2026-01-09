@@ -24,7 +24,7 @@ app.register(rateLimit, {
 
 // Plugins
 app.register(cors, {
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://10.169.181.197:5173/'],
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://10.169.181.197:5173/', 'http://192.168.13.197:5173/'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
 });

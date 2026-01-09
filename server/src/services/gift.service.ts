@@ -18,7 +18,7 @@ export const createGift = async (senderId: string, data: any, chain: string, sen
         feeUSD: data.feeUSD, // In USD eg: 1 USD
         tokenStats: data.tokenStats,
 
-        isMessagePrivate: data.isMessagePrivate || false,
+        isMessagePrivate: data.isMessagePrivate,
 
         wrapper: extractImagePublicId(data.wrapper),
         message: data.message,
@@ -422,18 +422,26 @@ export const getReceivedGifts = async (
 };
 
 
-export const getGiftById = async (giftId: string) => {
-    const gift = await Gift.findById(giftId);
-
+export const getGiftById = async (giftId: string, address: string | null) => {
+    const gift = await Gift.findById(giftId).populate('senderId', 'username avatar').lean();
     if (!gift) return null;
 
-    if (gift.isAnonymous) {
-        // return without populating
-        return gift.toObject();
+    const isOwner =
+        gift.senderWallet?.toLowerCase() === address?.toLowerCase() ||
+        gift.receiverWallet?.toLowerCase() === address?.toLowerCase();
+
+    // If the viewer is the sender or receiver → always return full gift including message
+    if (isOwner) {
+        return gift;
     }
 
-    // populate only if not anonymous
-    return Gift.findById(giftId).populate('senderId', 'username avatar').lean();
+    // If viewer is not sender or receiver → respect private message rules
+    if (gift.isMessagePrivate) {
+        // Remove message for outsiders
+        delete gift.message;
+    }
+
+    return gift;
 };
 
 export function hashTxBytes(bytes: Uint8Array): string {

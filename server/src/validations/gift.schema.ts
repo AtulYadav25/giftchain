@@ -11,6 +11,7 @@ export const sendGiftSchema = z.object({
         tokenPrice: z.number(),
         tokenHash: z.string(),
     }),
+    isMessagePrivate: z.boolean().optional(),
     tokenSymbol: z.enum(['sui', 'sol']),
     mediaType: z.enum(['image', 'video']),
     message: z.string().optional(),

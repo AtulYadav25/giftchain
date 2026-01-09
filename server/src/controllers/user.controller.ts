@@ -183,7 +183,7 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
                     fit: "cover",
                     position: "centre"
                 })
-                .jpeg({ quality: 80 })
+                .jpeg({ quality: 85 })
                 .toBuffer();
 
             const uploadResult: any = await new Promise((resolve, reject) => {
@@ -232,7 +232,7 @@ export const updateProfile = async (req: FastifyRequest, reply: FastifyReply) =>
                     position: "centre",
                     withoutEnlargement: true, // prevents upscaling
                 })
-                .jpeg({ quality: 82 })
+                .jpeg({ quality: 90 })
                 .toBuffer();
 
             const uploadResult: any = await new Promise((resolve, reject) => {

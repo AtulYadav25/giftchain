@@ -195,7 +195,7 @@ export const getReceived = async (req: FastifyRequest<{ Params: { address: strin
 
 export const getOne = async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
-        const gift = await giftService.getGiftById(req.params.id);
+        const gift = await giftService.getGiftById(req.params.id, req.user?.address || null);
         successResponse(reply, gift, "Gift fetched successfully", 200);
     } catch (error: any) {
         errorResponse(reply, "Something went wrong", 500);

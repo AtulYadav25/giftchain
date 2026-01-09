@@ -10,5 +10,5 @@ export const userRoutes = async (app: FastifyInstance) => {
     app.get('/top-givers', userController.getTopGivers);
 
     // Update Current User Profile
-    app.patch('/profile', { preHandler: [authenticate] }, userController.updateProfile);
+    app.patch('/profile', { preHandler: authenticate() }, userController.updateProfile);
 };
