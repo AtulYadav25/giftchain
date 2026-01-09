@@ -25,6 +25,7 @@ import SOLANA_IMG from '@/assets/solana.png';
 import SUI_IMG from '@/assets/sui.png';
 import { FaInfo } from 'react-icons/fa';
 import truncateSmart from '@/lib/truncateSmart';
+import { Helmet } from "react-helmet-async";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -193,206 +194,255 @@ const PublicProfile = () => {
     );
 
     return (
-        <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-900 bg-[#E3F4FF]">
-            {/* Banner Section */}
-            <div className="h-48 md:h-64 w-full bg-slate-200 relative overflow-hidden border-b-[4px] border-slate-900">
-                {profileUser.banner ? (
-                    <img src={profileUser.banner} alt="Profile Banner" className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full bg-[#A5F3FC]">
-                        <div className="w-full h-full opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #0f172a 2px, transparent 2.5px)', backgroundSize: '24px 24px' }}></div>
-                    </div>
-                )}
-            </div>
-
-            <div className="max-w-5xl mx-auto px-6 -mt-20 relative z-10 space-y-12">
-                {/* Header */}
-                <header className="flex flex-col md:flex-row items-start gap-8">
-                    <div className="relative group w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
-                        <div className="w-full h-full rounded-full bg-white relative border-[5px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] overflow-hidden">
-                            <Avatar className="w-full h-full">
-                                <AvatarImage
-                                    src={profileUser.avatar}
-                                    alt="Avatar"
-                                    className="object-cover bg-white"
-                                />
-                                <AvatarFallback className="text-4xl font-black bg-slate-200">
-                                    {profileUser.username.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
+        <>
+            <Helmet>
+                <title>{profileUser?.username}</title>
+                <meta name="description" content={`Profile of ${profileUser?.username}`} />
+            </Helmet>
+            <div className="min-h-screen pb-20 font-['Lilita_One'] text-slate-900 bg-[#E3F4FF]">
+                {/* Banner Section */}
+                <div className="h-48 md:h-64 w-full bg-slate-200 relative overflow-hidden border-b-[4px] border-slate-900">
+                    {profileUser.banner ? (
+                        <img src={profileUser.banner} alt="Profile Banner" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full bg-[#A5F3FC]">
+                            <div className="w-full h-full opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #0f172a 2px, transparent 2.5px)', backgroundSize: '24px 24px' }}></div>
                         </div>
-                        <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                            className="absolute -top-2 -right-2 bg-[#FDE047] text-slate-900 p-2 rounded-full border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)] z-10"
-                        >
-                            <Sparkles size={20} fill="currentColor" />
-                        </motion.div>
-                    </div>
+                    )}
+                </div>
 
-                    <div className="flex-1 pt-6 md:pt-20 space-y-6 w-full">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <h1 className="text-4xl md:text-5xl text-slate-900 drop-shadow-sm leading-tight">
-                                    @{profileUser.username}
-                                </h1>
-                                <div className="mt-2 flex items-center gap-2">
-                                    {profileUser.address && formatAddress(profileUser.address)}
-                                    {profileUser.chain === 'sol' && (
-                                        <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-black text-white text-[14px] font-main tracking-wider rounded border border-slate-900 shadow-sm">
-                                            <img src={SOLANA_IMG} className="w-4 h-4 object-contain" alt="SOL" />
-                                            SOLANA
-                                        </div>
-                                    )}
-                                    {profileUser.chain === 'sui' && (
-                                        <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-blue-500 text-white text-[14px] font-main tracking-widest rounded border border-blue-700 ">
-                                            <img src={SUI_IMG} className="w-4 h-4 object-contain" alt="SUI" />
-                                            SUI
+                <div className="max-w-5xl mx-auto px-6 -mt-20 relative z-10 space-y-12">
+                    {/* Header */}
+                    <header className="flex flex-col md:flex-row items-start gap-8">
+                        <div className="relative group w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
+                            <div className="w-full h-full rounded-full bg-white relative border-[5px] border-slate-900 shadow-[6px_6px_0_0_rgba(15,23,42,1)] overflow-hidden">
+                                <Avatar className="w-full h-full">
+                                    <AvatarImage
+                                        src={profileUser.avatar}
+                                        alt="Avatar"
+                                        className="object-cover bg-white"
+                                    />
+                                    <AvatarFallback className="text-4xl font-black bg-slate-200">
+                                        {profileUser.username.slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+                            <motion.div
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                                className="absolute -top-2 -right-2 bg-[#FDE047] text-slate-900 p-2 rounded-full border-[3px] border-slate-900 shadow-[3px_3px_0_0_rgba(15,23,42,1)] z-10"
+                            >
+                                <Sparkles size={20} fill="currentColor" />
+                            </motion.div>
+                        </div>
+
+                        <div className="flex-1 pt-6 md:pt-20 space-y-6 w-full">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <h1 className="text-4xl md:text-5xl text-slate-900 drop-shadow-sm leading-tight">
+                                        @{profileUser.username}
+                                    </h1>
+                                    <div className="mt-2 flex items-center gap-2">
+                                        {profileUser.address && formatAddress(profileUser.address)}
+                                        {profileUser.chain === 'sol' && (
+                                            <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-black text-white text-[14px] font-main tracking-wider rounded border border-slate-900 shadow-sm">
+                                                <img src={SOLANA_IMG} className="w-4 h-4 object-contain" alt="SOL" />
+                                                SOLANA
+                                            </div>
+                                        )}
+                                        {profileUser.chain === 'sui' && (
+                                            <div className="flex items-center justify-center gap-1.5 px-2 py-1 bg-blue-500 text-white text-[14px] font-main tracking-widest rounded border border-blue-700 ">
+                                                <img src={SUI_IMG} className="w-4 h-4 object-contain" alt="SUI" />
+                                                SUI
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bio */}
+                            {profileUser.bio && profileUser.bio.length > 0 && (
+                                <div className="font-lexend text-slate-600 font-medium leading-relaxed max-w-2xl md:max-w-lg bg-white/50 p-4 rounded-xl border-2 border-slate-200/50 backdrop-blur-sm">
+                                    {profileUser.bio.map((paragraph, index) => (
+                                        <p key={index} className="mb-2 last:mb-0">{paragraph}</p>
+                                    ))}
+
+                                    {/* Social Icons */}
+                                    {profileUser.socials && profileUser.socials.length > 0 && (
+                                        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t-2 border-slate-100">
+                                            {profileUser.socials.map((social, index) => (
+                                                <a
+                                                    key={index}
+                                                    href={social.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 bg-white text-slate-400 hover:text-slate-900 hover:scale-110 transition-all rounded-lg border-2 border-transparent hover:border-slate-200 hover:shadow-sm"
+                                                >
+                                                    <SocialIconDetector url={social.link} className="w-5 h-5" />
+                                                </a>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                            )}
+
+                            {/* CTA */}
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleSendGiftClick}
+                                className="w-full md:w-auto px-8 py-3 bg-[#F472B6] text-slate-900 rounded-2xl font-black text-xl border-[3px] border-slate-900 shadow-[5px_5px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[5px] transition-all flex items-center justify-center gap-3"
+                            >
+                                <Heart className="fill-pink-700" size={24} />
+                                SEND A GIFT
+                            </motion.button>
                         </div>
+                    </header>
 
-                        {/* Bio */}
-                        {profileUser.bio && profileUser.bio.length > 0 && (
-                            <div className="font-lexend text-slate-600 font-medium leading-relaxed max-w-2xl md:max-w-lg bg-white/50 p-4 rounded-xl border-2 border-slate-200/50 backdrop-blur-sm">
-                                {profileUser.bio.map((paragraph, index) => (
-                                    <p key={index} className="mb-2 last:mb-0">{paragraph}</p>
-                                ))}
+                    {/* Cross Chain Confirm Modal */}
+                    {showCrossChainModal && (
+                        <div className="fixed h-full inset-0 z-50 flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCrossChainModal(false)} />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="relative bg-white p-8 rounded-[2rem] border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-md w-full text-center space-y-6"
+                            >
+                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto border-2 border-slate-900">
+                                    <FaInfo size={32} className="text-blue-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-900 mb-2">Different Chain Detected</h3>
+                                    <p className="text-slate-600 font-medium leading-relaxed">
+                                        This user is on <span className="font-bold uppercase">{profileUser.chain === 'sol' ? 'Solana' : 'Sui'}</span>, but has provided a <span className="font-bold uppercase">{currentUser?.chain === 'sol' ? 'Solana' : 'Sui'}</span> address to accept gifts!
+                                    </p>
+                                    <p className="text-sm text-slate-400 mt-2">
+                                        Would you like to use their alternative address?
+                                    </p>
+                                </div>
 
-                                {/* Social Icons */}
-                                {profileUser.socials && profileUser.socials.length > 0 && (
-                                    <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t-2 border-slate-100">
-                                        {profileUser.socials.map((social, index) => (
-                                            <a
-                                                key={index}
-                                                href={social.link}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 bg-white text-slate-400 hover:text-slate-900 hover:scale-110 transition-all rounded-lg border-2 border-transparent hover:border-slate-200 hover:shadow-sm"
-                                            >
-                                                <SocialIconDetector url={social.link} className="w-5 h-5" />
-                                            </a>
-                                        ))}
-                                    </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={() => setShowCrossChainModal(false)}
+                                        className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={proceedWithAlternateAddress}
+                                        className="flex-1 py-3 bg-[#F472B6] border-2 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none rounded-xl font-black text-slate-900 transition-all"
+                                    >
+                                        Proceed
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {/* Cross Chain Error Modal */}
+                    {showCrossChainErrorModal && (
+                        <div className="fixed h-full inset-0 z-50 flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCrossChainErrorModal(false)} />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="relative bg-white p-8 rounded-[2rem] border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-md w-full text-center space-y-6"
+                            >
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto border-2 border-slate-900">
+                                    <FaInfo size={32} className="text-red-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-900 mb-2">Different Networks</h3>
+                                    <p className="text-slate-600 font-medium leading-relaxed">
+                                        You are on <span className="font-bold uppercase">{currentUser?.chain === 'sol' ? 'Solana' : 'Sui'}</span>, but this user is on <span className="font-bold uppercase">{profileUser.chain === 'sol' ? 'Solana' : 'Sui'}</span>.
+                                    </p>
+                                    <p className="text-slate-600 font-medium leading-relaxed mt-2">
+                                        They haven't set up an address to receive gifts from your network yet.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowCrossChainErrorModal(false)}
+                                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl font-bold text-slate-900 transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <StatsCard
+                            icon={<ArrowUpRight size={28} className="text-slate-900" />}
+                            label="Total Sent"
+                            value={`$${(profileUser?.totalSentUSD)?.toLocaleString() || 0}`}
+                            color="bg-[#60A5FA]"
+                            onShowBreakdown={() => { }}
+                        />
+                        <StatsCard
+                            icon={<ArrowDownLeft size={28} className="text-slate-900" />}
+                            label="Total Received"
+                            value={`${profileUser?.receivedCount || 0} Gifts`}
+                            color="bg-[#4ADE80]"
+                            onShowBreakdown={() => { }}
+                        />
+                    </section>
+
+                    {/* Tables Content */}
+                    <section className="flex flex-col gap-12 font-sans">
+
+                        {/* SENT GIFTS (Only if allowed) */}
+                        {showSent && (
+                            <TableCard title={`${profileUser.username}'s Sent Gifts`} color="bg-[#60A5FA]" icon={<ArrowUpRight size={20} className="text-slate-900" />}>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm font-lexend text-slate-700">
+                                        <thead className="text-slate-500 border-b-2 border-slate-100">
+                                            <tr>
+                                                <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">To</th>
+                                                <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
+                                                <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
+                                                <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-slate-700 font-medium">
+                                            {isGiftLoading ? (
+                                                [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                                    <tr key={i} className="border-b border-slate-100">
+                                                        <td className="py-4 pl-4"><Skeleton className="h-5 w-32 bg-slate-200" /></td>
+                                                        <td className="py-4"><Skeleton className="h-5 w-24 bg-slate-200" /></td>
+                                                        <td className="py-4"><Skeleton className="h-5 w-20 bg-slate-200" /></td>
+                                                        <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
+                                                    </tr>
+                                                ))
+                                            ) : sentGifts.map((gift) => (
+                                                <tr key={gift._id} onClick={() => handleOpenGift(gift, 'sent')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
+                                                    <td className="py-4 pl-4">
+                                                        {formatAddress(gift.receiverWallet || '')}
+                                                    </td>
+                                                    <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                                    <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
+                                                    <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
+                                                </tr>
+                                            ))}
+                                            {!isGiftLoading && sentGifts.length === 0 && (
+                                                <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts visible.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {totalSentPages > 1 && (
+                                    <PaginationControls page={sentPage} totalPages={totalSentPages} setPage={setSentPage} />
                                 )}
-                            </div>
+                            </TableCard>
                         )}
 
-                        {/* CTA */}
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleSendGiftClick}
-                            className="w-full md:w-auto px-8 py-3 bg-[#F472B6] text-slate-900 rounded-2xl font-black text-xl border-[3px] border-slate-900 shadow-[5px_5px_0_0_rgba(15,23,42,1)] active:shadow-none active:translate-y-[5px] transition-all flex items-center justify-center gap-3"
-                        >
-                            <Heart className="fill-pink-700" size={24} />
-                            SEND A GIFT
-                        </motion.button>
-                    </div>
-                </header>
-
-                {/* Cross Chain Confirm Modal */}
-                {showCrossChainModal && (
-                    <div className="fixed h-full inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCrossChainModal(false)} />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="relative bg-white p-8 rounded-[2rem] border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-md w-full text-center space-y-6"
-                        >
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto border-2 border-slate-900">
-                                <FaInfo size={32} className="text-blue-500" />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-900 mb-2">Different Chain Detected</h3>
-                                <p className="text-slate-600 font-medium leading-relaxed">
-                                    This user is on <span className="font-bold uppercase">{profileUser.chain === 'sol' ? 'Solana' : 'Sui'}</span>, but has provided a <span className="font-bold uppercase">{currentUser?.chain === 'sol' ? 'Solana' : 'Sui'}</span> address to accept gifts!
-                                </p>
-                                <p className="text-sm text-slate-400 mt-2">
-                                    Would you like to use their alternative address?
-                                </p>
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={() => setShowCrossChainModal(false)}
-                                    className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={proceedWithAlternateAddress}
-                                    className="flex-1 py-3 bg-[#F472B6] border-2 border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] active:translate-y-[2px] active:shadow-none rounded-xl font-black text-slate-900 transition-all"
-                                >
-                                    Proceed
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-
-                {/* Cross Chain Error Modal */}
-                {showCrossChainErrorModal && (
-                    <div className="fixed h-full inset-0 z-50 flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCrossChainErrorModal(false)} />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="relative bg-white p-8 rounded-[2rem] border-[4px] border-slate-900 shadow-[8px_8px_0_0_rgba(15,23,42,1)] max-w-md w-full text-center space-y-6"
-                        >
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto border-2 border-slate-900">
-                                <FaInfo size={32} className="text-red-500" />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-slate-900 mb-2">Different Networks</h3>
-                                <p className="text-slate-600 font-medium leading-relaxed">
-                                    You are on <span className="font-bold uppercase">{currentUser?.chain === 'sol' ? 'Solana' : 'Sui'}</span>, but this user is on <span className="font-bold uppercase">{profileUser.chain === 'sol' ? 'Solana' : 'Sui'}</span>.
-                                </p>
-                                <p className="text-slate-600 font-medium leading-relaxed mt-2">
-                                    They haven't set up an address to receive gifts from your network yet.
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={() => setShowCrossChainErrorModal(false)}
-                                className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl font-bold text-slate-900 transition-colors"
-                            >
-                                Close
-                            </button>
-                        </motion.div>
-                    </div>
-                )}
-
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <StatsCard
-                        icon={<ArrowUpRight size={28} className="text-slate-900" />}
-                        label="Total Sent"
-                        value={`$${(profileUser?.totalSentUSD)?.toLocaleString() || 0}`}
-                        color="bg-[#60A5FA]"
-                        onShowBreakdown={() => { }}
-                    />
-                    <StatsCard
-                        icon={<ArrowDownLeft size={28} className="text-slate-900" />}
-                        label="Total Received"
-                        value={`${profileUser?.receivedCount || 0} Gifts`}
-                        color="bg-[#4ADE80]"
-                        onShowBreakdown={() => { }}
-                    />
-                </section>
-
-                {/* Tables Content */}
-                <section className="flex flex-col gap-12 font-sans">
-
-                    {/* SENT GIFTS (Only if allowed) */}
-                    {showSent && (
-                        <TableCard title={`${profileUser.username}'s Sent Gifts`} color="bg-[#60A5FA]" icon={<ArrowUpRight size={20} className="text-slate-900" />}>
+                        {/* RECEIVED GIFTS (Always visible) */}
+                        <TableCard title={`${profileUser.username}'s Received Gifts`} color="bg-[#4ADE80]" icon={<ArrowDownLeft size={20} className="text-slate-900" />}>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm font-lexend text-slate-700">
                                     <thead className="text-slate-500 border-b-2 border-slate-100">
                                         <tr>
-                                            <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">To</th>
+                                            <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">From</th>
                                             <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
                                             <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
                                             <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
@@ -408,90 +458,47 @@ const PublicProfile = () => {
                                                     <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
                                                 </tr>
                                             ))
-                                        ) : sentGifts.map((gift) => (
-                                            <tr key={gift._id} onClick={() => handleOpenGift(gift, 'sent')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
+                                        ) : receivedGifts.map((gift, i) => (
+                                            <tr key={i} onClick={() => handleOpenGift(gift, 'received')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
                                                 <td className="py-4 pl-4">
-                                                    {formatAddress(gift.receiverWallet || '')}
+                                                    {formatAddress(gift.senderWallet || '')}
                                                 </td>
-                                                <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol.toUpperCase()}`}</td>
+                                                <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
                                                 <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
                                                 <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
                                             </tr>
                                         ))}
-                                        {!isGiftLoading && sentGifts.length === 0 && (
-                                            <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts visible.</td></tr>
+                                        {!isGiftLoading && receivedGifts.length === 0 && (
+                                            <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts received yet.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
-                            {totalSentPages > 1 && (
-                                <PaginationControls page={sentPage} totalPages={totalSentPages} setPage={setSentPage} />
+                            {totalReceivedPages > 1 && (
+                                <PaginationControls page={receivedPage} totalPages={totalReceivedPages} setPage={setReceivedPage} />
                             )}
                         </TableCard>
-                    )}
+                    </section>
+                </div>
 
-                    {/* RECEIVED GIFTS (Always visible) */}
-                    <TableCard title={`${profileUser.username}'s Received Gifts`} color="bg-[#4ADE80]" icon={<ArrowDownLeft size={20} className="text-slate-900" />}>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm font-lexend text-slate-700">
-                                <thead className="text-slate-500 border-b-2 border-slate-100">
-                                    <tr>
-                                        <th className="pb-3 pl-4 font-black uppercase text-xs tracking-wider min-w-[200px]">From</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Amount</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Date</th>
-                                        <th className="pb-3 font-black uppercase text-xs tracking-wider">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-slate-700 font-medium">
-                                    {isGiftLoading ? (
-                                        [...Array(ITEMS_PER_PAGE)].map((_, i) => (
-                                            <tr key={i} className="border-b border-slate-100">
-                                                <td className="py-4 pl-4"><Skeleton className="h-5 w-32 bg-slate-200" /></td>
-                                                <td className="py-4"><Skeleton className="h-5 w-24 bg-slate-200" /></td>
-                                                <td className="py-4"><Skeleton className="h-5 w-20 bg-slate-200" /></td>
-                                                <td className="py-4"><Skeleton className="h-8 w-24 rounded-full bg-slate-200" /></td>
-                                            </tr>
-                                        ))
-                                    ) : receivedGifts.map((gift, i) => (
-                                        <tr key={i} onClick={() => handleOpenGift(gift, 'received')} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer group">
-                                            <td className="py-4 pl-4">
-                                                {formatAddress(gift.senderWallet || '')}
-                                            </td>
-                                            <td className="py-4 font-bold">{gift.amountUSD ? `$${truncateSmart(gift.amountUSD)}` : `${gift.totalTokenAmount} ${gift.tokenSymbol?.toUpperCase()}`}</td>
-                                            <td className="py-4 text-slate-500 text-xs font-bold uppercase">{new Date(gift.createdAt).toLocaleDateString()}</td>
-                                            <td className="py-4"><StatusBadge status={gift.status || 'sent'} /></td>
-                                        </tr>
-                                    ))}
-                                    {!isGiftLoading && receivedGifts.length === 0 && (
-                                        <tr><td colSpan={4} className="text-center py-8 text-slate-400 font-medium">No gifts received yet.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        {totalReceivedPages > 1 && (
-                            <PaginationControls page={receivedPage} totalPages={totalReceivedPages} setPage={setReceivedPage} />
-                        )}
-                    </TableCard>
-                </section>
+                {/* Modals */}
+                {profileUser && (
+                    <SendGiftModal
+                        isOpen={isGiftModalOpen}
+                        onClose={() => setIsGiftModalOpen(false)}
+                        initialRecipient={{ address: recipientAddress || profileUser.address, username: profileUser.username }}
+                    />
+                )}
+                {selectedGift && (
+                    <GiftRevealModal
+                        isOpen={!!selectedGift}
+                        onClose={() => setSelectedGift(null)}
+                        gift={selectedGift}
+                        variant={modalVariant}
+                    />
+                )}
             </div>
-
-            {/* Modals */}
-            {profileUser && (
-                <SendGiftModal
-                    isOpen={isGiftModalOpen}
-                    onClose={() => setIsGiftModalOpen(false)}
-                    initialRecipient={{ address: recipientAddress || profileUser.address, username: profileUser.username }}
-                />
-            )}
-            {selectedGift && (
-                <GiftRevealModal
-                    isOpen={!!selectedGift}
-                    onClose={() => setSelectedGift(null)}
-                    gift={selectedGift}
-                    variant={modalVariant}
-                />
-            )}
-        </div>
+        </>
     );
 };
 
