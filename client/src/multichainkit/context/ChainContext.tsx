@@ -1,4 +1,5 @@
 import { useAuthActions, useGiftActions } from '@/store';
+import GiftchainLoader from '../../components/GiftchainLoader';
 import React, { createContext, useContext, useState } from 'react';
 
 export type ChainType = 'solana' | 'sui' | null;
@@ -78,7 +79,7 @@ export const ChainContextProvider = ({ children }: { children: React.ReactNode }
 
     return (
         // TODO : Add Custom Loading Screen
-        <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background text-foreground">Loading Giftchain...</div>}>
+        <React.Suspense fallback={<GiftchainLoader />}>
             {chain === 'solana' && (
                 <SolanaProviderWrapper>
                     <SolanaChainAdapter chain={chain} setChain={setChain} switchChain={switchChain}>
