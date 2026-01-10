@@ -54,7 +54,7 @@ export const createSolanaTransferTx = async (
         data: Buffer.from(JSON.stringify(memoPayload), "utf8"),
     });
 
-    console.log("Added Memo SOLANA")
+    console.log("Added Memo SOLANA");
 
     // 3️⃣ Finalize tx
     const { blockhash } = await connection.getLatestBlockhash();
