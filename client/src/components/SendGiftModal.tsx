@@ -266,18 +266,21 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         const resolvedMap = new Map<string, string>();
 
         if (usernamesToResolve.length > 0) {
-            const data =
-                await resolveRecipients(usernamesToResolve);
+            try {
+                const data = await resolveRecipients(usernamesToResolve);
 
-            data.resolved.forEach(u => {
-                resolvedMap.set(u.username, u.address);
-            });
+                data.resolved.forEach(u => {
+                    resolvedMap.set(u.username, u.address);
+                });
 
-            data.invalidUsernames.forEach(u => {
-                toast.error(`User not found: ${u.username}`);
-            });
+                data.invalidUsernames.forEach(u => {
+                    toast.error(`User not found: ${u.username}`);
+                });
 
-            if (data.invalidUsernames.length > 0) return;
+                if (data.invalidUsernames.length > 0) return;
+            } catch (e) {
+                setIsSendGiftClicked(false);
+            }
         }
 
         const finalRecipients = recipients.map(r => {
