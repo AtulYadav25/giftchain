@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Gift } from 'lucide-react';
 
 const GiftchainLoader: React.FC = () => {
     return (
