@@ -23,6 +23,8 @@ export const createSolanaTransferTx = async (
 ) => {
     const tx = new Transaction();
 
+    console.log("Created Transaction SOLANA")
+
     // 1️⃣ Add transfer instructions
     transfers.forEach(({ amount, address }) => {
         tx.add(
@@ -34,6 +36,8 @@ export const createSolanaTransferTx = async (
         );
     });
 
+    console.log("Added Transfers SOLANA")
+
     // 2️⃣ Attach DB references as memo (ORDER MATTERS)
     const memoPayload = {
         type: "batch-transfer",
@@ -42,6 +46,7 @@ export const createSolanaTransferTx = async (
             .map(t => t.dbId),
     };
 
+    console.log("Added Memo SOLANA")
 
     tx.add({
         keys: [],
@@ -49,10 +54,15 @@ export const createSolanaTransferTx = async (
         data: Buffer.from(JSON.stringify(memoPayload), "utf8"),
     });
 
+    console.log("Added Memo SOLANA")
+
     // 3️⃣ Finalize tx
     const { blockhash } = await connection.getLatestBlockhash();
+    console.log("Got Latest Blockhash SOLANA")
     tx.recentBlockhash = blockhash;
     tx.feePayer = sender;
+
+    console.log("Finalized Transaction SOLANA")
 
     return tx;
 };
