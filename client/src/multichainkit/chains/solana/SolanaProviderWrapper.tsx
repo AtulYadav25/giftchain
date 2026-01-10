@@ -15,7 +15,7 @@ export const SolanaProviderWrapper = ({ children }: { children: React.ReactNode 
         []
     );
 
-    // https://mainnet.helius-rpc.com/?api-key=c87d92e9-3b4e-4c58-9f70-ac683af109eb
+    // https://mainnet.helius-rpc.com/?api-key=c87
 
 
     const wallets = useMemo(
