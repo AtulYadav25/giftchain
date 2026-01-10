@@ -82,6 +82,8 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
     //CHAIN Context
     const { chain, address, activeAdapter } = useChain();
 
+    const [isSendGiftClicked, setIsSendGiftClicked] = useState<boolean>(false);
+
 
     // Wrapper Store Integration
     const { fetchWrappers, uploadWrapper, deleteWrapper } = useWrapperActions();
@@ -259,6 +261,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             .filter(r => !r.address && r.username)
             .map(r => r.username);
 
+        setIsSendGiftClicked(true);
         // Resolve only if needed
         const resolvedMap = new Map<string, string>();
 
@@ -392,6 +395,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
         } catch (err: any) {
             toast.error(err.message);
+            setIsSendGiftClicked(false);
         }
     };
 
@@ -457,6 +461,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         } catch (err: any) {
             toast.error('Failed to sign and execute transaction');
             setGiftTxLoadingStates(0);
+            setIsSendGiftClicked(false);
             return;
         }
 
@@ -474,6 +479,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         fetchMySentGifts(1, 8);
         toast.success('Gift sent successfully');
         resetSendGiftModal();
+        setIsSendGiftClicked(false)
         onClose();
     };
 
@@ -570,11 +576,13 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                     fetchMySentGifts(1, 8)
                     toast.success('Gift sent successfully');
                     resetSendGiftModal();
+                    setIsSendGiftClicked(false)
                     onClose();
                 },
                 onError: () => {
                     toast.error('Failed to send gift');
                     setGiftTxLoadingStates(0);
+                    setIsSendGiftClicked(false)
                 },
             }
         );
@@ -652,7 +660,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
                         </h2>
                         <button
                             onClick={onClose}
-                            disabled={giftTxLoadingStates > 0}
+                            disabled={giftTxLoadingStates > 0 || isSendGiftClicked}
                             className="p-2 bg-white border-2 border-slate-900 text-slate-900 hover:scale-110 active:scale-95 transition-all rounded-full shadow-[2px_2px_0_0_rgba(15,23,42,1)] relative z-10"
                         >
                             <X size={20} strokeWidth={3} />
@@ -1087,7 +1095,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
                         <button
                             onClick={step === 4 ? handleProcessPayment : handleNext}
-                            disabled={(step === 1 && !selectedWrapper) || giftTxLoadingStates > 0 || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0))}
+                            disabled={(step === 1 && !selectedWrapper) || giftTxLoadingStates > 0 || (step === 3 && recipients.some(r => (!r.username && !r.address) || !r.amount || Number(r.amount) <= 0)) || (step === 4 && isSendGiftClicked)}
                             className={`px-5 py-3 text-md w-auto rounded-2xl font-black font-lexend text-slate-900 flex items-center gap-2 transition-all active:translate-y-[4px] active:shadow-none ${step === 4
                                 ? 'bg-[#4ADE80] hover:bg-[#22c55e] w-auto md:w-auto justify-center border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)] text-md'
                                 : 'bg-[#F472B6] hover:bg-[#ec4899] border-[3px] border-slate-900 shadow-[4px_4px_0_0_rgba(15,23,42,1)]'
@@ -1096,7 +1104,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
 
                             {step === 4 ? (
-                                giftTxLoadingStates ? (
+                                giftTxLoadingStates || isSendGiftClicked ? (
                                     <>
                                         <Loader2 className="animate-spin" />
                                         {loadingText[giftTxLoadingStates] ?? (
