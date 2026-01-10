@@ -4,6 +4,7 @@ import {
     PublicKey,
     LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
+import { Buffer } from "buffer";
 
 const MEMO_PROGRAM_ID = new PublicKey(
     "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
