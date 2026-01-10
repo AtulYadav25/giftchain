@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 //TODO : The specific loadings declared here are aren't used in the components, 
 // I have two choice either remove the loadings from here or replace with the components loading
 
-export interface PaginationMeta {
+interface PaginationMeta {
     total: number | null;
     page: number;
     limit: number;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { api, extractData, type ApiResponse } from '../lib/api';
+import { api, type ApiResponse } from '../lib/api';
 import type { Wrapper } from '../types/WrapperTypes';
 import { allWrappers } from '../assets/wrappers/wrapperIndex';
 

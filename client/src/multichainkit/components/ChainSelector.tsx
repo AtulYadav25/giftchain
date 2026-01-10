@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { useChain, type ChainType } from '../context/ChainContext';
 
 export const ChainSelector = () => {

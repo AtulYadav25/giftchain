@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, Save, Loader2, Image as ImageIcon, Plus, Trash2, Info } from 'lucide-react';
-import { useAuthActions, useAuthLoading, useUser } from '@/store';
+import { useAuthActions, useAuthLoading } from '@/store';
 import type { User } from '@/types/auth.types';
 import toast from 'react-hot-toast';
 import SocialIconDetector, { detectPlatform } from './SocialIconDetector';

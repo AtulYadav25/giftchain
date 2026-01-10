@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import slovi from '@/assets/hero/slovi.png';
-import { ArrowRight, Gift, Sparkles, Link as LinkIcon, Wallet, PenLine, Send } from 'lucide-react';
+import { ArrowRight, Gift, Sparkles, Wallet, PenLine, Send } from 'lucide-react';
 import CircularGallery from '@/components/CircularGallery';
 import TotalFundsCounter from '@/components/TotalFundsCounter';
 import Faq from '@/components/Faq';

@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
 import { useChain } from '../context/ChainContext';
 import { Transaction } from '../core/Transaction';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { ConnectButton } from '@mysten/dapp-kit';
+import { useState } from 'react';
 
 export const WalletActions = () => {
     const { chain, address, getBalance, activeAdapter } = useChain();

@@ -119,7 +119,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
     const [isMessagePrivate, setIsMessagePrivate] = useState(true);
     const [selectedTag, setSelectedTag] = useState<keyof typeof MESSAGE_TEMPLATES>('Love');
 
-    const [currency, setCurrency] = useState<'SUI' | 'SOL'>(chain === 'sui' ? 'SUI' : 'SOL');
+    const currency: 'SUI' | 'SOL' = chain === 'sui' ? 'SUI' : 'SOL';
     const [inputMode, setInputMode] = useState<'USD' | 'TOKEN'>('USD');
     const [isLoadingConversion, setIsLoadingConversion] = useState(false);
 

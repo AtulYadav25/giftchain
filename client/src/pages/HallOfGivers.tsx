@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaInstagram, FaXTwitter, FaYoutube, FaGift } from 'react-icons/fa6';
+import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import SOLANA from '@/assets/solana.png'
