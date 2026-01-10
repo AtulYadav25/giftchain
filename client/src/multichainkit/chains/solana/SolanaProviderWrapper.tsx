@@ -9,7 +9,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 export const SolanaProviderWrapper = ({ children }: { children: React.ReactNode }) => {
     // You can also use 'mainnet-beta'
-    const network = WalletAdapterNetwork.Testnet;
+    const network = WalletAdapterNetwork.Mainnet;
     const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
     const wallets = useMemo(
