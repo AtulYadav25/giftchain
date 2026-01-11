@@ -4,11 +4,11 @@ import {
     PublicKey,
     LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
-import { Buffer } from "buffer";
+// import { Buffer } from "buffer";
 
-const MEMO_PROGRAM_ID = new PublicKey(
-    "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
-);
+// const MEMO_PROGRAM_ID = new PublicKey(
+//     "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+// );
 
 type TransferWithDbRef = {
     amount: number;
@@ -36,18 +36,26 @@ export const createSolanaTransferTx = async (
     });
 
     // 2️⃣ Attach DB references as memo (ORDER MATTERS)
-    const memoPayload = {
-        type: "batch-transfer",
-        giftIds: transfers
-            .filter(t => t.dbId !== "platform-fee")
-            .map(t => t.dbId),
-    };
+    // const memoPayload = {
+    //     type: "batch-transfer",
+    //     giftIds: transfers
+    //         .filter(t => t.dbId !== "platform-fee")
+    //         .map(t => t.dbId),
+    // };
 
-    tx.add({
-        keys: [],
-        programId: MEMO_PROGRAM_ID,
-        data: Buffer.from(JSON.stringify(memoPayload), "utf8"),
-    });
+    // TODO (Only Recheck) : WITH NEW PLAN : THERES NO SENDING OF MEMO in the transaction as it increases gas cost
+
+    // const memoString = `bt:${transfers
+    //     .filter(t => t.dbId !== "platform-fee")
+    //     .map(t => t.dbId)
+    //     .join(",")}`;
+
+    // tx.add({
+    //     keys: [],
+    //     programId: MEMO_PROGRAM_ID,
+    //     data: Buffer.from(memoString, "utf8"),
+    // });
+
 
     // 3️⃣ Finalize tx
     const { blockhash } = await connection.getLatestBlockhash();

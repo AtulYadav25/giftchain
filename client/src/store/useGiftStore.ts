@@ -76,7 +76,7 @@ export interface SendGiftParams {
 }
 
 export interface VerifyGiftParams {
-    giftId: string;
+    giftIds: string[];
     txDigest: string;
     address: string;
     verifyType: 'wrapGift' | 'claimGift';

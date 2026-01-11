@@ -194,6 +194,10 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
     // Actions
     const addRecipient = () => {
+        if (recipients.length > 12) {
+            toast.error('Cannot add more than 12 recipients');
+            return;
+        }
         setRecipients([...recipients, { id: Date.now().toString(), username: '', address: '', amount: '' }]);
     };
 
@@ -472,7 +476,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
         --------------------------------------------- */
 
         await verifyGift({
-            giftId: createdGifts[0]._id, // batch reference
+            giftIds: createdGifts.map((g: any) => g._id), // batch reference
             txDigest: signature,
             address: address!,
             verifyType: 'wrapGift',
@@ -570,7 +574,7 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             {
                 onSuccess: async (result: any) => {
                     await verifyGift({
-                        giftId: createdGifts[0]._id,
+                        giftIds: createdGifts.map((g: any) => g._id),
                         txDigest: result.digest,
                         address: address!,
                         verifyType: 'wrapGift'
