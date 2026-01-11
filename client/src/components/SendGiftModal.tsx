@@ -392,7 +392,6 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
             if (chain === 'sui') {
                 await triggerSUITransaction(createdGifts, finalRecipients);
             } else if (chain === 'solana') {
-                console.log("Entering Solana Chain")
                 await triggerSolanaTransaction(createdGifts, finalRecipients);
             }
 
@@ -405,7 +404,6 @@ export default function SendGiftModal({ isOpen, onClose, initialRecipient }: Sen
 
     const triggerSolanaTransaction = async (createdGifts: any[], recipients: any[]) => {
         const tx = new ChainContextTransaction(activeAdapter);
-        console.log("Triggering Solana Transaction")
         let totalPlatformFeeSol = 0;
         /* ---------------------------------------------
            1️⃣ Add recipient transfers

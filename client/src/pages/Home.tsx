@@ -150,8 +150,6 @@ function MarqueeSection() {
     return (
         <div className="bg-blue-900 py-3 overflow-hidden relative z-20 -mt-1 shadow-lg rotate-1 scale-105 border-y-4 border-yellow-300">
             <motion.div
-                animate={{ x: [0, -1000] }}
-                transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
                 className="flex gap-12 whitespace-nowrap text-white font-bold text-lg items-center"
             >
                 {[...Array(10)].map((_, i) => (
@@ -386,12 +384,10 @@ function AboutSection() {
                         </div>
 
                         <div className="flex gap-4 mt-8">
-                            <button className="px-8 py-3 bg-blue-100/50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition border-2 border-blue-200">
+                            <a href='https://x.com/slovionchain' className="px-8 py-3 bg-blue-100/50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition border-2 border-blue-200">
+
                                 Follow on X
-                            </button>
-                            <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition border-2 border-slate-200">
-                                Join Discord
-                            </button>
+                            </a>
                         </div>
                     </motion.div>
                 </div>
@@ -504,7 +500,7 @@ function FooterSection({ navigate, address }: { navigate: any, address: string |
                     <div className="flex gap-6 mt-4 md:mt-0">
                         <Link to="/privacy-policy" className="hover:text-white transition">Privacy</Link>
                         <Link to="/terms" className="hover:text-white transition">Terms</Link>
-                        <a href="#" className="hover:text-white transition">Twitter</a>
+                        <a href="https://x.com/slovionchain" className="hover:text-white transition">Twitter</a>
                     </div>
                 </div>
             </div>

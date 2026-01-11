@@ -37,12 +37,10 @@ export class Transaction {
      * Build the transaction based on the active chain and execute it.
      */
     async signAndExecute() {
-        console.log("Step 0 : Starting Transaction")
         if (!this.adapter) throw new Error("No active chain selected or wallet not connected");
         if (this.transfers.length === 0) throw new Error("No transfers to execute");
 
         try {
-            console.log("Step 1 : Checking Adapter")
             if (this.adapter.type === 'solana') {
                 return await this.handleSolana();
             } else if (this.adapter.type === 'sui') {
@@ -56,23 +54,18 @@ export class Transaction {
     private async handleSolana() {
         // Adapter types are checked loosely here, but safely assumed due to structure
         const { connection, sendTransaction, publicKey } = this.adapter!;
-        console.log("Step 1: Connecting Solana")
         if (!connection || !sendTransaction || !publicKey) {
             throw new Error("Solana wallet not fully connected");
         }
-        console.log("Step 2 : Creating Transaction")
         // 1. Build Native Transaction
         const tx = await createSolanaTransferTx(connection, publicKey, this.transfers);
 
-        console.log("Step 3 : Signing Transaction")
         // 2. Sign and Send
         const signature = await sendTransaction(tx, connection);
 
-        console.log("Step 4 : Confirming Transaction")
         // Optional: wait for confirmation (not strictly required by prompt but good UX)
         await connection.confirmTransaction(signature, 'confirmed');
 
-        console.log("Step 5 : Transaction Confirmed")
         return signature;
     }
 
