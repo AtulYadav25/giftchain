@@ -26,7 +26,7 @@ export default function VerifyGiftModal({ isOpen, onClose, gift }: VerifyGiftMod
         setIsVerifying(true);
         try {
             await verifyGift({
-                giftId: gift._id,
+                giftIds: [gift._id],
                 txDigest: txDigest.trim(),
                 address: user.address,
                 verifyType: 'wrapGift',
