@@ -37,13 +37,15 @@ export default function GiftDetails() {
 
     useEffect(() => {
         if (gift) {
-            // Trigger simple confetti on load for fun
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                zIndex: 10
-            });
+            // Trigger simple confetti on load for fun (Desktop Only)
+            if (window.innerWidth >= 1024) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    zIndex: 10
+                });
+            }
         }
     }, [gift]);
 
