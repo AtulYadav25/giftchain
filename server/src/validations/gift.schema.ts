@@ -22,7 +22,7 @@ export const sendGiftSchema = z.object({
 export type SendGiftBody = z.infer<typeof sendGiftSchema>;
 
 export const verifyGiftSchema = z.object({
-    giftId: z.string(), //GIFT Modal Mongoose ID
+    giftIds: z.array(z.string()), //GIFT Modal Mongoose ID
     address: z.string(),
     txDigest: z.string(),
     verifyType: z.enum(['wrapGift']),

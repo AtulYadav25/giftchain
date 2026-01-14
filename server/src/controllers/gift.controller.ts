@@ -60,18 +60,23 @@ const MODULE_NAME = process.env.MODULE_NAME
 export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, reply: FastifyReply) => {
     try {
 
-        //Check if the gift is already verified
-        const gift = await Gift.findById(req.body.giftId);
-        if (gift?.verified) {
-            return errorResponse(reply, "Gift is already verified", 400);
+        if (req.body.giftIds.length === 0) {
+            return errorResponse(reply, "No giftIds provided", 404);
         }
+
+        //Check if the gift is already verified
+        const gifts = await Gift.find({ _id: { $in: req.body.giftIds } });
+        gifts.forEach((gift: any) => {
+            if (gift?.verified) {
+                return errorResponse(reply, "Gift is already verified", 400);
+            }
+        });
 
 
         if (req.user.chain === 'sol') {
             const solTxVerifier = new SolTransactionVerifier();
-            const txResult: any = await solTxVerifier.verifyTransaction(req.body.txDigest as Signature, { walletAddress: req.body.address.trim() });
-
-            if (txResult.status && txResult.giftIds.includes(req.body.giftId) && txResult.verified) {
+            const txResult: any = await solTxVerifier.verifyTransaction(req.body.txDigest as Signature, { walletAddress: req.user.address.trim() }, gifts);
+            if (txResult.status && txResult.verified) {
 
                 await giftService.verifySOLGifts({
                     giftIds: txResult.giftIds,
@@ -88,7 +93,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
 
             // Verify the transaction on Sui blockchain
             const txVerifier = new SuiTransactionVerifier();
-            const txResult: any = await txVerifier.verifyTransaction(req.body.txDigest, { walletAddress: req.body.address.trim(), giftId: req.body.giftId });
+            const txResult: any = await txVerifier.verifyTransaction(req.body.txDigest, { walletAddress: req.body.address.trim(), giftId: req.body.giftIds[0] });
 
             //Get Gift IDs from the Event and update the Mongodb Documents of Gifts to verified true;
             if (txResult.verified) {
@@ -100,7 +105,7 @@ export const verifyGift = async (req: FastifyRequest<{ Body: VerifyGiftBody }>, 
                     )
                     .map((event: any) => event.parsedJson)
                     .filter(Boolean); // removes undefined/null
-                await giftService.verifySUIGifts(giftObjs, req.body.address.trim(), txResult.digest);
+                await giftService.verifySUIGifts(giftObjs, req.user.address.trim(), txResult.digest);
             } else {
                 errorResponse(reply, "Transaction is not verified", 400);
             }

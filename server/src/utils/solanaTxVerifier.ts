@@ -1,6 +1,6 @@
 import { createSolanaClient, SolClient } from './solana';
 import { Signature } from '@solana/kit';
-import { Gift } from '../models/gift.model';
+import { IGift } from '../models/gift.model';
 import { config } from '../config/env';
 
 const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
@@ -18,7 +18,8 @@ class SolTransactionVerifier {
 
     async verifyTransaction(
         txSignature: Signature,
-        { walletAddress }: { walletAddress: string }
+        { walletAddress }: { walletAddress: string },
+        gifts: IGift[]
     ) {
         try {
             if (typeof txSignature !== 'string') {
@@ -54,31 +55,8 @@ class SolTransactionVerifier {
                 return { status: false, message: 'Invalid sender (fee payer mismatch)' };
             }
 
-
-            /* -------------------------------------------------
-               2️⃣ Extract Gift IDs from Memo (NOT trusted for amounts)
-            ------------------------------------------------- */
-            let giftIds: string[] = [];
-
-            for (const instr of txAny.message.instructions ?? []) {
-                if (
-                    instr.programId?.toString() === MEMO_PROGRAM_ID &&
-                    typeof instr.parsed === 'string'
-                ) {
-                    try {
-                        const parsed = JSON.parse(instr.parsed);
-                        if (Array.isArray(parsed?.giftIds)) {
-                            giftIds = parsed.giftIds;
-                            break;
-                        }
-                    } catch {
-                        /* ignore malformed memo */
-                    }
-                }
-            }
-
-            if (!giftIds.length) {
-                return { status: false, message: 'Gift IDs not found in memo' };
+            if (!gifts.length) {
+                return { status: false, message: 'Gifts not found' };
             }
 
             /* -------------------------------------------------
@@ -106,30 +84,26 @@ class SolTransactionVerifier {
             ------------------------------------------------- */
             const verifiedGifts = [];
 
-            for (const giftId of giftIds) {
-                const gift = await Gift.findById(giftId);
-                if (!gift) {
-                    return { status: false, message: `Gift ${giftId} not found` };
-                }
+            for (const gift of gifts) {
 
                 if (gift.status !== 'unverified') {
-                    return { status: false, message: `Gift ${giftId} already processed` };
+                    return { status: false, message: `Gift already processed` };
                 }
 
                 if (gift.senderWallet !== walletAddress) {
-                    return { status: false, message: `Sender mismatch for gift ${giftId}` };
+                    return { status: false, message: `Sender mismatch for gift` };
                 }
 
                 const matchIndex = transfers.findIndex(
                     t =>
-                        t.to === gift.receiverWallet &&
+                        t.to.toString() === gift.receiverWallet.toString() &&
                         t.lamports === gift.totalTokenAmount
                 );
 
                 if (matchIndex === -1) {
                     return {
                         status: false,
-                        message: `On-chain transfer not found for gift ${giftId}`,
+                        message: `On-chain transfer not found for gift`,
                     };
                 }
 
@@ -137,7 +111,7 @@ class SolTransactionVerifier {
                 transfers.splice(matchIndex, 1);
 
                 verifiedGifts.push({
-                    gift_db_id: giftId,
+                    gift_db_id: gift._id,
                     gift_obj_id: 'sol_tx_verified',
                     amount: gift.totalTokenAmount,
                 });
@@ -187,7 +161,7 @@ class SolTransactionVerifier {
                 status: true,
                 message: 'Transaction verified successfully',
                 giftObjs: verifiedGifts,
-                giftIds: giftIds,
+                giftIds: gifts.map((gift: any) => gift._id.toString()),
             };
         } catch (error: any) {
             return {

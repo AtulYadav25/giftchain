@@ -180,3 +180,28 @@ Transaction Digest: Awm4MAMjUDV4ETmu6xLN8Bfzq7EqTMbWF8kcGYVUXey7
 
 C:\Users\admin\Desktop\Projects\giftchain\giftchain-sui\giftchain>
 
+
+mongodb+srv://giftchain:ayplw11137414ay@giftchain.ahi8ftj.mongodb.net/?appName=giftchain
+
+
+
+
+{
+  "CLOUD_NAME": "dauu2",
+  "CLOUDINARY_API_KEY": "6263454",
+  "CLOUDINARY_API_SECRET": "9mtdUXCQVciQng",
+  "CLOUDINARY_CLOUD_NAME": "dac8c2",
+  "CMC_API_KEY": "d947f5c57db35d43585d9ebd96",
+  "COOKIE_SECRET": "co",
+  "FRONTEND_URL": "giftchain.fun",
+  "IMAGE_HOST": "https://resnary.com",
+  "JWT_REFRESH_SECRET": "shreeganh1079pav1106ATUL",
+  "JWT_SECRET": "shreeganesha9pav1106ATUL",
+  "MODULE_NAME": "gt",
+  "MONGO_URI": "mongodb+srv://g414ay@giftchain.ahi8ftj.mongodb.net/?appName=giftchain",
+  "PACKAGE_ID": "0x327f0d15715e4235b2800b272ca178d2853735856ff470bc9eb",
+  "REDIS_URL": "redis://default:U0Git1dqs5146MkCAdM@redis-11473.c61.us-east-1-3.ec2.cloud.redislabs.com:11473",
+  "SOL_FEE_COLLECTOR_ADDRESS": "9DW5sYmA91PrpvdkvUpnqx83CMadrKaYiQew",
+  "SUI_FEE_COLLECTOR_ADDRESS": "0x5c18d16ee8cd86e0d7a4a32f7713c92a615d88ae679abfac9",
+  "SUI_NETWORK": "mainnet"
+}

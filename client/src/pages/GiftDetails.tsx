@@ -119,8 +119,7 @@ export default function GiftDetails() {
 
     const getExplorerLink = () => {
         if (gift.tokenSymbol === 'sol') {
-            // Assuming devnet for now, or use mainnet based on env. Let's make it generic or default to solscan
-            // If we had a chain config, we'd use that. For now, defaulting to solscan.io
+            //Might need to change this link for development, this is only for mainnet
             return `https://solscan.io/tx/${gift.deliveryTxHash || gift.senderTxHash}`;
         } else {
             // SUI

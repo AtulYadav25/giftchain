@@ -1,15 +1,15 @@
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import { isValidTransactionDigest } from '@mysten/sui/utils';
 import { getClient } from './sui';
+import { config } from '../config/env';
 
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const SUI_NETWORK = process.env.SUI_NETWORK; // Store securely in environment variables
-const MODULE_NAME = process.env.MODULE_NAME
-const PACKAGE_ID = process.env.PACKAGE_ID
+const MODULE_NAME = config.MODULE_NAME
+const PACKAGE_ID = config.PACKAGE_ID
 
 
 //Types
@@ -25,8 +25,8 @@ interface GiftSentEvent {
 
 class SuiTransactionVerifier {
     client: SuiClient;
-    constructor(network = SUI_NETWORK) {
-        this.client = getClient('testnet');
+    constructor() {
+        this.client = getClient();
     }
 
     async verifyTransaction(txDigest, { walletAddress, giftId }: { walletAddress: string, giftId: string }, options = { maxAgeMinutes: 10 }) {

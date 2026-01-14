@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import { config } from './config/env';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { errorHandler } from './middlewares/errorHandler';
 
@@ -18,13 +19,23 @@ const app = fastify({ logger: false });
 app.register(rateLimit, {
     max: 60,
     timeWindow: '1 minute',
-    keyGenerator: (req) =>
-        req.user?.address || req.cookies?.session || req.ip,
+    keyGenerator: (req) => req.cookies?.session || req.ip,
 });
 
-// Plugins
+const environment = config.NODE_ENV; // or use process.env.NODE_ENV
+
+const allowedOrigins = [
+    'https://giftchain.fun',
+    'https://www.giftchain.fun'
+];
+
+if (environment === 'development') {
+    allowedOrigins.push('http://localhost:5173');
+    allowedOrigins.push('http://localhost:5174');
+}
+
 app.register(cors, {
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://10.169.181.197:5173/', 'http://192.168.13.197:5173/'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
 });
@@ -38,7 +49,7 @@ app.register(multipart, {
 });
 
 app.register(cookie, {
-    secret: process.env.COOKIE_SECRET,
+    secret: config.COOKIE_SECRET,
     hook: 'onRequest'
 });
 

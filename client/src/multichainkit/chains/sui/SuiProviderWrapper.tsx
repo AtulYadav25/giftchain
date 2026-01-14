@@ -14,9 +14,11 @@ const { networkConfig } = createNetworkConfig({
 const queryClient = new QueryClient();
 
 export const SuiProviderWrapper = ({ children }: { children: React.ReactNode }) => {
+    const SUI_NETWORK: 'mainnet' | 'testnet' | 'localnet' = import.meta.env.VITE_SUI_NETWORK;
+
     return (
         <QueryClientProvider client={queryClient}>
-            <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet" >
+            <SuiClientProvider networks={networkConfig} defaultNetwork={SUI_NETWORK || 'testnet'} >
                 <WalletProvider autoConnect>
                     {children}
                 </WalletProvider>
