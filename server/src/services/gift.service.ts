@@ -4,7 +4,7 @@ import { getClient } from '../utils/sui';
 import { createHash } from 'crypto';
 import { extractImagePublicId } from '../utils/imageHelper';
 
-const client = getClient('testnet');
+const client = getClient();
 
 export const createGift = async (senderId: string, data: any, chain: string, senderWallet: string) => {
     const gift = await Gift.create({
@@ -493,36 +493,39 @@ export const resolveRecipients = async (
     usernames: string[],
     chain?: string
 ) => {
-    // 1️⃣ Fetch matching users
-    const query: any = {
-        username: { $in: usernames },
-    };
+    if (usernames.length > 15) {
+        throw new Error("Too many recipients (max: 15)");
+    }
 
+    // normalize once
+    const normalized = usernames.map(u => u.toLowerCase());
+
+    // DB query
+    const query: Record<string, any> = {
+        usernameLower: { $in: [...new Set(normalized)] },
+    };
     if (chain) query.chain = chain;
 
     const users = await User.find(query).select("username address");
 
-    // 2️⃣ Build lookup map
-    const userMap = new Map(
-        users.map(user => [user.username, user.address])
+    // map for quick lookup
+    const userMap = new Map<string, string>(
+        users.map(user => [user.username.toLowerCase(), user.address])
     );
 
-    // 3️⃣ Detect invalid usernames
+    // detect invalid + build resolved in correct order
     const invalidUsernames: { username: string; index: number }[] = [];
+    const resolved: { username: string; address: string }[] = [];
 
     usernames.forEach((username, index) => {
-        if (!userMap.has(username)) {
+        const addr = userMap.get(username.toLowerCase());
+
+        if (addr) {
+            resolved.push({ username, address: addr });
+        } else {
             invalidUsernames.push({ username, index });
         }
     });
 
-    // 4️⃣ Return both (DO NOT throw)
-    return {
-        resolved: users.map(u => ({
-            username: u.username,
-            address: u.address,
-        })),
-        invalidUsernames,
-    };
+    return { resolved, invalidUsernames };
 };
-
