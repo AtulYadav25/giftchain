@@ -1,45 +1,53 @@
-# GiftChain Backend
+# Giftchain Server
 
-Full backend server for GiftChain application.
+The centralized API for Giftchain that augments the on-chain activity. It manages user data, gift metadata (messages, themes), and verifies blockchain transactions for both Sui and Solana.
+
+## Key Features
+
+- **Multi-Chain Verification**:
+  - **Sui**: Verifies transactions by checking for `GiftSent` events emitted by the Move package.
+  - **Solana**: Verifies transactions by decoding the Memo instruction linked to the signature.
+- **User Profiles**: Links Sui and Solana addresses to a single user identity.
+- **Gift Metadata**: Stores off-chain data like personal messages and unwrap status.
 
 ## Tech Stack
-- Node.js & Fastify
-- TypeScript
-- MongoDB (Mongoose)
-- Redis (Optional, not implemented in base v1)
-- Zod Validation
-- JWT Auth
-- Sui SDK
-- Ika SDK (Solana MPC)
 
-## Setup
+- **Node.js**: Runtime environment.
+- **Fastify**: High-performance web framework.
+- **MongoDB**: Primary data store.
+- **Mongoose**: ODM for MongoDB.
+- **Zod**: Runtime type validation.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Environment Variables
 
-2. Configure Environment:
-   Copy `.env.example` to `.env` and fill in:
-   - `MONGO_URI`
-   - `JWT_SECRET`
-   - `SUI_PRIVATE_KEY`
-   - `IKA_PRIVATE_KEY`
+Copy `.env.example` to `.env`. key variables:
 
-3. Run Development Server:
-   ```bash
-   npm run dev
-   ```
+```ini
+# Core
+PORT=5000
+MONGO_URI=mongodb://localhost:27017/giftchain
+JWT_SECRET=supersecret
 
-4. Build for Production:
-   ```bash
-   npm run build
-   npm start
-   ```
+# Networks
+SUI_NETWORK=testnet
+SOLANA_NETWORK=testnet
 
-## API Structure
+# Sui Specific
+PACKAGE_ID=0x... # The ID of the deployed Move package
 
-- `/auth/*`: Login, Signup, Me
-- `/gifts/*`: Send, Receive, Open
-- `/wrappers/*`: Upload, View
-- `/payments/*`: SUI/SOL Blockchain operations
+# Solana Specific
+# (Validation relies on public RPCs defined in code or utils)
+```
+
+## Transaction Verification
+
+The server uses specialized utility classes for verification:
+- `src/utils/solanaTxVerifier.ts`: Fetches tx from RPC, decodes Memo, matches amounts.
+- `src/utils/suiTxVerifier.ts`: Queries events from Sui RPC filtered by Package ID.
+
+## Running Development
+
+```bash
+npm install
+npm run dev
+```
