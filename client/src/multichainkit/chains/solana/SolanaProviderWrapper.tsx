@@ -1,15 +1,13 @@
 
 import React, { useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-// import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export const SolanaProviderWrapper = ({ children }: { children: React.ReactNode }) => {
     // You can also use 'mainnet-beta'
-    const testnetRPCNetwork = WalletAdapterNetwork.Testnet;
+    const testnetRPCNetwork = 'https://api.testnet.solana.com';
 
     const envNetwork: 'testnet' | 'mainnet' = import.meta.env.VITE_SOLANA_NETWORK
 
