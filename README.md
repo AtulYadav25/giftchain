@@ -138,3 +138,7 @@ To start the full stack locally:
 1. **Start MongoDB** (if local).
 2. **Start Backend** (`npm run dev` in `/server`).
 3. **Start Frontend** (`npm run dev` in `/client`).
+
+## License
+
+This project is licensed under the Apache License 2.0.
