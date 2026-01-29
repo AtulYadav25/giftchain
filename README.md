@@ -1,6 +1,6 @@
 # Giftchain
 
-**Giftchain** - Alternative to (BuyMeACoffee / Patreon) Like Platforms to Support Creators with Crypto on-chain
+**Giftchain** - An alternative approach to platforms like BuyMeACoffee or Patreon to Support Creators with Crypto on-chain
 
 **Giftchain** is a multi-chain web application that enables users to send digital gifts using **Sui** and **Solana** blockchains. It features a unified interface for gifting, where users can send crypto gifts wrapped in digital visuals, which are then revealed by the recipient.
 
